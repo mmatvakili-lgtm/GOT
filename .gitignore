@@ -1,0 +1,43 @@
+## Build and Cache Folders
+.gradle/
+build/
+*/build/
+out/
+bin/
+*/bin/
+
+## Gradle Distribution & JDK caches in project root
+gradle-8.14.1/
+gradle-8.14.1-bin.zip
+wrapper/dists/
+.tmp/
+
+## IDE and Editor files
+.idea/
+*.iml
+*.ipr
+*.iws
+.settings/
+.classpath
+.project
+.metadata/
+
+## OS specific
+.DS_Store
+Thumbs.db
+
+## Logs & Crash dumps
+*.log
+hs_err_pid*
+replay_*.rep
+
+## Dynamic local game data (keep assets clean)
+assets/GAMES/
+assets/users/
+assets/games.txt
+assets/users_index.txt
+assets/assets.txt
+
+## Temporary Archives
+got.zip
+status.txt
