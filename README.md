@@ -89,6 +89,7 @@ Clone the repository and run using the Gradle wrapper:
 `bash
 # Clone the repository
 git clone [https://github.com/mmatvakili-lgtm/GOT.git](https://github.com/mmatvakili-lgtm/GOT.git)
+
 cd GOT
 
 # Run the desktop application (Windows)
