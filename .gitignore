@@ -41,3 +41,7 @@ assets/assets.txt
 ## Temporary Archives
 got.zip
 status.txt
+
+assets/images/background
+assets/images/background.psd
+*.psd
