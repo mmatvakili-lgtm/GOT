@@ -1,58 +1,72 @@
 package com.yourname.got.logic.system;
 
-import com.yourname.got.logic.model.GameOfThrones;
+import com.badlogic.gdx.Gdx;
 import com.yourname.got.logic.login.GameUser;
-import com.yourname.got.mediator.GameMediator; // << ۱. این import را اضافه کنید
-// File: GameLoopManager.java
+import com.yourname.got.logic.model.GameOfThrones;
 import com.yourname.got.logic.system.KingdomUpdater.UpdateResult;
-import java.io.Serializable;
+import com.yourname.got.mediator.GameMediator;
 
-public class GameLoopManager extends Thread implements Serializable {
+import java.util.concurrent.atomic.AtomicBoolean;
+
+/**
+ * Ticks the game every few seconds.
+ *
+ * The thread itself only sleeps. Every tick is executed on the libGDX render thread
+ * (via Gdx.app.postRunnable), the same thread that handles button clicks and drawing, so
+ * the game state is never modified from two threads at once. If the previous tick has not
+ * run yet (e.g. the window is paused) the new tick is skipped instead of piling up.
+ * Without libGDX (headless tests) the tick simply runs on the loop thread.
+ */
+public class GameLoopManager extends Thread {
     private final GameUserList userList;
     private final GameMediator mediator;
     private final int tickMillis = 5000;
+    private final AtomicBoolean tickPending = new AtomicBoolean(false);
+    private volatile boolean stopRequested = false;
+    private final GameOfThrones game;
+    private final int userId;
 
     public GameLoopManager(GameUserList users, GameMediator mediator) {
         this.userList = users;
         this.mediator = mediator;
+        GameUser first = (users != null && !users.isEmpty()) ? users.get(0) : null;
+        this.game = (first != null) ? first.getGame() : null;
+        this.userId = (first != null) ? first.getId() : -1;
+        setName("GameLoop");
+    }
+
+    /** True if this loop already drives the given game for the given user. */
+    public boolean isRunningFor(GameOfThrones g, int uid) {
+        return isAlive() && !stopRequested && g == this.game && uid == this.userId;
+    }
+
+    /** Asks the loop to end as soon as possible. */
+    public void requestStop() {
+        stopRequested = true;
+        interrupt();
     }
 
     @Override
-    // In file: GameLoopManager.java
-
-
     public void run() {
-        // یک بار در ابتدا بازی را بگیرید
-        GameOfThrones game = null;
-        if (!userList.isEmpty()) {
-            game = userList.get(0).getGame();
-        }
-
         if (game == null) {
             System.err.println("GameLoopManager: Game instance is null. Loop will not start.");
             return;
         }
 
-        // حلقه را تا زمانی ادامه بده که بازی تمام نشده باشد
-
-        while (!game.isFinished()) {
-            GameUpdater.updateGlobalState(game);
-
-            userList.forEach(user -> {
-                synchronized (user) {
-                    // >> START OF MODIFICATION <<
-                    // Capture the result from the update process
-                    UpdateResult result = GameUpdater.updateUser(user, this.mediator);
-
-                    // If the result indicates a visual change, trigger a UI refresh via the mediator
-                    if (result != null && result.visualsChanged) {
-                        mediator.triggerUIRefresh(user.getId());
-                    }
-                    // >> END OF MODIFICATION <<
+        while (!game.isFinished() && !stopRequested) {
+            if (Gdx.app != null) {
+                if (tickPending.compareAndSet(false, true)) {
+                    Gdx.app.postRunnable(() -> {
+                        try {
+                            if (!stopRequested) tick();
+                        } finally {
+                            tickPending.set(false);
+                        }
+                    });
                 }
-            });
-
-            game.getBazar().autoSeedGenericOffersIfDue(game.getGameTime());
+            } else {
+                tick();
+            }
 
             try {
                 Thread.sleep(tickMillis);
@@ -60,25 +74,27 @@ public class GameLoopManager extends Thread implements Serializable {
                 break;
             }
         }
-//        while (!game.isFinished()) { // << تغییر کلیدی
-//            GameUpdater.updateGlobalState(game);
-//
-//            userList.forEach(user -> {
-//                synchronized (user) {
-//                    GameUpdater.updateUser(user, this.mediator);
-//                }
-//            });
-//
-//            game.getBazar().autoSeedGenericOffersIfDue(game.getGameTime());
-//
-//            try {
-//                Thread.sleep(tickMillis);
-//            } catch (InterruptedException ignored) {
-//                // اگر ترد متوقف شد، حلقه را بشکن
-//                break;
-//            }
-//        }
+        System.out.println("Game loop has gracefully ended.");
+    }
 
-        System.out.println("Game loop has gracefully ended. Game is over.");
+    /** One game tick. Always runs on a single thread (see class comment). */
+    private void tick() {
+        try {
+            GameUpdater.updateGlobalState(game);
+
+            userList.forEach(user -> {
+                UpdateResult result = GameUpdater.updateUser(user, this.mediator);
+                if (result != null && result.visualsChanged) {
+                    mediator.triggerUIRefresh(user.getId());
+                }
+            });
+
+            if (game.getBazar() != null) {
+                game.getBazar().autoSeedGenericOffersIfDue(game.getGameTime());
+            }
+        } catch (Exception e) {
+            System.err.println("!!! Error during game tick !!!");
+            e.printStackTrace();
+        }
     }
 }

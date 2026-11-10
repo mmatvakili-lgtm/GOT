@@ -13,39 +13,6 @@ import java.io.Serializable;
 
 public class GameUpdater implements Serializable {
 
-//    public static void updateUser(GameUser user, GameMediator mediator) {
-//        if (user == null || user.getGame() == null || mediator == null) {
-//            return;
-//        }
-//
-//        GameOfThrones game = user.getGame();
-//        try {
-//            // آپدیت‌های روتین پادشاهی مثل قبل انجام می‌شود
-//            MyLinkedList<String> kingdomMessages = KingdomUpdater.updateKingdom(user.getKingdom(), game.getSpeed());
-//            for (String message : kingdomMessages) {
-//                GameMediator.sendGlobalMessage(message);
-//            }
-//            game.getBazar().autoSeedSoldierOffersIfDue(user.getKingdom(), game.getGameTime());
-//
-//        } catch (Exception e) {
-//            System.err.println("!!! An error occurred during GameUpdater.updateUser for user: " + user.getUsername());
-//            e.printStackTrace();
-//        }
-//
-//        // *** START OF MODIFICATION (راه حل جدید و مرکزی) ***
-//        // پس از هر آپدیت، وضعیت قلعه کاربر را چک می‌کنیم
-//        if (user.getKingdom() != null &&
-//            user.getKingdom().getCastle() != null &&
-//            user.getKingdom().getCastle().isDestroyed()) {
-//
-//            // متد هدفمند را با آیدی کاربر شکست‌خورده فراخوانی می‌کنیم تا پنل فقط برای او نمایش داده شود
-//            mediator.triggerDefeatPanelDisplay(user.getId());
-//        }
-//        // *** END OF MODIFICATION ***
-
-    // File: GameUpdater.java
-
-    // >> CHANGE THIS METHOD'S SIGNATURE AND LOGIC <<
     public static UpdateResult updateUser(GameUser user, GameMediator mediator) {
         if (user == null || user.getGame() == null || mediator == null) {
             return new UpdateResult(new MyLinkedList<>(), false); // Return a default empty result

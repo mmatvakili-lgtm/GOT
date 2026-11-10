@@ -126,6 +126,7 @@ public class GameHistoryScreen implements Screen {
         playersTable.defaults().pad(3).align(Align.center);
         playersTable.add(new Label("Rank", skin)).padRight(15);      // No more "default-bold"
         playersTable.add(new Label("Player", skin)).width(150);     // No more "default-bold"
+        playersTable.add(new Label("Score", skin)).width(80);
         playersTable.add(new Label("Status", skin)).width(120).row(); // No more "default-bold"
         // --- END OF FIX ---
 
@@ -133,8 +134,12 @@ public class GameHistoryScreen implements Screen {
         MyLinkedList<PlayerResult> playerResults = record.getPlayerResults();
         if(playerResults != null && !playerResults.isEmpty()) {
             for (PlayerResult result : playerResults) {
-                playersTable.add(new Label(String.valueOf(rank++), skin)).padRight(15);
+                // Use the stored rank (older saved records may have 0 there: fall back to list order).
+                int shownRank = result.getFinalRank() > 0 ? result.getFinalRank() : rank;
+                rank++;
+                playersTable.add(new Label(String.valueOf(shownRank), skin)).padRight(15);
                 playersTable.add(new Label(result.getUsername(), skin));
+                playersTable.add(new Label(String.valueOf(result.getScore()), skin));
                 Label statusLabel = new Label(result.getStatus().toString(), skin);
                 if (result.getStatus() == PlayerResult.PlayerStatus.WINNER) statusLabel.setColor(Color.GOLD);
                 if (result.getStatus() == PlayerResult.PlayerStatus.SURVIVED) statusLabel.setColor(Color.GREEN);

@@ -332,17 +332,57 @@ public class Kingdom implements Serializable {
     }
 
 public int getTotalSoldierCapacity() {
+    // Only camps that are really built (and not destroyed) provide room.
+    // Camps that are still under construction must not count (they used to).
     int totalCapacity = 0;
     if (this.buildings == null) {
         return 0;
     }
     for (Building b : this.buildings) {
-        if (b instanceof Camp && !b.isDestroyed()) {
-            totalCapacity += ((Camp) b).getMaxCapacity();
+        if (b instanceof Camp camp && camp.isBuilt() && !camp.isDestroyed()) {
+            totalCapacity += camp.getMaxCapacity();
         }
     }
     return totalCapacity;
 }
+
+    /**
+     * Soldiers that are currently away from home on one of this kingdom's own
+     * (not yet finished) attack missions. They still occupy camp space.
+     */
+    public int getDeployedSoldierCount() {
+        if (owner == null || owner.getGame() == null) return 0;
+        MyLinkedList<Mission> missions = owner.getGame().getMissions();
+        if (missions == null) return 0;
+        int total = 0;
+        for (Mission m : missions) {
+            if (m == null || m.isCompleted() || m.getAttacker() == null) continue;
+            if (m.getAttacker().getId() != owner.getId()) continue;
+            SoldierUnit[] troops = m.getAttackerTroops();
+            if (troops == null) continue;
+            for (SoldierUnit u : troops) {
+                if (u != null) total += u.getCount();
+            }
+        }
+        return total;
+    }
+
+    /** Every soldier this kingdom owns: at home + away on missions. */
+    public int getOwnedSoldierCount() {
+        int atHome = (armyManager != null) ? armyManager.getTotalSoldier() : 0;
+        return atHome + getDeployedSoldierCount();
+    }
+
+    /** Free camp slots, NOT counting soldiers still waiting in the training queue. */
+    public int getFreeSoldierSlots() {
+        return Math.max(0, getTotalSoldierCapacity() - getOwnedSoldierCount());
+    }
+
+    /** Free camp slots after reserving one slot for every soldier already queued for training. */
+    public int getFreeTrainingSlots() {
+        int queued = (trainingQueue != null) ? trainingQueue.getSize() : 0;
+        return Math.max(0, getFreeSoldierSlots() - queued);
+    }
 
     public void detuctResources(int wood, int stone, int coin , int food) {
         spendResources("Wood", wood);
@@ -383,13 +423,7 @@ public int getTotalSoldierCapacity() {
     }
 
     public int getTotalFreeCampCapacity() {
-        int totalCapacity = 0;
-        for (Building b : this.buildings) {
-            if (b instanceof Camp camp && camp.isBuilt()) {
-                totalCapacity += camp.getFreeCapacity();
-            }
-        }
-        return totalCapacity;
+        return getFreeSoldierSlots();
     }
 
     public int countBuildingsOfType(String buildingType) {

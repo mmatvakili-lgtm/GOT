@@ -53,13 +53,6 @@ public class GameMediator {
 
     }
 
-//    public interface GamePanelPresenter {
-//        void showDefeatPanel();
-//        void showGameResultsPanel(GameRecord record);
-//        void disablePlayerControlsForObservation();
-//    }
-
-    // File: GameMediator.java
 
     public interface GamePanelPresenter {
         void showDefeatPanel();
@@ -288,7 +281,6 @@ public class GameMediator {
         public final GameUser receiver; // <--- این خط را اضافه کنید
 
 
-
         public NoticeInfo(int id, String title, String senderName, GameUser receiver, String body, String timestamp, boolean isRead, boolean isSystemNotice) { // <--- پارامتر GameUser receiver را به کانستراکتور اضافه کنید
             this.id = id;
             this.title = title;
@@ -406,61 +398,6 @@ public class GameMediator {
             return false;
         }
     }
-// In file: GameMediator.java
-
-//    public void login(String username, String password) {
-//        if (username.isEmpty() || password.isEmpty()) {
-//            sendMessage("Username and password cannot be empty");
-//            return;
-//        }
-//
-//        Result result = userSystem.login(username, password);
-//
-//        sendMessage(result.getMessage());
-//
-//        if (result.isSuccess()) {
-//            this.currentUser = (GameUser) result.getGameInstance();
-//
-//            if (currentUser.getInGame() && currentUser.getGame() != null) {
-//                GameOfThrones activeGame = GameFileUtility.loadGame(
-//                    currentUser.getGame().getName(),
-//                    currentUser.getGame().getId()
-//                );
-//
-//                if (activeGame != null) {
-//                    // *** START OF MODIFICATION ***
-//                    // اول بررسی کن که آیا بازی تمام شده است یا خیر
-//                    if (activeGame.isFinished()) {
-//                        sendMessage("Your previous game has ended. Showing the final results...");
-//                        this.currentGame = activeGame; // << context بازی را برای مدیاTور تنظیم کن
-//
-//                        // به یک صفحه امن برو (مثل لودینگ) تا پنل نتایج روی آن نمایش داده شود
-//                        goToGameLoading();
-//
-//                        // این دستور تضمین می‌کند که پنل پس از نمایش صفحه لودینگ فراخوانی شود
-//                        Gdx.app.postRunnable(this::triggerResultsPanelDisplay);
-//                        return; // << از ادامه منطق جلوگیری کن
-//                    }
-//                    // *** END OF MODIFICATION ***
-//
-//                    // اگر بازی تمام نشده بود، آن را ادامه بده
-//                    if (activeGame.isGameReady()) {
-//                        this.currentGame = activeGame;
-//                        sendMessage("Resuming your active game...");
-//                        initiateGameSession(activeGame);
-//                        goToGamePlayScreen();
-//                        return;
-//                    }
-//                }
-//            }
-//
-//            // اگر هیچ بازی فعال یا تمام‌شده‌ای وجود نداشت، به لابی برو
-//            goToGameLoading();
-//        }
-//    }
-    // در فایل GameMediator.java
-
-    // متد login را با این نسخه امن جایگزین کنید
     public void login(String username, String password) {
         if (username.isEmpty() || password.isEmpty()) {
             sendMessage("Username and password cannot be empty");
@@ -539,21 +476,21 @@ public class GameMediator {
             return new Result(false, "No active user. Please log in.");
         }
 
-        if (!currentUser.getPassword().equals(currentPassword)) {
+        if (!com.yourname.got.logic.login.PasswordUtil.matches(currentPassword, currentUser.getPassword())) {
             return new Result(false, "Current password is incorrect.");
         }
 
         if (newPassword == null || newPassword.trim().isEmpty()) {
             return new Result(false, "New password cannot be empty.");
         }
-        if (newPassword.length() < 4) {
-            return new Result(false, "New password must be at least 6 characters long.");
+        if (!newPassword.matches("\\d{4}")) {
+            return new Result(false, "New password must be exactly 4 digits.");
         }
         if (!newPassword.equals(confirmNewPassword)) {
             return new Result(false, "New password and confirmation do not match.");
         }
 
-        currentUser.setPassword(newPassword);
+        currentUser.setPassword(com.yourname.got.logic.login.PasswordUtil.hash(newPassword));
 
         UserSystem.updateUser(currentUser);
 
@@ -746,57 +683,6 @@ public class GameMediator {
         return currentUserTime < gameStartTime;
     }
 
-    // In file: GameMediator.java
-
-//    public void initiateGameSession(GameOfThrones game) {
-//        if (game == null) {
-//            sendMessage("Error: Cannot start session for a null game.");
-//            return;
-//        }
-//
-//        if (isTimeCheating(game)) {
-//            sendMessage(" [ANTI-CHEAT]  Your system time is invalid. Access to the game is blocked.");
-//            if (currentUser != null) {
-//                currentUser.setInGame(false);
-//                currentUser.setGame(null);
-//                userSystem.updateUser(currentUser);
-//            }
-//            goToGameJoin();
-//            return;
-//        }
-//
-//        if (game.getRulesManager() == null) {
-//            game.setRulesManager(new GameRulesManager(game));
-//        }
-//
-//        this.currentGame = game;
-//
-//        sendMessage("Welcome to the game!");
-//
-//        // --- START OF THE DEFINITIVE FIX ---
-//        // بعد از بارگذاری بازی و قبل از نمایش صفحه، وضعیت بازیکن را چک می‌کنیم
-//        GameOfThrones.PlayerState playerState = currentGame.getPlayerState(currentUser.getId());
-//
-//        // اگر وضعیت بازیکن "شکست خورده" باشد...
-//        if (playerState != null && playerState.status == GameOfThrones.PlayerStatus.DEFEATED) {
-//
-//            // به صفحه بازی می‌رویم، اما...
-//            goToGamePlayScreen();
-//
-//            // ...بلافاصله به UI دستور می‌دهیم که پنل شکست را برای این بازیکن نمایش دهد.
-//            // Gdx.app.postRunnable تضمین می‌کند که این دستور بعد از ساخته شدن کامل صفحه اجرا شود.
-//            Gdx.app.postRunnable(() -> {
-//                if (panelPresenter != null) {
-//                    panelPresenter.showDefeatPanel();
-//                }
-//            });
-//
-//        } else {
-//            // اگر بازیکن شکست نخورده بود، به صورت عادی وارد بازی شو
-//            goToGamePlayScreen();
-//        }
-//        // --- END OF THE DEFINITIVE FIX ---
-//    }
 public void initiateGameSession(GameOfThrones game) {
     System.out.println("LOG: Initiating Game Session..."); // لاگ دیباگ
 
@@ -843,19 +729,35 @@ public void initiateGameSession(GameOfThrones game) {
     }
 }
     public void startLoopManager() {
+        if (currentGame == null || currentUser == null) return;
+        GameUser me = currentGame.getUser(currentUser.getId());
+        if (me == null) return;
+
         if (gameLoopManager != null && gameLoopManager.isAlive()) {
-            System.out.println("INFO: Game loop is already running.");
-            return;
+            if (gameLoopManager.isRunningFor(currentGame, me.getId())) {
+                System.out.println("INFO: Game loop is already running.");
+                return;
+            }
+            // A loop of another game / another user is still running: stop it first,
+            // otherwise two loops would update the game twice per tick.
+            gameLoopManager.requestStop();
         }
 
         System.out.println("INFO: Starting GameLoopManager thread...");
         GameUserList list = new GameUserList();
-        list.add(currentGame.getUser(currentUser.getId()));
-        GameLoopManager loop = new GameLoopManager(list,this);
+        list.add(me);
+        GameLoopManager loop = new GameLoopManager(list, this);
         loop.setDaemon(true);
+        gameLoopManager = loop;
         loop.start();
-        System.out.println("thereds start in start !!!!!!!!!");
+    }
 
+    /** Stops the running game loop (call when the player leaves the game or logs out). */
+    public void stopLoopManager() {
+        if (gameLoopManager != null) {
+            gameLoopManager.requestStop();
+            gameLoopManager = null;
+        }
     }
 
 
@@ -1605,25 +1507,7 @@ public void initiateGameSession(GameOfThrones game) {
     }
 
     public Result trainSoldiers(SoldierType type, int quantity, Kingdom kingdom, int gameSpeed) {
-        if (quantity <= 0) {
-            return new Result(false, "Quantity must be positive.");
-        }
-
-        int totalWood = type.woodCost * quantity;
-        int totalStone = 0;
-        int totalFood = type.foodCost * quantity;
-        int totalCoin = type.coinCost * quantity;
-
-        if (!kingdom.canAffordResources(totalWood, totalStone, totalCoin, totalFood)) {
-            return new Result(false, "Not enough resources to train " + quantity + " " + type.name());
-        }
-
-        kingdom.detuctResources(totalWood, totalStone, totalCoin, totalFood);
-
-        TrainingTask task = new TrainingTask(type, currentGame.getOwner().getKingdom(), quantity, gameSpeed);
-        kingdom.getTrainingQueue().add(task);
-
-        return new Result(true, "Training for " + quantity + " " + type.name() + " has been added to the queue.");
+        return kingdom.getArmyManager().trainSoldiers(type, quantity, kingdom, gameSpeed);
     }
 
     public int getSoldierCountByType(SoldierType type) {
@@ -1647,7 +1531,7 @@ public void initiateGameSession(GameOfThrones game) {
         Kingdom kingdom = userInGame.getKingdom();
         ArmyManager armyManager = kingdom.getArmyManager();
 
-        int currentCount = (armyManager != null) ? armyManager.getTotalSoldier() : 0;
+        int currentCount = kingdom.getOwnedSoldierCount();
         int totalCapacity = kingdom.getTotalSoldierCapacity(); // فراخوانی متد جدید
 
         return String.format("Total Soldiers: %d / %d", currentCount, totalCapacity);

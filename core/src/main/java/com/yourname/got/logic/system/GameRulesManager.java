@@ -36,7 +36,7 @@ public class GameRulesManager implements Serializable {
     }
 
     private void sendMessage(String msg) {
-        if (uiMediator != null) {
+        if (uiMediator != null && messageListener != null) {
             messageListener.onMessage(msg);
         } else {
             System.out.println("[UI Missing] " + msg);
@@ -57,6 +57,16 @@ public class GameRulesManager implements Serializable {
 
 
     public Result canAttack(GameUser attacker, GameUser defender, AttackType attackType) {
+        if (attacker == null || defender == null) {
+            return new Result(false, "Internal Error: Player is not valid.");
+        }
+        if (attacker.getId() == defender.getId()) {
+            return new Result(false, "You cannot attack yourself.");
+        }
+        GameOfThrones.PlayerState attackerState = game.getPlayerState(attacker.getId());
+        if (attackerState != null && attackerState.status == GameOfThrones.PlayerStatus.DEFEATED) {
+            return new Result(false, "A defeated player cannot attack.");
+        }
         if (isSpringSeason() || isWinterSeason()) {
             return new Result(false, "Attacks are not allowed in the " + getCurrentSeason() + " season.");
         }
@@ -64,9 +74,6 @@ public class GameRulesManager implements Serializable {
         if (defenderState != null && defenderState.status == GameOfThrones.PlayerStatus.DEFEATED) {
             // اگر شکست خورده است، اجازه حمله نده
             return new Result(false, "This player has already been defeated and cannot be attacked.");
-        }
-        if (attacker == null || defender == null) {
-            return new Result(false, "Internal Error: Player is not valid.");
         }
         if (!attacker.isActive() || !defender.isActive()) {
             return new Result(false, "One of the players is inactive.");
@@ -110,15 +117,17 @@ public class GameRulesManager implements Serializable {
     }
 
     private int getAllowedBuildingCount(String buildingType, int castleLevel) {
-        return switch (buildingType) {
-            case "Mine" -> getAllowedMineCount(castleLevel);
-            case "Storage" -> getAllowedStorageCount(castleLevel);
-            case "Gate" -> (castleLevel >= 1) ? 1 : 0;
-            case "Defensive Tower" -> (castleLevel >= 2) ? castleLevel - 1 : 0;
-            case "Barrack" -> (castleLevel >= 3) ? 1 : 0;
-            case "Camp" -> (castleLevel >= 3) ? castleLevel - 2 : 0;
-            case "CrowTower" -> (castleLevel >= 3) ? 1 : 0;
-            case "Transport" -> (castleLevel >= 4) ? 1 : 0;
+        // Accept "Defensive Tower", "DefensiveTower", "defensive tower"... (the UI and the classes disagree on spacing)
+        String key = buildingType == null ? "" : buildingType.replace(" ", "").toLowerCase();
+        return switch (key) {
+            case "mine" -> getAllowedMineCount(castleLevel);
+            case "storage" -> getAllowedStorageCount(castleLevel);
+            case "gate" -> (castleLevel >= 1) ? 1 : 0;
+            case "defensivetower" -> (castleLevel >= 2) ? castleLevel - 1 : 0;
+            case "barrack" -> (castleLevel >= 3) ? 1 : 0;
+            case "camp" -> (castleLevel >= 3) ? castleLevel - 2 : 0;
+            case "crowtower" -> (castleLevel >= 3) ? 1 : 0;
+            case "transport" -> (castleLevel >= 4) ? 1 : 0;
             default -> 0;
         };
     }
@@ -171,7 +180,7 @@ public class GameRulesManager implements Serializable {
         else {
             int currentCount = 0;
             for (Building b : kingdom.getBuildings()) {
-                if (b.getClass().getSimpleName().equalsIgnoreCase(buildingType)) {
+                if (b.getClass().getSimpleName().equalsIgnoreCase(buildingType.replace(" ", ""))) {
                     currentCount++;
                 }
             }

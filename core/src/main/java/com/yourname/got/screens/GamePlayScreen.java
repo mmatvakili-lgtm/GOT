@@ -559,220 +559,9 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
     }
 
 
-//    private void toggleTileSelection(int r, int c) {
-//        // ۱. محاسبه آفست (دقیقاً مثل متد render)
-//        GameUser userInGame = mediator.getCurrentGame().getUser(currentUser.getId());
-//        if (userInGame == null || userInGame.getKingdom() == null) return;
-//
-//        int mapRows = userInGame.getKingdom().getUserMap().getLength();
-//        int mapCols = userInGame.getKingdom().getUserMap().getWidth();
-//
-//        // محاسبه فاصله برای وسط‌چین کردن
-//        int offsetRow = (mapRows - GRID_SIZE) / 2;
-//        int offsetCol = (mapCols - GRID_SIZE) / 2;
-//
-//        // ۲. محاسبه مختصات واقعی در نقشه
-//        // این مختصات دقیقاً همان چیزی است که در دیتابیس/آرایه اصلی ذخیره می‌شود
-//        int realRow = r + offsetRow;
-//        int realCol = c + offsetCol;
-//
-//        // --- مدیریت ساخت‌وساز ---
-//        if (buildingTypeToPlace != null) {
-//            // اصلاح: حذف +1. آفست خودش محاسبه شده است.
-//            int buildX = realRow;
-//            int buildY = realCol;
-//
-//            addSystem("Attempting to build " + buildingTypeToPlace + " at (" + buildX + ", " + buildY + ")...");
-//            Result result = mediator.buildBuilding(buildingTypeToPlace, resourceTypeToPlace, buildX, buildY);
-//
-//            if (result.isSuccess()) {
-//                addSystem("SUCCESS: " + result.getMessage());
-//                buildingTypeToPlace = null;
-//                resourceTypeToPlace = null;
-//                renderTilesAndUpdate();
-//                clearSelection();
-//            } else {
-//                addError("ERROR: " + result.getMessage());
-//            }
-//            return;
-//        }
-//
-//        // --- مدیریت جابه‌جایی ---
-//        if (buildingToMove != null) {
-//            // اصلاح: حذف +1
-//            int newX = realRow;
-//            int newY = realCol;
-//
-//            // استفاده از oldRow و oldCol که قبلاً با آفست ذخیره شده‌اند
-//            Result result = mediator.moveBuilding(oldRow, oldCol, newX, newY);
-//
-//            if (result.isSuccess()) {
-//                addSystem("SUCCESS: " + result.getMessage());
-//                buildingToMove = null;
-//                oldRow = -1; oldCol = -1;
-//                renderTilesAndUpdate();
-//                clearSelection();
-//            } else {
-//                addError("ERROR: " + result.getMessage());
-//            }
-//            return;
-//        }
-//
-//        // --- انتخاب عادی ---
-//        if (lastSelectedRow == r && lastSelectedCol == c) {
-//            clearSelection();
-//            return;
-//        }
-//
-//        if (lastSelectedRow != -1 && lastSelectedCol != -1) {
-//            ImageButton prevBtn = tileButtons[lastSelectedRow][lastSelectedCol];
-//            if (prevBtn != null) prevBtn.getImage().setColor(Color.WHITE);
-//            if (buildingInfoBubble != null) {
-//                buildingInfoBubble.remove();
-//                buildingInfoBubble = null;
-//            }
-//        }
-//
-//        ImageButton currentBtn = tileButtons[r][c];
-//        if (currentBtn != null) currentBtn.getImage().setColor(0.7f, 0.7f, 0.7f, 1f);
-//
-//        // ذخیره مختصات گرید (برای گرافیک)
-//        lastSelectedRow = r;
-//        lastSelectedCol = c;
-//
-//        // نمایش مختصات واقعی به کاربر (نمایش +1 فقط برای زیبایی بصری کاربر است، نه منطق)
-//        setStatus(String.format("Selected tile: [%d, %d]", realRow, realCol));
-//
-//        // دریافت ساختمان با مختصات واقعی
-//        Building clickedBuilding = mediator.getBuildingAt(realRow, realCol);
-//
-//        if (clickedBuilding != null) {
-//            if (currentBtn != null) {
-//                Vector2 coords = currentBtn.localToStageCoordinates(new Vector2(0, 0));
-//                showBuildingInfoBubble(clickedBuilding, coords.x, coords.y);
-//            }
-//        } else {
-//            if (buildingInfoBubble != null) {
-//                buildingInfoBubble.remove();
-//                buildingInfoBubble = null;
-//            }
-//        }
-//    }
-
-
-//    private void toggleTileSelection(int r, int c) {
-//        // ۱. محاسبه آفست
-//        GameUser userInGame = mediator.getCurrentGame().getUser(currentUser.getId());
-//        if (userInGame == null || userInGame.getKingdom() == null) return;
-//
-//        int mapRows = userInGame.getKingdom().getUserMap().getLength();
-//        int mapCols = userInGame.getKingdom().getUserMap().getWidth();
-//        int offsetRow = (mapRows - GRID_SIZE) / 2;
-//        int offsetCol = (mapCols - GRID_SIZE) / 2;
-//
-//        int realRow = r + offsetRow;
-//        int realCol = c + offsetCol;
-//
-//        // --- مدیریت ساخت‌وساز (بدون تغییر) ---
-//        if (buildingTypeToPlace != null) {
-//            int buildX = realRow;
-//            int buildY = realCol;
-//            addSystem("Attempting to build " + buildingTypeToPlace + " at (" + buildX + ", " + buildY + ")...");
-//            Result result = mediator.buildBuilding(buildingTypeToPlace, resourceTypeToPlace, buildX, buildY);
-//            if (result.isSuccess()) {
-//                addSystem("SUCCESS: " + result.getMessage());
-//                buildingTypeToPlace = null;
-//                resourceTypeToPlace = null;
-//                renderTilesAndUpdate();
-//                clearSelection();
-//            } else {
-//                addError("ERROR: " + result.getMessage());
-//            }
-//            return;
-//        }
-//
-//        // --- مدیریت جابه‌جایی (اینجا هنوز از مختصات قبلی استفاده می‌کنیم چون buildingToMove ست شده) ---
-//        if (buildingToMove != null) {
-//            int newX = realRow;
-//            int newY = realCol;
-//            Result result = mediator.moveBuilding(oldRow, oldCol, newX, newY);
-//            if (result.isSuccess()) {
-//                addSystem("SUCCESS: " + result.getMessage());
-//                buildingToMove = null;
-//                oldRow = -1; oldCol = -1;
-//                renderTilesAndUpdate();
-//                clearSelection();
-//            } else {
-//                addError("ERROR: " + result.getMessage());
-//            }
-//            return;
-//        }
-//
-//        // --- انتخاب عادی ---
-//        if (lastSelectedRow == r && lastSelectedCol == c) {
-//            clearSelection();
-//            return;
-//        }
-//
-//        if (lastSelectedRow != -1 && lastSelectedCol != -1) {
-//            ImageButton prevBtn = tileButtons[lastSelectedRow][lastSelectedCol];
-//            if (prevBtn != null) prevBtn.getImage().setColor(Color.WHITE);
-//            if (buildingInfoBubble != null) {
-//                buildingInfoBubble.remove();
-//                buildingInfoBubble = null;
-//            }
-//        }
-//
 ///
 //        ImageButton currentBtn = tileButtons[r][c];
 ////        if (currentBtn != null) currentBtn.getImage().setColor(0.7f, 0.7f, 0.7f, 1f);
-//
-//        ImageButton currentBtn = tileButtons[r][c];
-//        if (currentBtn != null) {
-//            // حذف انیمیشن‌های قبلی (برای اطمینان)
-//            currentBtn.getImage().clearActions();
-//
-//            // تنظیم رنگ اولیه
-//            currentBtn.getImage().setColor(Color.CYAN); // رنگ آبی فیروزه‌ای برای تمایز
-//
-//            // اضافه کردن انیمیشن "تپش" (Breathe Effect)
-//            currentBtn.getImage().addAction(Actions.forever(
-//                Actions.sequence(
-//                    Actions.color(new Color(0.5f, 1f, 1f, 1f), 0.8f), // روشن شدن
-//                    Actions.color(new Color(0.2f, 0.7f, 0.7f, 1f), 0.8f)  // تیره شدن
-//                )
-//            ));
-//        }
-//
-//        lastSelectedRow = r;
-//        lastSelectedCol = c;
-//        setStatus(String.format("Selected tile: [%d, %d]", realRow, realCol));
-//
-//        // *** تغییر حیاتی: پیدا کردن و ذخیره ساختمان ***
-//        // تلاش اول: (Row, Col)
-//        Building clickedBuilding = mediator.getBuildingAt(realRow, realCol);
-//        // تلاش دوم: اگر پیدا نشد، (Col, Row) را چک کن (برای اطمینان)
-//        if (clickedBuilding == null) {
-//            clickedBuilding = mediator.getBuildingAt(realCol, realRow);
-//        }
-//
-//        // ذخیره در متغیر کلاس برای استفاده در دکمه‌ها
-//        this.currentSelectedBuilding = clickedBuilding;
-//
-//        if (clickedBuilding != null) {
-//            if (currentBtn != null) {
-//                Vector2 coords = currentBtn.localToStageCoordinates(new Vector2(0, 0));
-//                showBuildingInfoBubble(clickedBuilding, coords.x, coords.y);
-//            }
-//            // دیباگ برای اطمینان
-//            System.out.println("Selected Building: " + clickedBuilding.getName() + " at " + realRow + "," + realCol);
-//        } else {
-//            if (buildingInfoBubble != null) {
-//                buildingInfoBubble.remove();
-//                buildingInfoBubble = null;
-//            }
-//        }
-//    }
 
     private void toggleTileSelection(int r, int c) {
     // ۱. دسترسی به داده‌های نقشه
@@ -1393,165 +1182,6 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
     }
 
 
-//    private void openUpgradePanel() {
-//        Point selectedCoords = getSelectedTile();
-//        if (selectedCoords == null) {
-//            addError("ERROR: Please select a building on the map to upgrade.");
-//            return;
-//        }
-//
-//        final int row = selectedCoords.x;
-//        final int col = selectedCoords.y;
-//
-//        MyLinkedList<BuildingManager.UpgradeOption> allOptions = mediator.getUpgradeOptions();
-//
-//        // استفاده از متد هوشمند برای پیدا کردن گزینه ارتقا
-//        BuildingManager.UpgradeOption upgradeData = findUpgradeOptionSafely(row, col, allOptions);
-//
-//        if (upgradeData == null) {
-//            // اگر باز هم پیدا نشد، یعنی واقعاً قابل ارتقا نیست یا ساختمان خاصی (مثل دیوار) است
-//            addNotif("INFO: The selected building cannot be upgraded or is fully upgraded.");
-//            return;
-//        }
-//
-//        Table content = new Table(skin);
-//        content.defaults().pad(8);
-//        content.setBackground(skin.newDrawable("white", new Color(0.6f, 0.6f, 0.6f, 1f)));
-//
-//        String infoText = String.format(
-//            "Building: %s\nLevel: %d -> %d\nUpgrade Time: %d turns\n\nCost to Upgrade:\n%s",
-//            upgradeData.name, upgradeData.currentLevel, upgradeData.nextLevel, upgradeData.time, upgradeData.costString
-//        );
-//        Label infoLabel = new Label(infoText, skin);
-//        infoLabel.setAlignment(Align.left);
-//
-//        TextButton confirmButton = new TextButton("Confirm Upgrade", skin);
-//        confirmButton.addListener(new ClickListener() {
-//            @Override
-//            public void clicked(InputEvent event, float x, float y) {
-//                // تلاش برای ارسال درخواست با مختصات اصلی
-//                // اگر Mediator هوشمند باشد خودش هندل می‌کند، اما اینجا ما همان مختصاتی که کار کرد را می‌فرستیم
-//                Result result = mediator.upgradeBuildingAt(row, col);
-//
-//                // اگر با (row, col) ناموفق بود، شانس دوم با (col, row) امتحان می‌کنیم
-//                if (!result.isSuccess() && result.getMessage().contains("No building")) {
-//                    result = mediator.upgradeBuildingAt(col, row);
-//                }
-//
-//                if (result.isSuccess()) {
-//                    addSystem("SUCCESS: " + result.getMessage());
-//                    if (activeDialog != null) {
-//                        activeDialog.remove();
-//                        activeDialog = null;
-//                    }
-//                    renderTilesAndUpdate();
-//                    clearSelection();
-//                } else {
-//                    addError(result.getMessage());
-//                }
-//            }
-//        });
-//
-//        if (!upgradeData.isActionable) {
-//            confirmButton.setDisabled(true);
-//            confirmButton.getLabel().setColor(Color.GRAY);
-//            addError(upgradeData.statusMessage);
-//        }
-//
-//        String baseBuildingName = upgradeData.name;
-//        if (baseBuildingName.contains("(")) {
-//            baseBuildingName = baseBuildingName.substring(0, baseBuildingName.indexOf('(')).trim();
-//        }
-//
-//        Image buildingImage = new Image(getCachedBuildingDrawable(baseBuildingName, upgradeData.nextLevel - 1));
-//
-//        Table textTable = new Table(skin);
-//        textTable.add(infoLabel).left();
-//        content.add(buildingImage).size(120).pad(10);
-//        content.add(textTable).expand().fill().pad(5).left().row();
-//        content.add(confirmButton).colspan(2).padTop(15).width(300).row();
-//
-//        openWindow("Upgrade Building", content);
-//    }
-
-//    private void openRepairPanel() {
-//        Point selectedCoords = getSelectedTile();
-//        if (selectedCoords == null) {
-//            addError("ERROR: Please select a building on the map to repair.");
-//            return;
-//        }
-//        final int col = selectedCoords.y;
-//        final int row = selectedCoords.x;
-//
-//        MyLinkedList<BuildingManager.RepairOption> allOptions = mediator.getRepairOptions();
-//
-//        String targetCoords = String.format("(%d,%d)", row, col);
-//
-//        BuildingManager.RepairOption repairData = null;
-//        for (BuildingManager.RepairOption option : allOptions) {
-//            if (option.coords.equals(targetCoords)) {
-//                repairData = option;
-//                break;
-//            }
-//        }
-//
-//        if (repairData == null) {
-//            addNotif("INFO: The selected building cannot be repaired.");
-//            return;
-//        }
-//
-//        Table content = new Table(skin);
-//        content.defaults().pad(8);
-//        content.setBackground(skin.newDrawable("white", new Color(0.6f, 0.6f, 0.6f, 1f)));
-//
-//        String infoText = String.format(
-//            "Building: %s \nLevel %d\nRepair Time: %d turns\n\nCost to Repair:\n%s",
-//            repairData.name, repairData.level, repairData.time, repairData.costString
-//        );
-//        Label infoLabel = new Label(infoText, skin);
-//        infoLabel.setAlignment(Align.left);
-//
-//        TextButton confirmButton = new TextButton("Confirm Repair", skin);
-//        confirmButton.addListener(new ClickListener() {
-//            @Override
-//            public void clicked(InputEvent event, float x, float y) {
-//                Result result = mediator.repairBuildingAt(row, col);
-//                if (result.isSuccess()) {
-//                    addSystem("SUCCESS: " + result.getMessage());
-//                    if (activeDialog != null) {
-//                        activeDialog.remove();
-//                        activeDialog = null;
-//                    }
-//                    renderTilesAndUpdate();
-//                    clearSelection();
-//                } else {
-//                    addError(result.getMessage());
-//                    confirmButton.setDisabled(true);
-//                    confirmButton.getLabel().setColor(Color.GRAY);
-//                }
-//            }
-//        });
-//
-//        if (!repairData.isActionable) {
-//            confirmButton.setDisabled(true);
-//            confirmButton.getLabel().setColor(Color.GRAY);
-//            addError(repairData.statusMessage);
-//        }
-//
-//        String baseBuildingName = repairData.name;
-//        if (baseBuildingName.contains("(")) {
-//            baseBuildingName = baseBuildingName.substring(0, baseBuildingName.indexOf('(')).trim();
-//        }
-//        Image buildingImage = new Image(GameFileUtility.getBuildingTexture(baseBuildingName, repairData.level - 1));
-//        buildingImage.setColor(0.5f, 0.5f, 0.5f, 0.8f);
-//        Table textTable = new Table(skin);
-//        textTable.add(infoLabel).left();
-//        content.add(buildingImage).size(120).pad(10);
-//        content.add(textTable).expand().fill().pad(5).left().row();
-//        content.add(confirmButton).colspan(2).padTop(15).width(300).row();
-//        openWindow("Repair Building", content);
-//    }
-
     private void openUpgradePanel() {
         if (this.currentSelectedBuilding == null) {
             addError("ERROR: Please select a building on the map first.");
@@ -1796,96 +1426,6 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
         openWindow("Destroy Building", content);
     }
 
-//    private void openMovePanel() {
-//        Point selectedCoords = getSelectedTile();
-//        if (selectedCoords == null) {
-//            addError("ERROR: Please select a building to move first.");
-//            return;
-//        }
-//
-//        final int col = selectedCoords.y;
-//        final int row = selectedCoords.x;
-//
-//        Building targetBuilding = findBuildingSafely(row, col);
-//        if (targetBuilding == null) {
-//            addNotif("INFO: The selected tile is empty. Nothing to move.");
-//            return;
-//        }
-//
-//
-//        Dialog confirmDialog = new Dialog("Move Building", skin) {
-//            @Override
-//            protected void result(Object object) {
-//                if (Boolean.TRUE.equals(object)) {
-//                    buildingToMove = targetBuilding;
-//                    oldRow = row;
-//                    oldCol = col;
-//
-//                    addSystem("ACTION: Select the new tile to move " + targetBuilding.getName() + ".");
-//                    if (activeDialog != null) {
-//                        activeDialog.remove();
-//                        activeDialog = null;
-//                    }
-//
-//                    renderTilesAndUpdate();
-//                }
-//            }
-//        };
-//
-//        Label lbl = new Label("Do you want to move " + targetBuilding.getName() + "?", skin);
-//        lbl.setColor(Color.BLACK);
-//        confirmDialog.getContentTable().add(lbl).pad(10).row();
-//        confirmDialog.button("Confirm", true);
-//        confirmDialog.button("Cancel", false);
-//        confirmDialog.show(stage);
-//    }
-
-//    private void openMovePanel() {
-//        // استفاده مستقیم از ساختمان ذخیره شده
-//        if (this.currentSelectedBuilding == null) {
-//            addNotif("INFO: No building selected. Please click on a building first.");
-//            return;
-//        }
-//
-//        // استفاده از مختصات خود ساختمان برای اطمینان
-//        GameUser userInGame = mediator.getCurrentGame().getUser(currentUser.getId());
-//        UserSubMap map = userInGame.getKingdom().getUserMap();
-//        Position localPos = map.globalToLocal(currentSelectedBuilding.getPosition());
-//
-//        if (localPos == null) {
-//            addError("Error: Could not determine building position.");
-//            return;
-//        }
-//
-//        final int row = localPos.getX();
-//        final int col = localPos.getY();
-//        Building targetBuilding = this.currentSelectedBuilding;
-//
-//        Dialog confirmDialog = new Dialog("Move Building", skin) {
-//            @Override
-//            protected void result(Object object) {
-//                if (Boolean.TRUE.equals(object)) {
-//                    buildingToMove = targetBuilding;
-//                    oldRow = row;
-//                    oldCol = col;
-//
-//                    addSystem("ACTION: Select the new tile to move " + targetBuilding.getName() + ".");
-//                    if (activeDialog != null) {
-//                        activeDialog.remove();
-//                        activeDialog = null;
-//                    }
-//                    renderTilesAndUpdate();
-//                }
-//            }
-//        };
-//
-//        Label lbl = new Label("Do you want to move " + targetBuilding.getName() + "?", skin);
-//        lbl.setColor(Color.BLACK);
-//        confirmDialog.getContentTable().add(lbl).pad(10).row();
-//        confirmDialog.button("Confirm", true);
-//        confirmDialog.button("Cancel", false);
-//        confirmDialog.show(stage);
-//    }
 
     private void openMovePanel() {
         if (this.currentSelectedBuilding == null) {
@@ -2386,7 +1926,6 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
     }
 
 
-
     private void openInteractiveTargetMapPanel(AttackType attackType, Consumer<GameUser> onTargetSelected) {
         MyLinkedList<GameMediator.AttackTargetInfo> validTargets = mediator.getPossibleAttackTargets(attackType);
         Set<Integer> validTargetIds = new HashSet<>();
@@ -2402,7 +1941,8 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
         grayTooltipStyle.background = skin.newDrawable("white", new Color(0.2f, 0.2f, 0.2f, 0.9f));
 
         Stack mapStack = new Stack();
-        mapStack.add(new Image(new Texture(Gdx.files.internal("images/map_visor.jpg"))));
+        if (mapVisorTexture == null) mapVisorTexture = new Texture(Gdx.files.internal("images/map_visor.jpg"));
+        mapStack.add(new Image(mapVisorTexture));
 
         Table buttonLayer = new Table();
         buttonLayer.setFillParent(true);
@@ -2588,38 +2128,6 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
     }
 
 
-//    private Table buildMapView(Tile[][] mapGrid, boolean isBlurry) {
-//        Table mapTable = new Table();
-//        if (mapGrid == null) {
-//            mapTable.add(new Label("Map Unavailable", skin));
-//            return mapTable;
-//        }
-//
-//        int mapRows = mapGrid.length;
-//        int mapCols = mapGrid[0].length;
-//        float tileSize = 300f / Math.max(mapRows, mapCols);
-//
-//        for (int r = 0; r < mapRows; r++) {
-//            for (int c = 0; c < mapCols; c++) {
-//                Tile tile = mapGrid[r][c];
-//                Image tileImage;
-//                if (tile != null && tile.getObjectOnTile() != null && tile.getObjectOnTile().getBuilding() != null) {
-//                    Building building = tile.getObjectOnTile().getBuilding();
-//                    tileImage = new Image(getBuildingTexture(building.getName(), building.getLevel() - 1));
-//                } else {
-//                    tileImage = new Image(tileTexture);
-//                }
-//
-//                if (isBlurry) {
-//                    tileImage.setColor(0.5f, 0.5f, 0.5f, 0.7f);
-//                }
-//
-//                mapTable.add(tileImage).size(tileSize);
-//            }
-//            mapTable.row();
-//        }
-//        return mapTable;
-//    }
 private Table buildMapView(Tile[][] mapGrid, boolean isBlurry) {
     Table mapTable = new Table();
     if (mapGrid == null) {
@@ -2821,69 +2329,7 @@ private Table buildMapView(Tile[][] mapGrid, boolean isBlurry) {
         panel.button("Close", true);
         panel.show(stage);
     }
-//    private void openBattleHistoryPanel() {
-//        MyLinkedList<GameMediator.BattleHistoryInfo> history = mediator.getBattleHistory();
-//
-//        final Dialog panel = new Dialog("Battle History", skin, "default");
-//        panel.setModal(true);
-//        panel.pad(20);
-//        panel.setSize(Gdx.graphics.getWidth() * 0.8f, Gdx.graphics.getHeight() * 0.7f);
-//
-//        Table listTable = new Table(skin);
-//        listTable.top();
-//
-//        if (history.isEmpty()) {
-//            listTable.add(new Label("No battle records found.", skin)).expand().center();
-//        } else {
-//            Table header = new Table();
-//            header.defaults().expandX().pad(5);
-//            header.add(new Label("Type", skin));
-//            header.add(new Label("Opponent", skin));
-//            header.add(new Label("Result", skin));
-//            header.add(new Label("Stars", skin));
-//            header.add(new Label("Loot / Lost", skin));
-//            header.add(new Label("Replay", skin));
-//            listTable.add(header).fillX().padBottom(10).row();
 //// کد اصلاح شده و صحیح
-//            listTable.add(new Image(skin.newDrawable("white", new Color(0.5f, 0.5f, 0.5f, 1f)))).colspan(6).fillX().height(1).row();
-//            for (final GameMediator.BattleHistoryInfo info : history) {
-//                Label typeLabel = new Label(info.isAttack ? "ATTACK" : "DEFENSE", skin);
-//                typeLabel.setColor(info.isAttack ? Color.GREEN : Color.FIREBRICK);
-//                Label starsLabel = new Label(String.valueOf(info.displayStars) + " ★", skin);
-//                starsLabel.setColor(Color.GOLD);
-//
-//                Label lootLabel = new Label(info.lootString, skin);
-//                lootLabel.setFontScale(0.8f);
-//
-//                TextButton replayButton = new TextButton("Watch", skin);
-//                replayButton.addListener(new ClickListener() {
-//                    @Override
-//                    public void clicked(InputEvent event, float x, float y) {
-//                        openBattleReplayPanel(info);
-//                    }
-//                });
-//
-//                if (info.replayFilePath == null || info.replayFilePath.equals("N/A")) {
-//                    replayButton.setDisabled(true);
-//                }
-//
-//                listTable.add(typeLabel).pad(8).center();
-//                listTable.add(new Label(info.opponentName, skin)).pad(8).center();
-//                listTable.add(new Label(info.resultText, skin)).pad(8).center();
-//                listTable.add(starsLabel).pad(8).center();
-//                listTable.add(lootLabel).pad(8).center();
-//                listTable.add(replayButton).pad(8).center();
-//                listTable.row();
-//            }
-//        }
-//
-//        ScrollPane scrollPane = new ScrollPane(listTable, skin);
-//        scrollPane.setFadeScrollBars(false);
-//
-//        panel.getContentTable().add(scrollPane).expand().fill();
-//        panel.button("Close", true);
-//        panel.show(stage);
-//    }
 
 private void openBattleHistoryPanel() {
     MyLinkedList<GameMediator.BattleHistoryInfo> history = mediator.getBattleHistory();
@@ -3862,7 +3308,6 @@ private void openBattleHistoryPanel() {
     }
 
 
-
     private void openHelpPanel() {
         Table content = new Table(skin);
         content.pad(15);
@@ -3947,45 +3392,6 @@ private void openBattleHistoryPanel() {
     }
 
 
-//    private void addPortIconsToStage() {
-//        if (currentGame == null || currentGame.getUsers() == null) {
-//            return;
-//        }
-//
-//        for (GameUser user : currentGame.getUsers()) {
-//            if (user == null || user.getKingdom() == null) {
-//                continue;
-//            }
-//
-//            Kingdom kingdom = user.getKingdom();
-//            Port port = kingdom.getPort();
-//
-//            if (port != null) {
-//                Image portImage;
-//                if (!port.isDestroyed()) {
-//                    portImage = new Image(GameFileUtility.getBuildingTexture("Port", 1));
-//                } else {
-//                    portImage = new Image(GameFileUtility.getBuildingTexture("Port", 0));
-//                }
-//
-//                float x = 0;
-//                float y = 0;
-//
-//                switch (kingdom.getType()) {
-//                    case EYRIE:
-//                        x = 1450; y = 600;
-//                        break;
-//                    default :
-//                        x = 1450; y = 600;
-//                        break;
-//                }
-//
-//                portImage.setPosition(x, y);
-//                portImage.setSize(80, 80);
-//                stage.addActor(portImage);
-//            }
-//        }
-//    }
 private void addPortIconsToStage() {
     if (currentGame == null || currentGame.getUsers() == null) {
         return;
@@ -4027,16 +3433,6 @@ private void addPortIconsToStage() {
         }
     }
 }
-    // در فایل GamePlayScreen.java
-    // در فایل GamePlayScreen.java
-
-//    private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyInfo) {
-//        if (historyInfo == null || historyInfo.replayFilePath == null || historyInfo.replayFilePath.equals("N/A")) {
-//            addError("Could not load battle replay file.");
-//            return;
-//        }
-//
-//        // ❌ قبلی (اشتباه)
 //// final MyLinkedList<BattleEvent> loadedEvents = mediator.loadReplayLog(historyInfo.replayFilePath);
 //// final java.util.List<BattleEvent> events = new ArrayList<>();
 //// for (BattleEvent ev : loadedEvents) {
@@ -4044,259 +3440,6 @@ private void addPortIconsToStage() {
 //// }
 //
 //// ✅ جدید (درست و هماهنگ با ReplayData)
-//        ReplayData replayData = mediator.loadReplayLog(historyInfo.replayFilePath);
-//
-//        if (replayData == null || replayData.getEvents() == null || replayData.getEvents().isEmpty()) {
-//            addError("Replay data is empty or corrupted. The battle may have occurred before the replay system was fixed.");
-//            return;
-//        }
-//
-//        final MyLinkedList<BattleEvent> events = replayData.getEvents();
-//        System.out.println("UI DEBUG: events to play = " + events.size());
-//
-//        final String attackerName = (replayData.getAttackerName() != null ? replayData.getAttackerName() : "Attacker");
-//        final String defenderName = (replayData.getDefenderName() != null ? replayData.getDefenderName() : "Defender");
-//
-//        if (events.isEmpty()) {
-//            addError("Replay data is empty or corrupted. The battle may have occurred before the replay system was fixed.");
-//            return;
-//        }
-//
-//        System.out.println("UI DEBUG: events to play = " + events.size());
-//
-//        final Dialog panel = new Dialog("Battle Replay", skin, "default");
-//        panel.setModal(true);
-//        panel.setSize(Gdx.graphics.getWidth() * 0.7f, Gdx.graphics.getHeight() * 0.6f);
-//
-//        Table content = new Table();
-//        content.pad(20);
-//
-//
-//        final Label attackerNameLabel = new Label(attackerName, skin);
-//        final Label defenderNameLabel = new Label(defenderName, skin);
-//
-//        ProgressBar.ProgressBarStyle progressBarStyle = skin.get("default-horizontal", ProgressBar.ProgressBarStyle.class);
-//        final ProgressBar attackerHealthBar = new ProgressBar(0, 1000, 1, false, progressBarStyle);
-//        attackerHealthBar.setValue(1000);
-//        final ProgressBar defenderHealthBar = new ProgressBar(0, 1000, 1, false, progressBarStyle);
-//        defenderHealthBar.setValue(1000);
-//
-//        final Table logTable = new Table();
-//        logTable.top().left();
-//        final ScrollPane logScroll = new ScrollPane(logTable, skin);
-//
-//        Table vsTable = new Table();
-//        vsTable.add(attackerNameLabel);
-//        vsTable.add(new Label(" VS ", skin, "title")).pad(0, 20, 0, 20);
-//        vsTable.add(defenderNameLabel);
-//        vsTable.row();
-//        vsTable.add(attackerHealthBar).width(200);
-//        vsTable.add();
-//        vsTable.add(defenderHealthBar).width(200);
-//
-//        content.add(vsTable).padBottom(20).row();
-//        content.add(logScroll).expand().fill().minHeight(200);
-//        panel.getContentTable().add(content).expand().fill();
-//
-//        final boolean[] isPaused = {false};
-//        final float[] playSpeed = {1.0f};
-//        final float baseDelay = 0.5f;
-//        final int[] currentIndex = {0};
-//        final float[] timeToNextEvent = {baseDelay};
-//
-//        Action replayDriver = new Action() {
-//            @Override
-//            public boolean act(float delta) {
-//                if (isPaused[0]) {
-//                    return false;
-//                }
-//
-//                timeToNextEvent[0] -= delta * playSpeed[0];
-//
-//                while (timeToNextEvent[0] <= 0f) {
-//                    if (currentIndex[0] >= events.size()) {
-//                        Label finishedLabel = new Label("--- REPLAY FINISHED ---", skin, "title");
-//                        finishedLabel.setColor(Color.GOLD);
-//                        logTable.add(finishedLabel).left().row();
-//                        logScroll.layout();
-//                        logScroll.setScrollPercentY(1.0f);
-//                        System.out.println("UI DEBUG: Replay finished.");
-//                        return true;
-//                    }
-//
-//                    BattleEvent event = events.get(currentIndex[0]++);
-//                    System.out.println("UI DEBUG: Showing event " + currentIndex[0] + "/" + events.size() + " → " + event.getClass().getSimpleName());
-//
-//                    if (event instanceof EventTextLog) {
-//                        logTable.add(new Label(((EventTextLog) event).message, skin)).left().row();
-//                    } else if (event instanceof EventRoundUpdate) {
-//                        EventRoundUpdate round = (EventRoundUpdate) event;
-//                        logTable.add(new Label(round.message, skin)).left().row();
-//                        attackerHealthBar.setValue(round.attackerTotalHealth);
-//                        defenderHealthBar.setValue(round.defenderTotalHealth);
-//                    } else if (event instanceof EventHeroDuel) {
-//                        EventHeroDuel duel = (EventHeroDuel) event;
-//                        String winner = duel.attackerWon ? duel.attackerHero : duel.defenderHero;
-//                        Label duelLabel = new Label("HERO DUEL! " + duel.attackerHero + " vs " + duel.defenderHero, skin);
-//                        duelLabel.setColor(Color.CYAN);
-//                        logTable.add(duelLabel).left().row();
-//                        logTable.add(new Label("Winner: " + winner, skin, "title")).left().row();
-//                    } else {
-//                        logTable.add(new Label(event.toString(), skin)).left().row();
-//                    }
-//
-//                    logScroll.layout();
-//                    logScroll.setScrollPercentY(1.0f);
-//                    timeToNextEvent[0] += baseDelay;
-//                }
-//
-//                return false;
-//            }
-//        };
-//
-//        final TextButton pauseButton = new TextButton("Pause", skin);
-//        pauseButton.addListener(new ChangeListener() {
-//            @Override
-//            public void changed(ChangeEvent event, Actor actor) {
-//                isPaused[0] = !isPaused[0];
-//                pauseButton.setText(isPaused[0] ? "Resume" : "Pause");
-//            }
-//        });
-//
-//        final TextButton speed1xButton = new TextButton("1x Speed", skin);
-//        speed1xButton.addListener(new ChangeListener() { @Override public void changed(ChangeEvent e, Actor a) { playSpeed[0] = 1.0f; } });
-//
-//        final TextButton speed2xButton = new TextButton("2x Speed", skin);
-//        speed2xButton.addListener(new ChangeListener() { @Override public void changed(ChangeEvent e, Actor a) { playSpeed[0] = 2.0f; } });
-//
-//        // ❌ قبلاً اینجا بود: panel.addAction(replayDriver);
-//        // ✅ حالا میاریمش روی stage
-//        stage.addAction(replayDriver);
-//
-//        panel.getButtonTable().add(pauseButton).pad(10);
-//        panel.getButtonTable().add(speed1xButton).pad(10);
-//        panel.getButtonTable().add(speed2xButton).pad(10);
-//        panel.button("Close", true);
-//
-//        panel.show(stage);
-//    }
-
-//private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyInfo) {
-//    if (historyInfo == null || historyInfo.replayFilePath == null || historyInfo.replayFilePath.equals("N/A")) {
-//        addError("Replay file not found.");
-//        return;
-//    }
-//
-//    ReplayData replayData = mediator.loadReplayLog(historyInfo.replayFilePath);
-//    if (replayData == null || replayData.getEvents() == null || replayData.getEvents().isEmpty()) {
-//        addError("Replay data is corrupted or empty.");
-//        return;
-//    }
-//
-//    final MyLinkedList<BattleEvent> events = replayData.getEvents();
-//    final String attackerName = (replayData.getAttackerName() != null ? replayData.getAttackerName() : "Attacker");
-//    final String defenderName = (replayData.getDefenderName() != null ? replayData.getDefenderName() : "Defender");
-//
-//    final Dialog panel = new Dialog("Battle Replay", skin, "default");
-//    panel.setModal(true);
-//    panel.setSize(Gdx.graphics.getWidth() * 0.75f, Gdx.graphics.getHeight() * 0.75f);
-//
-//    // --- بخش بالای صفحه ---
-//    Table topTable = new Table();
-//    topTable.pad(10);
-//
-//    Label lblAtk = new Label("[ATK] " + attackerName, skin); lblAtk.setColor(Color.ORANGE);
-//    Label lblDef = new Label("[DEF] " + defenderName, skin); lblDef.setColor(Color.CYAN);
-//
-//    ProgressBar.ProgressBarStyle barStyle = skin.get("default-horizontal", ProgressBar.ProgressBarStyle.class);
-//    barStyle.background.setMinHeight(15);
-//    barStyle.knobBefore.setMinHeight(15);
-//
-//    final ProgressBar attackerHealthBar = new ProgressBar(0, 1000, 1, false, barStyle);
-//    attackerHealthBar.setValue(1000);
-//    final ProgressBar defenderHealthBar = new ProgressBar(0, 1000, 1, false, barStyle);
-//    defenderHealthBar.setValue(1000);
-//
-//    topTable.add(lblAtk).left();
-//    topTable.add().expandX();
-//    topTable.add(lblDef).right().row();
-//
-//    topTable.add(attackerHealthBar).width(280).left();
-//    topTable.add(new Label(" VS ", skin)).pad(10);
-//    topTable.add(defenderHealthBar).width(280).right();
-//
-//    // --- بخش لاگ‌ها ---
-//    final Table logTable = new Table();
-//    logTable.top().left();
-//    final ScrollPane logScroll = new ScrollPane(logTable, skin);
-//    logScroll.setFadeScrollBars(false);
-//
-//    panel.getContentTable().add(topTable).growX().padBottom(10).row();
-//    panel.getContentTable().add(logScroll).expand().fill().row();
-//
-//    // --- کنترلر پخش ---
-//    final boolean[] isPaused = {false};
-//    final float[] playSpeed = {1.0f};
-//    final float baseDelay = 0.8f;
-//    final int[] currentIndex = {0};
-//    final float[] timeToNextEvent = {0.5f};
-//
-//    Action replayDriver = new Action() {
-//        @Override
-//        public boolean act(float delta) {
-//            if (isPaused[0]) return false;
-//
-//            timeToNextEvent[0] -= delta * playSpeed[0];
-//            if (timeToNextEvent[0] <= 0f) {
-//                if (currentIndex[0] >= events.size()) {
-//                    // --- اصلاح شده: رفع ارور color() ---
-//                    Table endRow = new Table(skin);
-//                    endRow.setBackground(skin.newDrawable("white", new Color(0, 0, 0, 0.5f)));
-//
-//                    Label endLabel = new Label("--- END OF BATTLE ---", skin);
-//                    endLabel.setColor(Color.GOLD);
-//
-//                    endRow.add(endLabel).pad(10);
-//                    // -----------------------------------
-//
-//                    logTable.add(endRow).growX().padTop(20).row();
-//                    logScroll.layout();
-//                    logScroll.setScrollPercentY(1.0f);
-//                    return true;
-//                }
-//
-//                BattleEvent event = events.get(currentIndex[0]++);
-//                addEventToLogTable(logTable, event, skin, attackerHealthBar, defenderHealthBar);
-//
-//                logScroll.layout();
-//                logScroll.setScrollPercentY(1.0f);
-//                timeToNextEvent[0] = baseDelay;
-//            }
-//            return false;
-//        }
-//    };
-//    stage.addAction(replayDriver);
-//
-//    // دکمه‌های کنترل
-//    Table controls = new Table();
-//    TextButton btnPause = new TextButton("Pause", skin);
-//    btnPause.addListener(new ChangeListener() { @Override public void changed(ChangeEvent e, Actor a) { isPaused[0] = !isPaused[0]; btnPause.setText(isPaused[0] ? "Resume" : "Pause"); } });
-//
-//    TextButton btnSpeed = new TextButton("Speed: 1x", skin);
-//    btnSpeed.addListener(new ChangeListener() {
-//        @Override public void changed(ChangeEvent e, Actor a) {
-//            if(playSpeed[0] == 1f) { playSpeed[0]=2f; btnSpeed.setText("Speed: 2x"); }
-//            else if(playSpeed[0] == 2f) { playSpeed[0]=4f; btnSpeed.setText("Speed: 4x"); }
-//            else { playSpeed[0]=1f; btnSpeed.setText("Speed: 1x"); }
-//        }
-//    });
-//
-//    controls.add(btnPause).width(100).pad(5);
-//    controls.add(btnSpeed).width(100).pad(5);
-//    panel.getButtonTable().add(controls);
-//    panel.button("Close", true);
-//    panel.show(stage);
-//}
 
 private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyInfo) {
     if (historyInfo == null || historyInfo.replayFilePath == null || historyInfo.replayFilePath.equals("N/A")) {
@@ -4534,63 +3677,6 @@ private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyI
         stage.addActor(win); activeDialog = win;
     }
 
-// In file: GamePlayScreen.java
-
-//    private void renderTilesAndUpdate() {
-//        gridTable.clear();
-//        gridTable.defaults().pad(2);
-//        int tilePx = Math.min(53, Math.round((Gdx.graphics.getWidth() - 600f) / GRID_SIZE));
-//
-//        // *** START OF FIX ***
-//        // به جای استفاده از آبجکت قدیمی 'this.currentGame'،
-//        // همیشه آخرین نسخه از آبجکت بازی را مستقیماً از مدیاTور دریافت می‌کنیم.
-//        GameOfThrones freshGameData = mediator.getCurrentGame();
-//        if (freshGameData == null) {
-//            buildEmptyGrid(tilePx, null, null);
-//            return;
-//        }
-//        GameUser userInGame = freshGameData.getUser(currentUser.getId());
-//        // *** پایان بخش کلیدی ***
-//        // *** END OF FIX ***
-//
-//        if (userInGame == null || userInGame.getKingdom() == null || userInGame.getKingdom().getUserMap() == null) {
-//            buildEmptyGrid(tilePx, null, null);
-//            return;
-//        }
-//        int mapRows = userInGame.getKingdom().getUserMap().getLength();
-//        int mapCols = userInGame.getKingdom().getUserMap().getWidth();
-//
-//        int offsetRow = (mapRows - GRID_SIZE) / 2;
-//        int offsetCol = (mapCols - GRID_SIZE) / 2;
-//
-//        for (int r = 0; r < GRID_SIZE; r++) {
-//            for (int c = 0; c < GRID_SIZE; c++) {
-//                final int mapR = r + offsetRow;
-//                final int mapC = c + offsetCol;
-//                final int rx = r, cx = c;
-//                // ... داخل حلقه‌های for ...
-//                Building building = null;
-//                try {
-//                    building = userInGame.getKingdom().getUserMap().getBuildingAt(mapR, mapC);
-//                } catch (Exception ignored) {}
-//
-//                TextureRegionDrawable baseDrawable;
-//
-//                // --- تغییر اصلی اینجاست: استفاده از کش ---
-//                if (building != null) {
-//                    // به جای ساختن new Texture، از کش می‌خوانیم
-//                    baseDrawable = getCachedBuildingDrawable(building.getName(), Math.max(0, building.getLevel() - 1));
-//                } else {
-//                    baseDrawable = new TextureRegionDrawable(new TextureRegion(tileTexture));
-//                }
-//                // ----------------------------------------
-//
-//                ImageButton.ImageButtonStyle style = new ImageButton.ImageButtonStyle();
-//                style.imageUp = baseDrawable;
-//                // برای جلوگیری از ساخت رنگ جدید در هر فریم، از رنگ‌های ثابت استفاده کنید یا همین‌طور بگذارید (چون Color سبک است)
-//                style.imageOver = baseDrawable.tint(new Color(0.9f, 0.9f, 0.9f, 1f));
-//                style.imageDown = baseDrawable.tint(new Color(0.6f, 0.6f, 0.6f, 1f));
-//
 ////                final ImageButton btn = new ImageButton(style);
 ////                btn.setSize(tilePx, tilePx);
 ////                btn.addListener(new ChangeListener() {
@@ -4599,51 +3685,6 @@ private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyI
 ////                        toggleTileSelection(rx, cx);
 ////                    }
 ////                });
-//
-//                final ImageButton btn = new ImageButton(style);
-//                btn.setSize(tilePx, tilePx);
-//
-//                // تنظیم نقطه ثقل دکمه به وسط (برای اینکه از مرکز بزرگ بشه نه از گوشه)
-//                btn.setTransform(true);
-//                btn.setOrigin(Align.center);
-//
-//                // --- تغییر ۱: افزایش سایز پیش‌فرض ---
-//                // این عدد تعیین می‌کند ساختمان‌ها در حالت عادی چقدر بزرگ باشند
-//                // 1.15f یعنی ۱۵ درصد بزرگتر از کادر خودشان (کمی بیرون‌زدگی جذاب)
-//                final float baseScale = 1.15f;
-//                btn.setScale(baseScale);
-//
-//                // --- تغییر ۲: پر کردن فضای خالی ---
-//                // این دستورات باعث می‌شود عکس دقیقا تا لبه‌های دکمه کشیده شود
-//                btn.getImageCell().expand().fill();
-//                btn.getImage().setScaling(Scaling.fit);
-//
-//                // اضافه کردن انیمیشن هاور (Hover)
-//                btn.addListener(new ClickListener() {
-//                    @Override
-//                    public void enter(InputEvent event, float x, float y, int pointer, Actor fromActor) {
-//                        if (pointer == -1) { // فقط حرکت موس
-//                            btn.addAction(Actions.scaleTo(1.3f, 1.3f, 0.1f)); // بزرگ شدن در 0.1 ثانیه
-//                        }
-//                    }
-//
-//                    @Override
-//                    public void exit(InputEvent event, float x, float y, int pointer, Actor toActor) {
-//                        if (pointer == -1) {
-//                            // --- تغییر ۳: برگشت به سایز بیس (نه 1.0) ---
-//                            // وقتی موس رفت کنار، برگرده به همون 1.15
-//                            btn.addAction(Actions.scaleTo(baseScale, baseScale, 0.1f));
-//                        }
-//                    }
-//                });
-//
-//                btn.addListener(new ChangeListener() {
-//                    @Override
-//                    public void changed(ChangeEvent event, Actor actor) {
-//                        toggleTileSelection(rx, cx);
-//                    }
-//                });
-//
 //// --- شروع کد نوار سلامتی جدید ---
 //                Stack cellStack = new Stack();
 //                cellStack.add(btn); // لایه اول: دکمه ساختمان
@@ -4705,13 +3746,6 @@ private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyI
 //                tileSelected[r][c] = false;
 //
 //// اضافه کردن Stack به جای دکمه خالی
-//                gridTable.add(cellStack).size(tilePx, tilePx);
-//            }
-//            gridTable.row();
-//        }
-//        gridTable.setPosition(955, Gdx.graphics.getHeight() - 550);
-//        if (gridTable.getStage() == null) stage.addActor(gridTable);
-//    }
 
 private void renderTilesAndUpdate() {
     gridTable.clear();
@@ -4891,11 +3925,7 @@ private void renderTilesAndUpdate() {
         Actor endKingdomIcon = createPlaceholder(info.defenderKingdomName, 1);
         // --- پایان بخش اصلاح شده ---
 
-        Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
-        pixmap.setColor(Color.TAN);
-        pixmap.fill();
-        Image pathImage = new Image(new Texture(pixmap));
-        pixmap.dispose();
+        Image pathImage = new Image(skin.newDrawable("white", Color.TAN));
 
         float castleSize = 30f;
         float barWidth = 300f;
@@ -5163,10 +4193,10 @@ private void renderTilesAndUpdate() {
                     tileColor = Color.BLACK;
                 }
 
-                Pixmap pixmap = new Pixmap(tileSize, tileSize, Pixmap.Format.RGBA8888);
-                pixmap.fill();
-                Image tileImage = new Image(new Texture(pixmap));
-                pixmap.dispose();
+                // The colour used to be computed but never applied (Pixmap.setColor was missing), so the whole
+                // map was white, and every tile created its own never-disposed Texture (~1800 per opening).
+                // Now one shared white drawable is tinted per tile: no new textures at all.
+                Image tileImage = new Image(skin.newDrawable("white", tileColor));
 
                 mapGrid.add(tileImage).size(tileSize);
             }
@@ -5214,11 +4244,7 @@ private void renderTilesAndUpdate() {
 
     private Actor createLegendItem(Color color, String text) {
         Table item = new Table();
-        Pixmap pixmap = new Pixmap(16, 16, Pixmap.Format.RGBA8888);
-        ///pixmap.setColor(color);
-        pixmap.fill();
-        item.add(new Image(new Texture(pixmap))).size(16).padRight(5);
-        pixmap.dispose();
+        item.add(new Image(skin.newDrawable("white", color))).size(16).padRight(5);
         item.add(new Label(text, skin));
         return item;
     }
@@ -5229,28 +4255,6 @@ private void renderTilesAndUpdate() {
         mediator.setMessageListener(this);
         mediator.setPanelPresenter(this); // <<-- NEW: Register this screen as the panel presenter
         mediator.startLoopManager();
-     /*   String musicToPlay = "default_gameplay"; // آهنگ پیش‌فرض اگر هیچکدام مطابقت نداشت
-
-        if (currentUser != null && currentUser.getKingdom() != null) {
-            KingdomType type = currentUser.getKingdom().getType();
-
-            switch (type) {
-                case WINTERFELL:
-                    musicToPlay = "gameplay_snow";
-                    break;
-                case CASTERLY_ROCK:
-                    musicToPlay = "gameplay_rock";
-                    break;
-                case IRON_ISLANDS:
-                    musicToPlay = "gameplay_sea";
-                    break;
-                default:
-                    musicToPlay = "default_gameplay";
-                    break;
-            }
-        }
-        this.game.getMusicManager().playMusic(musicToPlay);
-*/
         updateGameMusic(); // <-- این خط را جایگزین کدهای بالا کنید
 
     }
@@ -5293,27 +4297,6 @@ private void renderTilesAndUpdate() {
             currentMusicTheme = kingdomTheme;
         }
     }
-//    public void render(float delta) {
-//        timeSinceLastUpdate += delta;
-//        if (timeSinceLastUpdate >= REFRESH_INTERVAL) {
-//            refreshDynamicInfo();
-//            updateGameMusic(); // <-- این خط را اینجا اضافه کنید
-//            updateAtmosphere(); // <<--- این خط رو اضافه کن
-//            timeSinceLastUpdate = 0f;
-//        }
-//
-//        Gdx.gl.glClearColor(0.05f, 0.05f, 0.06f, 1f);
-//        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-//        stage.getBatch().begin();
-//        stage.getBatch().draw(background, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-//        stage.getBatch().end();
-//        stage.act(delta);
-//        stage.draw();
-//        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-//            mediator.saveGame();
-//            Gdx.app.exit();
-//        }
-//    }
 @Override
 public void render(float delta) {
     // 1. آپدیت زمان و لاجیک
@@ -5367,36 +4350,10 @@ public void render(float delta) {
     @Override public void hide() {
         mediator.setMessageListener(null);
         mediator.setPanelPresenter(null);
+        // The player left the game screen: stop this session's loop so that re-entering
+        // (show() -> startLoopManager()) never leaves two loops running.
+        mediator.stopLoopManager();
     }
-//    @Override public void dispose() { stage.dispose(); skin.dispose(); background.dispose(); tileTexture.dispose(); }
-    // File: GamePlayScreen.java
-
-//@Override
-//public void dispose() {
-//    stage.dispose();
-//    skin.dispose();
-//    background.dispose();
-//    tileTexture.dispose();
-//
-//    // dispose کردن تکسچرهای دستی
-//    if (whiteTexture != null) whiteTexture.dispose();
-//    if (mapVisorTexture != null) mapVisorTexture.dispose();
-//    if (shipTexture != null) shipTexture.dispose();
-//
-//    // dispose کردن تکسچرهای نوار سلامتی
-//    if (tBlack != null) tBlack.dispose();
-//    if (tGreen != null) tGreen.dispose();
-//    if (tOrange != null) tOrange.dispose();
-//    if (tRed != null) tRed.dispose();
-//
-//    // dispose کردن تمام عکس‌های ساختمان‌ها در کش
-//    for (TextureRegionDrawable drawable : buildingDrawableCache.values()) {
-//        if (drawable.getRegion() != null && drawable.getRegion().getTexture() != null) {
-//            drawable.getRegion().getTexture().dispose();
-//        }
-//    }
-//    buildingDrawableCache.clear();
-//}    // >> ADD THIS NEW METHOD ANYWHERE INSIDE THE GamePlayScreen CLASS <<
 
     @Override
     public void dispose() {
@@ -5766,26 +4723,6 @@ public void render(float delta) {
         }
         return table;
     }    // این متد جدید را به کلاس اضافه کنید تا ارور برطرف شود
-//    private void addResourceIcon(Table table, String type, int amount) {
-//        if (amount == 0) return; // اگر مقدار صفر است، چیزی نشان نده
-//
-//        // استفاده از عکس Storage به عنوان آیکون منابع (چون این عکس را حتماً دارید و کش شده است)
-//        Image icon = new Image(getCachedBuildingDrawable("Storage", 0));
-//
-//        // تعیین رنگ (سبز برای مثبت، قرمز برای منفی)
-//        Color color = (amount > 0) ? Color.GREEN : Color.FIREBRICK;
-//        String text = (amount > 0 ? "+" : "") + amount;
-//
-//        Label label = new Label(text, skin);
-//        label.setColor(color);
-//        label.setFontScale(0.8f);
-//
-//        // اضافه کردن به جدول
-//        table.add(icon).size(20).padRight(2);
-//        table.add(label).padRight(10);
-//    }
-
-    // متد کمکی برای ساخت آیکون رنگی منابع (بدون نیاز به فایل عکس)
     private void addResourceIcon(Table table, String type, int amount) {
         if (amount == 0) return;
 

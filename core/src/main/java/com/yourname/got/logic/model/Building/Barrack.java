@@ -27,18 +27,16 @@ public class Barrack extends Building implements Serializable {
             return false;
         }
 
-        // --- رفع باگ ظرفیت کمپ: تطبیق با کلاس TrainingTask ---
-        // هر آبجکت در صف دقیقا یک سرباز است، پس سایز صف برابر است با تعداد سربازان در حال آموزش
-        int currentTotalSoldiers = owner.getArmyManager().getTotalSoldier();
-        int soldiersInQueue = owner.getTrainingQueue().getSize();
-        int totalExpectedSoldiers = currentTotalSoldiers + soldiersInQueue;
-        int totalKingdomCapacity = owner.getTotalSoldierCapacity();
-
-        if (totalKingdomCapacity == 0 || totalExpectedSoldiers >= totalKingdomCapacity) {
-            System.out.println("⛔️ Army capacity is full or no active Camp exists. Cannot train " + type);
+        // Capacity check: soldiers at home + soldiers away on missions + soldiers already queued
+        // must stay below the total capacity of all built camps.
+        if (owner.getTotalSoldierCapacity() == 0) {
+            System.out.println(" No active Camp exists. Cannot train " + type);
             return false;
         }
-        // ---------------------------------------------------------
+        if (owner.getFreeTrainingSlots() <= 0) {
+            System.out.println(" Army capacity is full. Cannot train " + type);
+            return false;
+        }
 
         int foodCost = type.foodCost;
         int woodCost = type.woodCost;

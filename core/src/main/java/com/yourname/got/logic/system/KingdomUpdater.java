@@ -24,27 +24,16 @@ public class KingdomUpdater implements Serializable {
             this.visualsChanged = visualsChanged;
         }
     }
-    // >> END OF MODIFICATION 1.1 <<
-
-
-//    public static MyLinkedList<String> updateKingdom(Kingdom kingdom, int gameSpeed) {
-//        MyLinkedList<String> messages = new MyLinkedList<>();
-//
-//        messages.addAll(updateMines(kingdom, gameSpeed));
-//        messages.addAll(updateBarracks(kingdom));
-//        updateBuildings(kingdom, gameSpeed);
-//
-//        return messages;
-//    }
-
-    // File: KingdomUpdater.java
-
-    // >> CHANGE THIS METHOD'S SIGNATURE AND RETURN STATEMENT <<
     public static UpdateResult updateKingdom(Kingdom kingdom, int gameSpeed) {
         MyLinkedList<String> messages = new MyLinkedList<>();
 
         messages.addAll(updateMines(kingdom, gameSpeed));
         messages.addAll(updateBarracks(kingdom));
+
+        // A hero who fell in a duel comes back after a while.
+        if (kingdom.getHero() != null && kingdom.getHero().tryRevive(gameSpeed)) {
+            messages.add("Your hero " + kingdom.getHero().getName() + " has recovered and is ready to fight again.");
+        }
 
         // Capture the boolean signal from updateBuildings
         boolean hasVisualChanges = updateBuildings(kingdom, gameSpeed);
@@ -121,9 +110,4 @@ public class KingdomUpdater implements Serializable {
         return visualChangeDetected;
     }
 
-//    private static void updateBuildings(Kingdom kingdom, int gameSpeed) {
-//        for (Building building : kingdom.getBuildings()) {
-//            BuildingManager.update(building, gameSpeed);
-//        }
-//    }
 }

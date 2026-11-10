@@ -80,16 +80,15 @@ Plan multi-phase assaults with custom army formations. Review historical skirmis
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Java Development Kit (JDK): Version 17 or newer
+- Java Development Kit (JDK): Version 21 or newer
 - Gradle: 8.5+ (Wrapper provided)
 
 ### Running from Source
 Clone the repository and run using the Gradle wrapper:
 
-`bash
+```bash
 # Clone the repository
-git clone [https://github.com/mmatvakili-lgtm/GOT.git](https://github.com/mmatvakili-lgtm/GOT.git)
-
+git clone https://github.com/mmatvakili-lgtm/GOT.git
 cd GOT
 
 # Run the desktop application (Windows)
@@ -98,8 +97,9 @@ cd GOT
 # Run the desktop application (Linux / macOS)
 ./gradlew lwjgl3:run
 
-# Building Standalone Executable (JAR)
-.\gradlew.bat lwjgl3:jar
+# Build a standalone executable (JAR)
+./gradlew lwjgl3:jar
+```
 
 The compiled fat-JAR will be generated in lwjgl3/build/libs/AP-Game.jar.
 

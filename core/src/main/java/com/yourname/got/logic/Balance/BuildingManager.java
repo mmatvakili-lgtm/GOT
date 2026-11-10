@@ -222,27 +222,6 @@ public final class BuildingManager implements Serializable {
         return options;
     }    // ───────────────────────── گزینه‌های ارتقاء (غیرترمینالی)
 
-//    public static Result update(Building building, int gameSpeed) {
-//        if (building.getStatus() == Status.underConstruction && building.isConstructionComplete(gameSpeed)) {
-//            building.completeConstruction();
-//            GameFileUtility.saveFullGameState(building.getKingdom().getOwner().getGame());
-//        }
-//        if (building.getStatus() == Status.upgrading && building.isUpgradeComplete(gameSpeed)) {
-//            Result result = building.completeUpgrade();
-//            GameFileUtility.saveFullGameState(building.getKingdom().getOwner().getGame());
-//            return result;
-//        }
-//        if (building.getStatus() == Status.underRepair && building.isRepairComplete(gameSpeed)) {
-//            Result result = building.completeRepair(gameSpeed);
-//            GameFileUtility.saveFullGameState(building.getKingdom().getOwner().getGame());
-//            return result;
-//        }
-//        return new Result(false,"update false");
-//    }
-
-    // File: BuildingManager.java
-
-    // >> REPLACE THE ENTIRE 'update' METHOD WITH THIS NEW VERSION <<
     public static boolean update(Building building, int gameSpeed) {
         boolean visualStateChanged = false;
 

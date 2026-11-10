@@ -67,10 +67,12 @@ public class TrainingTask implements Serializable {
         }
 
         boolean success = false;
-        for (Building b : kingdom.getBuildings()) {
-            if (b instanceof Camp camp && camp.hasCapacity()) {
-                success = camp.addTrainedSoldier(s);
-                if (success) break;
+        if (s != null && kingdom.getFreeSoldierSlots() > 0) {
+            for (Building b : kingdom.getBuildings()) {
+                if (b instanceof Camp camp && camp.isBuilt() && !camp.isDestroyed()) {
+                    success = camp.addTrainedSoldier(s);
+                    break; // capacity is shared by all camps, the first built camp is enough
+                }
             }
         }
 
@@ -82,7 +84,12 @@ public class TrainingTask implements Serializable {
         if (success) {
             message = "SUCCESS: " + type + " training completed and deployed.";
         } else {
-            message = "ERROR: " + type + " training completed but all camps are full.";
+            // The resources were paid when the task was queued: give them back
+            // instead of silently losing both the soldier and the money.
+            kingdom.addResources("Wood", type.woodCost);
+            kingdom.addResources("Coin", type.coinCost);
+            kingdom.addResources("Food", type.foodCost);
+            message = "ERROR: " + type + " training completed but there is no free camp space. Resources were refunded.";
         }
 
         GameFileUtility.saveFullGameState(kingdom.getOwner().getGame());

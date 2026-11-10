@@ -5,6 +5,12 @@ import com.yourname.got.logic.enums.KingdomType;
 import java.io.Serializable;
 
 public class Hero implements Serializable {
+    // Keeps old saved games loadable (this is the value Java computed before the revive fields were added).
+    private static final long serialVersionUID = 8597127391767608361L;
+    /** Minutes (at game speed 1) a fallen hero needs before he can fight again. */
+    public static final int REVIVE_MINUTES = 10;
+
+    private long diedAtMillis = 0;
     private final String name;
     private final KingdomType kingdomType;
     private final String description;
@@ -34,22 +40,44 @@ public class Hero implements Serializable {
     public void unlock() { unlocked = true; }
     public void markBusy() { isBusy = true; }
     public void release() { isBusy = false; }
-    public boolean isAvailable() { return unlocked && !isBusy; }
+    public boolean isAvailable() { return unlocked && !isBusy && currentHealth > 0; }
     public int getHealth() { return currentHealth; }
 
     public void setHealth(int health) {
         this.currentHealth = Math.max(0, Math.min(health, maxHealth));
+        if (this.currentHealth <= 0) markDeath(); else diedAtMillis = 0;
     }
 
     public void takeDamage(int damage) {
         this.currentHealth -= damage;
-        if (this.currentHealth < 0) this.currentHealth = 0;
+        if (this.currentHealth <= 0) {
+            this.currentHealth = 0;
+            markDeath();
+        }
+    }
+
+    private void markDeath() {
+        if (diedAtMillis == 0) diedAtMillis = System.currentTimeMillis();
+    }
+
+    /**
+     * A fallen hero comes back with full health after REVIVE_MINUTES / gameSpeed minutes.
+     * (Before, a hero who lost a duel stayed at 0 health forever but was still treated as available.)
+     * @return true if the hero was revived by this call
+     */
+    public boolean tryRevive(int gameSpeed) {
+        if (currentHealth > 0 || !unlocked) return false;
+        if (diedAtMillis == 0) { diedAtMillis = System.currentTimeMillis(); return false; }
+        long needed = (long) (REVIVE_MINUTES * 60_000L / Math.max(1, gameSpeed));
+        if (System.currentTimeMillis() - diedAtMillis < needed) return false;
+        restoreHealth();
+        return true;
     }
 
     public boolean isDead() { return currentHealth <= 0; }
 
     // بازگردانی سلامتی کامل (مثلاً بعد از پایان نبرد یا احیا)
-    public void restoreHealth() { this.currentHealth = maxHealth; }
+    public void restoreHealth() { this.currentHealth = maxHealth; this.diedAtMillis = 0; }
 
     public boolean isUnlocked() { return unlocked; }
     public int getAttackBonus() { return attackBonus; }

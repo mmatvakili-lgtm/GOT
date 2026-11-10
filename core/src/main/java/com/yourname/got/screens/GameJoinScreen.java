@@ -67,58 +67,6 @@ public class GameJoinScreen implements Screen, GameMessageListener {
         scheduleRefreshAndModeUpdate();
     }
 
-//    private void createUI() {
-//        // ۱. جدول اصلی برای محتوای وسط (عنوان، لیست‌ها، پنل‌ها)
-//        Table rootTable = new Table();
-//        rootTable.setFillParent(true);
-//        rootTable.center(); // محتوا در مرکز
-//        stage.addActor(rootTable);
-//
-//        Label titleLabel = new Label("Game Lobbies", skin);
-//        titleLabel.setFontScale(1.5f);
-//
-//        // ساخت پنل‌ها (مثل قبل)
-//        lobbyPlayersTable = new Table(skin);
-//        lobbyPlayersTable.setBackground(skin.newDrawable("white", new Color(0, 0, 0, 0.5f)));
-//
-//        createNotInGamePanel();
-//        createPlayerInGamePanel();
-//        createOwnerInGamePanel();
-//
-//        errorLabel = new Label("", skin);
-//        errorLabel.setColor(Color.RED);
-//
-//        // ۲. چیدمان محتوای وسط صفحه
-//        rootTable.add(titleLabel).padBottom(15).row();
-//        rootTable.add(notInGamePanel).row();
-//
-//        // پنل‌های داخل بازی (که ممکن است بزرگ شوند)
-//        rootTable.add(playerInGamePanel).row();
-//        rootTable.add(ownerInGamePanel).row();
-//
-//        rootTable.add(errorLabel).height(30).padTop(10).row();
-//
-//        // ۳. ساخت دکمه بازگشت (جدا از جدول وسط)
-//        TextButton backButton = new TextButton("Back", skin);
-//        backButton.addListener(new ChangeListener() {
-//            @Override
-//            public void changed(ChangeEvent event, Actor actor) {
-//                mediator.goToGameLoading();
-//            }
-//        });
-//
-//        // ۴. جدول ناوبری برای دکمه‌های ثابت پایین صفحه
-//        Table navigationTable = new Table();
-//        navigationTable.setFillParent(true);
-//        navigationTable.bottom().left(); // چسبیدن به پایین-چپ
-//        navigationTable.pad(30); // فاصله از لبه‌های صفحه
-//
-//        // اضافه کردن دکمه به جدول ناوبری (نه جدول وسط!)
-//        navigationTable.add(backButton).width(200).height(50); // عرض کمتر برای شیک‌تر شدن
-//
-//        // اضافه کردن جدول ناوبری روی تمام لایه‌ها
-//        stage.addActor(navigationTable);
-//    }
 
     private void createUI() {
         // ۱. ساخت جدول اصلی محتوا
@@ -168,70 +116,6 @@ public class GameJoinScreen implements Screen, GameMessageListener {
         notInGamePanel = new Table();
     }
 
-//    private void createPlayerInGamePanel() {
-//        playerInGamePanel = new Table();
-//        playerInGamePanel.setVisible(false);
-//
-//        // 1. عنوان وضعیت (با افکت چشمک‌زن)
-//        Label statusLabel = new Label("⏳ Awaiting Orders from Lord Commander...", skin);
-//        statusLabel.setColor(Color.ORANGE);
-//        statusLabel.setFontScale(1.2f);
-//        // افکت Fade In/Out برای جلب توجه
-//        statusLabel.addAction(Actions.forever(Actions.sequence(
-//            Actions.alpha(0.5f, 0.8f),
-//            Actions.alpha(1f, 0.8f)
-//        )));
-//
-//        // 2. پنل اطلاعات بازی (با پس‌زمینه تیره و حاشیه)
-//        Table gameInfoTable = new Table(skin);
-//        // پس‌زمینه کاملا تیره برای خوانایی عالی
-//        gameInfoTable.setBackground(skin.newDrawable("white", new Color(0.1f, 0.1f, 0.1f, 0.9f)));
-//        gameInfoTable.pad(20);
-//
-//        if (currentUser.getGame() != null) {
-//            Properties props = mediator.getGameConfig(currentUser.getGame().getId());
-//
-//            Label title = new Label("📜 Battle Decree", skin);
-//            title.setColor(Color.CYAN);
-//            gameInfoTable.add(title).colspan(2).padBottom(15).row();
-//
-//            addInfoRow(gameInfoTable, "Game Speed:", props.getProperty("game.speed", "1.0") + "x");
-//            addInfoRow(gameInfoTable, "Difficulty:", props.getProperty("game.difficulty", "Normal"));
-//            addInfoRow(gameInfoTable, "Turn Duration:", props.getProperty("game.turn.duration", "30") + "s");
-//            addInfoRow(gameInfoTable, "Attacks:", "Active");
-//        }
-//
-//        // 3. جمله تصادفی (در یک کادر مجزا)
-//        Table tipTable = new Table(skin);
-//        tipTable.setBackground(skin.newDrawable("white", new Color(0, 0, 0, 0.6f))); // نیمه شفاف
-//        Label tipLabel = new Label(getRandomTip(), skin);
-//        tipLabel.setColor(Color.LIGHT_GRAY);
-//        tipLabel.setWrap(true);
-//        tipLabel.setAlignment(Align.center);
-//        tipTable.add(tipLabel).width(500).pad(10);
-//
-//        // 4. دکمه خروج (قرمز برای هشدار)
-//        TextButton leaveButton = new TextButton("Retreat (Leave Lobby)", skin);
-//        leaveButton.setColor(Color.FIREBRICK); // قرمز کردن دکمه
-//        leaveButton.addListener(new ChangeListener() {
-//            @Override
-//            public void changed(ChangeEvent event, Actor actor) { showLeaveConfirmationDialog(); }
-//        });
-//
-//        // --- چیدمان نهایی ---
-//
-//        playerInGamePanel.add(statusLabel).colspan(2).padBottom(20).row();
-//
-//        // چیدمان افقی: لیست بازیکنان و اطلاعات
-//        Table centerLayout = new Table();
-//        centerLayout.add(lobbyPlayersTable).width(450).minHeight(300).fillY().padRight(15); // عریض‌تر و بلندتر
-//        centerLayout.add(gameInfoTable).width(350).fillY(); // هم‌اندازه شدن ارتفاع
-//
-//        playerInGamePanel.add(centerLayout).colspan(2).row();
-//
-//        playerInGamePanel.add(tipTable).colspan(2).padTop(25).padBottom(15).row();
-//        playerInGamePanel.add(leaveButton).width(250).height(60).colspan(2);
-//    }
 
     private void createPlayerInGamePanel() {
         playerInGamePanel = new Table();
@@ -287,51 +171,6 @@ public class GameJoinScreen implements Screen, GameMessageListener {
         table.add(new Image(skin.newDrawable("white", new Color(1,1,1,0.1f)))).height(1).colspan(2).fillX().padBottom(5).row();
     }
 
-//    private void createOwnerInGamePanel() {
-//        ownerInGamePanel = new Table();
-//        ownerInGamePanel.setVisible(false);
-//
-//        Label statusLabel = new Label("You are the owner of this lobby.", skin);
-//        TextButton startButton = new TextButton("Start Game", skin);
-//        startButton.setName("StartButton"); // نام‌گذاری دقیق برای پیدا کردن دکمه در آینده
-//        TextButton deleteButton = new TextButton("Delete", skin);
-//        TextButton settingsButton = new TextButton("Settings", skin);
-//
-//        startButton.addListener(new ChangeListener() {
-//            @Override
-//            public void changed(ChangeEvent event, Actor actor) {
-//                if (currentUser.getGame() != null) {
-//                    Result result = mediator.startGameFromUI(currentUser, currentUser.getGame().getId());
-//                    errorLabel.setText(result.getMessage());
-//                    if(result.isSuccess())
-//                        mediator.goToGamePlayScreen();
-//                }
-//            }
-//        });
-//        deleteButton.addListener(new ChangeListener() {
-//            @Override
-//            public void changed(ChangeEvent event, Actor actor) {
-//                mediator.deleteCurrentGame();
-//            }
-//        });
-//        settingsButton.addListener(new ChangeListener() {
-//            @Override
-//            public void changed(ChangeEvent event, Actor actor) {
-//                if (currentUser.getGame() != null) {
-//                    openGameSettingsWindow(currentUser.getGame().getId());
-//                }
-//            }
-//        });
-//
-//        ownerInGamePanel.add(statusLabel).colspan(3).padBottom(20).row();
-//
-//        // --- اضافه کردن جدول لیست بازیکنان ---
-//        ownerInGamePanel.add(lobbyPlayersTable).colspan(3).width(500).minHeight(300).padBottom(20).row();        // -----------------------------------
-//
-//        ownerInGamePanel.add(startButton).padRight(10);
-//        ownerInGamePanel.add(deleteButton).padRight(10);
-//        ownerInGamePanel.add(settingsButton);
-//    }
 
     private void createOwnerInGamePanel() {
         ownerInGamePanel = new Table();
@@ -653,7 +492,6 @@ public class GameJoinScreen implements Screen, GameMessageListener {
             (stage.getHeight() - activeSettingsWindow.getHeight()) / 2);
         stage.addActor(activeSettingsWindow);
     }
-
 
 
     @Override

@@ -21,8 +21,13 @@ public class Camp extends Building implements Serializable {
         this.trainedSoldiers = new MyLinkedList<>();
     }
 
+    /**
+     * Capacity is shared by all camps of the kingdom, so it is checked kingdom-wide.
+     * (It used to compare ONE camp's capacity with the soldiers of the WHOLE kingdom,
+     * which made every camp look full too early.)
+     */
     public boolean hasCapacity() {
-        return getMaxCapacity() > getCurrentSoldierCount();
+        return owner != null && owner.getFreeSoldierSlots() > 0;
     }
 
     public boolean addTrainedSoldier(Soldier soldier) {
@@ -44,12 +49,13 @@ public class Camp extends Building implements Serializable {
     public int getCurrentSoldierCount() {
         // --- رفع باگ: کمپ باید ظرفیت را بر اساس کل سربازان فعلی ارتش بخواند ---
         // اگر owner یا armyManager نال بود، 0 برگردان
-        if (owner == null || owner.getArmyManager() == null) return 0;
-        return owner.getArmyManager().getTotalSoldier();
+        if (owner == null) return 0;
+        return owner.getOwnedSoldierCount();
     }
 
+    /** Free soldier slots of the whole kingdom (camps share one pool). */
     public int getFreeCapacity() {
-        return getMaxCapacity() - getCurrentSoldierCount();
+        return owner == null ? 0 : owner.getFreeSoldierSlots();
     }
 
     public Kingdom getKingdom() {

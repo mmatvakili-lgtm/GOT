@@ -14,10 +14,10 @@ public final class GameBalance implements Serializable {
 
     public static int getProductionPerMinute(String type, int level) {
         return switch (type.toUpperCase()) {
-            case "WOOD"  -> BASE_WOOD  * (int) Math.pow(1.2, level-1);
-            case "STONE" -> BASE_STONE * (int) Math.pow(1.2, level-1);
-            case "COIN"  -> BASE_COIN  * (int) Math.pow(1.2, level-1);
-            case "FOOD"  -> BASE_FOOD  * (int) Math.pow(1.2, level-1);
+            case "WOOD"  -> (int) Math.round(BASE_WOOD * Math.pow(1.2, level-1));
+            case "STONE" -> (int) Math.round(BASE_STONE * Math.pow(1.2, level-1));
+            case "COIN"  -> (int) Math.round(BASE_COIN * Math.pow(1.2, level-1));
+            case "FOOD"  -> (int) Math.round(BASE_FOOD * Math.pow(1.2, level-1));
             default -> 0;
         };
     }

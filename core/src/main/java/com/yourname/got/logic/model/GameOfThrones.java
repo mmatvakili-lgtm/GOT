@@ -13,7 +13,6 @@ import com.yourname.got.logic.enums.KingdomType;
 import com.yourname.got.logic.enums.TerrainType;
 import com.yourname.got.logic.model.Army.SoldierUnit;
 import com.yourname.got.logic.model.Building.Castle;
-import com.yourname.got.logic.system.GameLoopManager;
 import com.yourname.got.logic.system.GameRulesManager;
 import com.yourname.got.logic.util.*;
 import com.yourname.got.logic.WhiteWalker.*;
@@ -45,7 +44,6 @@ public class GameOfThrones implements Serializable {
     private Properties config;
     private boolean isFinished = false;
     MyLinkedList<PlayerState> playerStates;
-    private  GameLoopManager gameLoopManager;
     public String REPLAYS_FOLDER_PATH;
 
     public enum PlayerStatus {
@@ -56,6 +54,10 @@ public class GameOfThrones implements Serializable {
         private static final long serialVersionUID = 1L;
         public int userId;
         public PlayerStatus status;
+        /** 0 while the player is alive; 1 for the first player to fall, 2 for the next, ... */
+        public int defeatOrder = 0;
+        /** Score snapshot taken at the moment the player was defeated. */
+        public int finalScore = 0;
 
         public PlayerState(int userId) {
             this.userId = userId;
@@ -71,83 +73,6 @@ public class GameOfThrones implements Serializable {
     public boolean isFinished() {
         return isFinished;
     }
-// In file: GameOfThrones.java
-// Replace the entire endGame method with this one
-
-//    public void endGame(GameRecord.GameResult reason) {
-//        // 1. جلوگیری از اجرای مجدد (منطق شما حفظ شده)
-//        if (this.isFinished) return;
-//        this.isFinished = true;
-//        System.out.println("GAME OVER: The game '" + this.name + "' has ended. Reason: " + reason);
-//
-//        // 2. ساخت آبجکت GameRecord (منطق شما حفظ شده)
-//        String duration = this.gameTime.getFormattedElapsedTime();
-//        GameRecord finalRecord = new GameRecord(this.name, this.config, duration, reason);
-//
-//        // --- START OF NEW & CORRECTED LOGIC ---
-//        // 3. ایجاد و پر کردن لیست رده‌بندی بازیکنان
-//        System.out.println("Calculating final player rankings...");
-//        MyLinkedList<PlayerResult> rankedResults = new MyLinkedList<>();
-//
-//        // ابتدا برنده(ها) یا بازمانده‌ها را اضافه می‌کنیم
-//        for (GameUser user : this.User) {
-//            if (user == null) continue;
-//            PlayerState state = getPlayerState(user.getId());
-//            if (state != null && state.status == PlayerStatus.ACTIVE) {
-//                PlayerResult.PlayerStatus finalStatus = PlayerResult.PlayerStatus.DEFEATED; // Default
-//                if (reason == GameRecord.GameResult.LAST_PLAYER_STANDING) {
-//                    finalStatus = PlayerResult.PlayerStatus.WINNER;
-//                } else if (reason == GameRecord.GameResult.SURVIVED_THE_LONG_NIGHT) {
-//                    finalStatus = PlayerResult.PlayerStatus.SURVIVED;
-//                }
-//                // رتبه و امتیاز موقتا ۰ در نظر گرفته می‌شود و بعداً اصلاح خواهد شد
-//                rankedResults.add(new PlayerResult(user.getUsername(), 0, finalStatus, 0));
-//            }
-//        }
-//
-//        // سپس بازیکنان شکست‌خورده را اضافه می‌کنیم
-//        for (GameUser user : this.User) {
-//            if (user == null) continue;
-//            PlayerState state = getPlayerState(user.getId());
-//            if (state != null && state.status == PlayerStatus.DEFEATED) {
-//                rankedResults.add(new PlayerResult(user.getUsername(), 0, PlayerResult.PlayerStatus.DEFEATED, 0));
-//            }
-//        }
-//
-//        // حالا لیست نهایی را به GameRecord اضافه می‌کنیم (در اینجا می‌توان منطق مرتب‌سازی پیشرفته‌تری هم اضافه کرد)
-//        // در این نسخه ساده، ترتیب بر اساس وضعیت است
-//        int rank = 1;
-//        for (PlayerResult result : rankedResults) {
-//            // سازنده PlayerResult شما rank را می‌گیرد، پس ما یک نسخه جدید با رتبه صحیح می‌سازیم
-//            finalRecord.addPlayerResult(new PlayerResult(result.getUsername(), result.getScore(), result.getStatus(), rank));
-//            System.out.println("  > Rank " + rank + ": " + result.getUsername() + " as " + result.getStatus());
-//            rank++;
-//        }
-//        // --- END OF NEW & CORRECTED LOGIC ---
-//
-//        // 4. ذخیره رکورد برای همه بازیکنان (منطق شما حفظ شده)
-//        System.out.println("Finalizing and saving records for all players...");
-//        for (GameUser u : this.User) {
-//            if (u == null) continue;
-//            try {
-//                cleanupAndResetUser(u);
-//
-//            } catch (Exception e) {
-//                System.err.println("ERROR: Failed to save record or update user state for " + u.getUsername() + ": " + e.getMessage());
-//            }
-//        }
-//
-//        // 5. ذخیره وضعیت نهایی بازی و اطلاع به UI (منطق شما حفظ شده)
-//        GameFileUtility.saveFullGameState(this);
-//        if (GameMediator.getInstance() != null) {
-//            GameMediator.getInstance().triggerResultsPanelDisplay();
-//        }
-//
-//        System.out.println("Game finalization complete.");
-//    }
-// در فایل GameOfThrones.java
-
-// در فایل GameOfThrones.java متد را جایگزین کنید
     public void endGame(GameRecord.GameResult reason) {
         if (this.isFinished) return;
         this.isFinished = true;
@@ -159,35 +84,43 @@ public class GameOfThrones implements Serializable {
         GameRecord finalRecord = new GameRecord(this.name, this.config, duration, reason);
 
         // ۲. رتبه‌بندی بازیکنان
-        MyLinkedList<PlayerResult> rankedResults = new MyLinkedList<>();
-
-        // اول زنده‌ها/برنده‌ها
+        // Final ranking: survivors first (highest score first), then the defeated players
+        // (the player who fell last ranks best among them).
+        java.util.List<GameUser> survivors = new java.util.ArrayList<>();
+        java.util.List<GameUser> fallen = new java.util.ArrayList<>();
+        java.util.Map<Integer, Integer> survivorScores = new java.util.HashMap<>();
         for (GameUser user : this.User) {
             if (user == null) continue;
             PlayerState state = getPlayerState(user.getId());
-            if (state != null && state.status == PlayerStatus.ACTIVE) {
-                PlayerResult.PlayerStatus finalStatus = (reason == GameRecord.GameResult.LAST_PLAYER_STANDING) ?
-                    PlayerResult.PlayerStatus.WINNER : PlayerResult.PlayerStatus.SURVIVED;
-                rankedResults.add(new PlayerResult(user.getUsername(), 0, finalStatus, 0));
+            if (state == null) continue;
+            if (state.status == PlayerStatus.ACTIVE) {
+                survivors.add(user);
+                survivorScores.put(user.getId(), com.yourname.got.logic.system.ScoreCalculator.calculate(user));
+            } else if (state.status == PlayerStatus.DEFEATED) {
+                fallen.add(user);
             }
         }
-        // دوم بازنده‌ها
-        for (GameUser user : this.User) {
-            if (user == null) continue;
-            PlayerState state = getPlayerState(user.getId());
-            if (state != null && state.status == PlayerStatus.DEFEATED) {
-                rankedResults.add(new PlayerResult(user.getUsername(), 0, PlayerResult.PlayerStatus.DEFEATED, 0));
-            }
-        }
+        survivors.sort((x, y) -> {
+            int c = Integer.compare(survivorScores.get(y.getId()), survivorScores.get(x.getId()));
+            return c != 0 ? c : x.getUsername().compareToIgnoreCase(y.getUsername());
+        });
+        fallen.sort((x, y) -> Integer.compare(
+            getPlayerState(y.getId()).defeatOrder, getPlayerState(x.getId()).defeatOrder));
 
-        // افزودن به رکورد با رتبه صحیح
         int rank = 1;
-        for (PlayerResult res : rankedResults) {
-            finalRecord.addPlayerResult(new PlayerResult(res.getUsername(), res.getScore(), res.getStatus(), rank));
-            rank++;
+        for (GameUser user : survivors) {
+            PlayerResult.PlayerStatus finalStatus =
+                (reason == GameRecord.GameResult.LAST_PLAYER_STANDING && rank == 1)
+                    ? PlayerResult.PlayerStatus.WINNER : PlayerResult.PlayerStatus.SURVIVED;
+            finalRecord.addPlayerResult(new PlayerResult(
+                user.getUsername(), survivorScores.get(user.getId()), finalStatus, rank++));
+        }
+        for (GameUser user : fallen) {
+            finalRecord.addPlayerResult(new PlayerResult(
+                user.getUsername(), getPlayerState(user.getId()).finalScore,
+                PlayerResult.PlayerStatus.DEFEATED, rank++));
         }
 
-        // ۳. ذخیره رکورد در فایل‌های شخصی همه کاربران (چه آنلاین چه آفلاین)
         for (GameUser u : this.User) {
             if (u == null) continue;
             UserSystem.saveGameRecord(u, finalRecord);
@@ -247,48 +180,14 @@ public class GameOfThrones implements Serializable {
         }
 
         // شرط ۳: روز ۱۰۰ فرا رسیده (پایان زمان)
-        if (this.getGameTime().getDay() >= getWhitewalkerFinalDay()) {
+        boolean finalWaveDone = (whiteWalkerManager == null || whiteWalkerManager.isFinalWaveTriggered())
+            && !hasPendingWhiteWalkerMissions();
+        if (this.getGameTime().getDay() >= getWhitewalkerFinalDay() && finalWaveDone) {
             endGame(GameRecord.GameResult.SURVIVED_THE_LONG_NIGHT);
             return;
         }
     }
 
-//    public void checkGameOver() {
-//        checkUserActivity();
-//        checkAllPlayersStatus();
-//        if (isFinished) return;
-//        int activePlayers = 0;
-//        GameUser lastAlive = null;
-//
-//
-//        for (GameUser u : this.User) {
-//            if (u == null) continue;
-//            PlayerState st = getPlayerState(u.getId());
-//            if (st != null && st.status == PlayerStatus.ACTIVE) {
-//                activePlayers++;
-//                lastAlive = u;
-//            }
-//        }
-//
-//        if (this.getGameTime().getDay() <= this.getWhitewalkerFinalDay()&& activePlayers!=0) {
-//            return;
-//        }
-//
-//        if (activePlayers == 0) {
-//            endGame(GameRecord.GameResult.WHITE_WALKERS_WON);
-//            return;
-//        }
-//
-//        if (activePlayers == 1 && lastAlive != null && whiteWalkerManager.isFinalWaveTriggered()) {
-//            endGame(GameRecord.GameResult.LAST_PLAYER_STANDING);
-//            return;
-//        }
-//
-//        if (this.getGameTime().getDay() >= getWhitewalkerFinalDay() && whiteWalkerManager.isFinalWaveTriggered()) {
-//            endGame(GameRecord.GameResult.TIME_UP);
-//            return;
-//        }
-//    }
 
     private void readObject(java.io.ObjectInputStream in)
         throws java.io.IOException, ClassNotFoundException {
@@ -297,6 +196,17 @@ public class GameOfThrones implements Serializable {
         in.defaultReadObject();
     }
     // In file: GameOfThrones.java
+
+    /** True while at least one White Walker attack is still waiting to be resolved. */
+    private boolean hasPendingWhiteWalkerMissions() {
+        if (missions == null) return false;
+        for (Mission m : missions) {
+            if (m instanceof com.yourname.got.logic.WhiteWalker.WhiteWalkerMission && !m.isCompleted()) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     public void handlePlayerDefeat(GameUser defeatedUser) {
         if (defeatedUser == null) return;
@@ -311,6 +221,13 @@ public class GameOfThrones implements Serializable {
 
         // --- START OF THE DEFINITIVE FIX ---
         // ۱. وضعیت بازیکن را به طور قطعی به DEFEATED تغییر بده
+        // Remember when (in which order) the player fell and what they had, for the final ranking.
+        int alreadyDefeated = 0;
+        for (PlayerState ps : playerStates) {
+            if (ps != null && ps.status == PlayerStatus.DEFEATED) alreadyDefeated++;
+        }
+        state.finalScore = com.yourname.got.logic.system.ScoreCalculator.calculate(defeatedUser);
+        state.defeatOrder = alreadyDefeated + 1;
         state.status = PlayerStatus.DEFEATED;
 
         // ۲. وضعیت قلعه را نیز (بدون آسیب زدن) به نابود شده تغییر بده تا همه جا یکپارچه باشد
@@ -523,7 +440,9 @@ public class GameOfThrones implements Serializable {
     }
 
     public String getDifficulty() {
-        return GameConfig.getGameProperty(id,"game.difficulty");
+        // A missing/unreadable config must not crash mines and White Walker waves (they call toLowerCase on it).
+        String difficulty = GameConfig.getGameProperty(id, "game.difficulty");
+        return (difficulty == null || difficulty.isBlank()) ? "medium" : difficulty;
     }
 
     public int getTurnDuration() {

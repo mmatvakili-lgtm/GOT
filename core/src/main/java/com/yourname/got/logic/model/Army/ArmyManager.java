@@ -165,24 +165,30 @@ public class ArmyManager implements Serializable {
     }
 
 
+    /**
+     * Queues {@code quantity} soldiers. Every soldier is queued through the Barrack so that the
+     * capacity check and the resource payment are done once per soldier (this method used to
+     * queue ONE task, pay for all of them and pass the quantity as the task start time).
+     */
     public Result trainSoldiers(SoldierType type, int quantity, Kingdom kingdom, int gameSpeed) {
         if (quantity <= 0) {
             return new Result(false, "Quantity must be positive.");
         }
-
-        int totalWood = type.woodCost * quantity;
-        int totalFood = type.foodCost * quantity;
-        int totalCoin = type.coinCost * quantity;
-
-        if (!kingdom.canAffordResources(totalWood, 0, totalCoin, totalFood)) {
-            return new Result(false, "Not enough resources to train " + quantity + " " + type.name());
+        com.yourname.got.logic.model.Building.Barrack barrack = kingdom.getFirstAvailableBarrack();
+        if (barrack == null) {
+            return new Result(false, "No active Barrack available.");
         }
-
-        kingdom.detuctResources(totalWood, 0, totalCoin, totalFood);
-
-        TrainingTask task = new TrainingTask(type,kingdom, quantity, gameSpeed);
-        kingdom.getTrainingQueue().add(task);
-
+        int queued = 0;
+        while (queued < quantity && barrack.trainSoldier(type, gameSpeed)) {
+            queued++;
+        }
+        if (queued == 0) {
+            return new Result(false, "Cannot train " + type.name() + ": not enough resources or no free camp space.");
+        }
+        if (queued < quantity) {
+            return new Result(true, "Only " + queued + " of " + quantity + " " + type.name()
+                + " could be queued (resources or camp space ran out).");
+        }
         return new Result(true, "Training for " + quantity + " " + type.name() + " has been added to the queue.");
     }
     public void addSoldierPackage(SoldierUnit purchasedUnit) {

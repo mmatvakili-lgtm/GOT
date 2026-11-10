@@ -1,6 +1,7 @@
 package com.yourname.got;
 
 import com.badlogic.gdx.Game;
+import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
 import com.yourname.got.logic.login.GameUser;
@@ -29,6 +30,24 @@ public class GoTGame extends Game implements GameMessageListener {
 
     public static GoTGame getInstance() {
         return instance;
+    }
+
+    /**
+     * libGDX only calls hide() on the previous screen, never dispose(). Every screen here owns its own
+     * Skin, Stage and textures (and every navigation creates a NEW screen), so without this the
+     * memory of every screen that was ever shown stayed allocated.
+     */
+    @Override
+    public void setScreen(Screen screen) {
+        Screen previous = getScreen();
+        super.setScreen(screen);
+        if (previous != null && previous != screen) {
+            try {
+                previous.dispose();
+            } catch (Exception e) {
+                System.err.println("Could not dispose previous screen: " + e);
+            }
+        }
     }
 
     @Override

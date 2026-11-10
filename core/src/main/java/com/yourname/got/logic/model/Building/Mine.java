@@ -11,6 +11,7 @@ public class Mine extends Building implements Serializable {
     private Kingdom owner;
 
     private long lastUpdateTime;
+    private double fractionalProduction = 0;
     private long constructionCompleteTime;
 
     public Mine(String resourceType, Kingdom owner) {
@@ -50,9 +51,14 @@ public class Mine extends Building implements Serializable {
         int baseProduction = GameBalance.getProductionPerMinute(resourceType, level);
         double multiplier = GameBalance.getKingdomProductionMultiplier(owner.getType(), resourceType);
         int producedPerMinute = (int) Math.round(baseProduction * multiplier * difficultyMultiplier) ;
-        int produced = (int) ((producedPerMinute / 60.0) * secondsPassed * gameSpeed);
+        // Keep the fractional part: with a short tick (5 s) and slow speed, (int) alone threw away
+        // everything below 1 unit and the mine could produce nothing at all.
+        double exact = (producedPerMinute / 60.0) * secondsPassed * gameSpeed + fractionalProduction;
+        int produced = (int) exact;
+        fractionalProduction = exact - produced;
 
-        lastUpdateTime = now;
+        // Only consume the whole seconds that were paid for; the sub-second rest counts next time.
+        lastUpdateTime += secondsPassed * 1000L;
         return produced;
     }
 

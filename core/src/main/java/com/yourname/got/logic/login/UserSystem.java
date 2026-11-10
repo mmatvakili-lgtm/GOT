@@ -25,9 +25,13 @@ public class UserSystem {
             return new Result(false, "Username is already registered");
         }
 
-        if (password.length() != 4) {
+        if (username == null || username.isBlank() || username.contains(",") || username.contains("\n") || username.contains("\r")) {
+            return new Result(false, "Username cannot be empty or contain commas or line breaks");
+        }
+        if (password == null || !password.matches("\\d{4}")) {
             return new Result(false, "Password must be exactly 4 digits");
         }
+        String storedPassword = PasswordUtil.hash(password);
 
         int newId = lastId + 1;
         String folder = "user_" + newId;
@@ -39,7 +43,7 @@ public class UserSystem {
         }
         String userFileName = "user_" + newId + ".ser";
         String userFilePath = folderPath + File.separator + userFileName;
-        GameUser newUser = new GameUser(username, password, newId);
+        GameUser newUser = new GameUser(username, storedPassword, newId);
 
         if (!saveGameUser(newUser, userFilePath)) {
             return new Result(false, "Error saving user data");
@@ -47,7 +51,7 @@ public class UserSystem {
 
         try (PrintWriter pw = new PrintWriter(new FileWriter(INDEX_FILE, true))) {
             String indexPath = folder + File.separator + userFileName;
-            pw.println(newId + "," + username + "," + password + "," + indexPath);
+            pw.println(newId + "," + username + "," + storedPassword + "," + indexPath);
             lastId = newId;
         } catch (IOException e) {
 
@@ -64,7 +68,7 @@ public class UserSystem {
             return new Result(false, "Username not found");
         }
 
-        if (!entry[2].equals(password)) {
+        if (!PasswordUtil.matches(password, entry[2])) {
             return new Result(false, "Incorrect password");
         }
 
@@ -73,6 +77,12 @@ public class UserSystem {
 
         if (user == null) {
             return new Result(false, "Could not load user profile");
+        }
+
+        // Upgrade accounts that still store their password as plain text.
+        if (!PasswordUtil.isHashed(entry[2])) {
+            user.setPassword(PasswordUtil.hash(password));
+            updateUser(user);
         }
 
         return new Result(true, "Login was successful", user);
