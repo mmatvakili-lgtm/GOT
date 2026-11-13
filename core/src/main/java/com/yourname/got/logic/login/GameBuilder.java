@@ -16,6 +16,9 @@ public class GameBuilder {
         if (gameName == null || gameName.trim().isEmpty())
             return new CreateGameResult(false, "Game name cannot be empty");
 
+        if (gameName.contains(",") || gameName.contains("\n") || gameName.contains("\r"))
+            return new CreateGameResult(false, "Game name cannot contain commas or line breaks");
+
         int newPassword = -1;
         if (passInput != null && !passInput.trim().isEmpty()) {
             try {

@@ -31,6 +31,7 @@ import com.yourname.got.logic.util.EventHeroDuel;
 import com.badlogic.gdx.scenes.scene2d.utils.*;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.scenes.scene2d.ui.Stack;
 import com.yourname.got.GoTGame;
 import com.yourname.got.logic.Balance.BuildingManager;
@@ -95,6 +96,8 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
 
     // center grid
     private final int GRID_SIZE = 11;
+    private static final float VIRTUAL_WIDTH = 1920f;
+    private static final float VIRTUAL_HEIGHT = 1056f;
     private final ImageButton[][] tileButtons = new ImageButton[GRID_SIZE][GRID_SIZE];
     private final boolean[][] tileSelected = new boolean[GRID_SIZE][GRID_SIZE];
     private final Table gridTable = new Table();
@@ -138,7 +141,9 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
         this.mediator = mediator;
         this.currentUser = user;
         this.currentGame = gameData;
-        this.stage = new Stage(new ScreenViewport());
+        // Fixed virtual resolution: the map grid, the ports and the ship are placed with absolute coordinates
+        // that match the kingdom background pictures. With a ScreenViewport they only lined up on one window size.
+        this.stage = new Stage(new FitViewport(VIRTUAL_WIDTH, VIRTUAL_HEIGHT));
         Gdx.input.setInputProcessor(stage);
 
         // choose background
@@ -186,8 +191,8 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
         }
     }
     private void createUI() {
-        float sw = Gdx.graphics.getWidth();
-        float sh = Gdx.graphics.getHeight();
+        float sw = stage.getWidth();
+        float sh = stage.getHeight();
         this.topRightButtons = new Table(); // <-- و با این خط جایگزین کنید
 
         Table root = new Table();
@@ -239,10 +244,18 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
         lblWood.setFontScale(0.8f);
         lblFood.setFontScale(0.8f);
         lblStone.setFontScale(0.8f);
-        resourcesTable.add(lblCoin).expandX().left();
-        resourcesTable.add(lblStone).expandX().left().padLeft(-40).row();
-        resourcesTable.add(lblWood).expandX().left().padTop(13);
-        resourcesTable.add(lblFood).expandX().left().padLeft(-40).padTop(13);
+        // The resource icons and bars are part of each kingdom's background picture. Measured on the pictures:
+        // six kingdoms have the second bar column at x=171 and Storms End at x=226 (its bars are wider), so the text
+        // of the second column must start 55 px further right there. Fixed column widths (instead of expandX, whose
+        // result depended on the text length) keep the numbers inside their bars.
+        boolean wideResourceBars = currentUser != null && currentUser.getKingdom() != null
+            && currentUser.getKingdom().getType() == com.yourname.got.logic.enums.KingdomType.STORMS_END;
+        float firstColumnWidth = wideResourceBars ? 235f : 180f;
+        resourcesTable.left();
+        resourcesTable.add(lblCoin).width(firstColumnWidth).left();
+        resourcesTable.add(lblStone).left().padLeft(-40).row();
+        resourcesTable.add(lblWood).width(firstColumnWidth).left().padTop(13);
+        resourcesTable.add(lblFood).left().padLeft(-40).padTop(13);
         left.add(resourcesTable).padTop(20).padLeft(42).expandX().fillX().row();
 
         Table stateTable = new Table(skin);
@@ -388,33 +401,28 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
         right.defaults().padRight(0);
         this.rightPanelButtons = right;
 
-        right.add(new Label("", skin)).padTop(61).row();
-        addMenuButton(right, "New Building", this::openNewBuildingPanel);
-        addMenuButton(right, "Overhaul", this::openOverhaulPanel);
-        addMenuButton(right, "Destroy", this::openDestroyPanel);
-        addMenuButton(right, "Move", this::openMovePanel);
-        right.row().padTop(6);
-
-        right.add(new Label("", skin)).pad(25).row();
-        addMenuButton(right, "Train Soldiers", this::openTrainSoldiersPanel);
-        addMenuButton(right, "Attack", this::openAttackPanel);
-
-        addMenuButton(right, "History", this::openHistoryMainMenu);        addMenuButton(right, "Shipping", this::openShippingPanel);
-
-
-        right.row().padTop(6);
-        right.add(new Label("", skin)).pad(13).row();
-        addMenuButton(right, "Kingdom", this::openKingdomPanel);
-        addMenuButton(right, "WhiteWalkers", this::openWhiteWalkerMainMenuPanel);
-        right.row().padTop(6);
-
-        right.add(new Label("", skin)).pad(6).row();
-        addMenuButton(right, "Buy", this::openBuyPanel);
-        addMenuButton(right, "Sell", this::openSellPanel);
-        right.row().padTop(6);
-
-        right.add(new Label("", skin)).pad(5).row();
-        addMenuButton(right, "Help", this::openHelpPanel);
+        // The group boxes (Buildings / Attack / Defend / Shop / Wall) are painted in the background picture.
+        // The buttons used to be separated by hand-tuned empty labels, so several of them (Shipping, WhiteWalkers,
+        // Sell) landed on the border of their box. Each button is now placed at a measured y position (stage px).
+        menuCursorY = 0f;
+        // Buildings box: 123-360
+        addMenuButtonAt(right, "New Building", this::openNewBuildingPanel, 187, 40);
+        addMenuButtonAt(right, "Overhaul", this::openOverhaulPanel, 234, 40);
+        addMenuButtonAt(right, "Destroy", this::openDestroyPanel, 281, 40);
+        addMenuButtonAt(right, "Move", this::openMovePanel, 328, 40);
+        // Attack box: 373-610
+        addMenuButtonAt(right, "Train Soldiers", this::openTrainSoldiersPanel, 439, 40);
+        addMenuButtonAt(right, "Attack", this::openAttackPanel, 486, 40);
+        addMenuButtonAt(right, "History", this::openHistoryMainMenu, 533, 40);
+        addMenuButtonAt(right, "Shipping", this::openShippingPanel, 580, 40);
+        // Defend box: 622-747 (smaller: two tighter buttons)
+        addMenuButtonAt(right, "Kingdom", this::openKingdomPanel, 685, 36);
+        addMenuButtonAt(right, "WhiteWalkers", this::openWhiteWalkerMainMenuPanel, 725, 36);
+        // Shop box: 758-888
+        addMenuButtonAt(right, "Buy", this::openBuyPanel, 823, 36);
+        addMenuButtonAt(right, "Sell", this::openSellPanel, 863, 36);
+        // Wall box: 899-985
+        addMenuButtonAt(right, "Help", this::openHelpPanel, 963, 36);
 
         // layout root: left | center | right
         root.add(left).width(360).fillY().top().padRight(8);
@@ -453,6 +461,18 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
         addNotif("Welcome to the game!");
     }
 
+    private float menuCursorY = 0f;
+
+    /** Adds a menu button whose vertical CENTRE is at centerY (in stage pixels from the top). */
+    private void addMenuButtonAt(Table container, String text, Runnable onClick, float centerY, float height) {
+        TextButton b = new TextButton(text, skin);
+        b.addListener(new ChangeListener() { @Override public void changed(ChangeEvent event, Actor actor) { onClick.run(); } });
+        float top = centerY - height / 2f;
+        float gap = Math.max(0f, top - menuCursorY);
+        container.add(b).width(260).height(height).padTop(gap).padRight(36).row();
+        menuCursorY = top + height;
+    }
+
     private void addMenuButton(Table container, String text, Runnable onClick) {
         TextButton b = new TextButton(text, skin);
         b.setSize(260, 29);
@@ -463,7 +483,7 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
     private void openChangePasswordPanel() {
         final Dialog panel = new Dialog("Change Password", skin, "default");
         panel.setModal(true);
-        panel.setSize(Gdx.graphics.getWidth() * 0.4f, Gdx.graphics.getHeight() * 0.5f);
+        panel.setSize(stage.getWidth() * 0.4f, stage.getHeight() * 0.5f);
 
         Table content = new Table(skin);
         content.pad(20).defaults().pad(10).left();
@@ -770,7 +790,7 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
     private void openMessagesPanel() {
         final Dialog panel = new Dialog("Mailbox", skin, "default");
         panel.setModal(true);
-        panel.setSize(Gdx.graphics.getWidth() * 0.9f, Gdx.graphics.getHeight() * 0.85f); // افزایش اندازه
+        panel.setSize(stage.getWidth() * 0.9f, stage.getHeight() * 0.85f); // افزایش اندازه
         panel.pad(20);
 
         final TextButton announcementsTabBtn = new TextButton("Announcements", skin, "toggle");
@@ -976,6 +996,9 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
         }
         container.add(new ScrollPane(listTable, skin)).expand().fill();
     }
+    @Override
+    public boolean acceptsGameEvents() { return true; }
+
     @Override
     public void onMessage(final String message) {
         Gdx.app.postRunnable(new Runnable() {
@@ -1310,9 +1333,6 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
             public void clicked(InputEvent event, float x, float y) {
                 // استراتژی شانس دوم برای تعمیر هم اعمال می‌شود
                 Result result = mediator.repairBuildingAt(row, col);
-                if (!result.isSuccess() && result.getMessage().contains("No building")) {
-                    result = mediator.repairBuildingAt(col, row);
-                }
 
                 if (result.isSuccess()) {
                     addSystem("SUCCESS: " + result.getMessage());
@@ -2296,7 +2316,7 @@ private Table buildMapView(Tile[][] mapGrid, boolean isBlurry) {
         panel.setModal(true);
         panel.pad(20);
         // ✅ افزایش اندازه پنل به ۷۰٪ عرض و ۶۰٪ ارتفاع صفحه
-        panel.setSize(Gdx.graphics.getWidth() * 0.7f, Gdx.graphics.getHeight() * 0.6f);
+        panel.setSize(stage.getWidth() * 0.7f, stage.getHeight() * 0.6f);
 
         Table mainContent = new Table();
         mainContent.top();
@@ -2338,7 +2358,7 @@ private void openBattleHistoryPanel() {
     panel.setModal(true);
     panel.pad(20);
     // تنظیم اندازه بزرگتر برای دید بهتر
-    panel.setSize(Gdx.graphics.getWidth() * 0.85f, Gdx.graphics.getHeight() * 0.75f);
+    panel.setSize(stage.getWidth() * 0.85f, stage.getHeight() * 0.75f);
 
     Table listTable = new Table(skin);
     listTable.top();
@@ -3673,7 +3693,7 @@ private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyI
         close.addListener(new ChangeListener(){ @Override public void changed(ChangeEvent event, Actor actor){ win.remove(); activeDialog=null; }});
         win.getTitleTable().add(close).padRight(5);
         win.pack();
-        win.setPosition((Gdx.graphics.getWidth()-win.getWidth())/2f,(Gdx.graphics.getHeight()-win.getHeight())/2f);
+        win.setPosition((stage.getWidth()-win.getWidth())/2f,(stage.getHeight()-win.getHeight())/2f);
         stage.addActor(win); activeDialog = win;
     }
 
@@ -3751,7 +3771,7 @@ private void renderTilesAndUpdate() {
     gridTable.clear();
     gridTable.defaults().pad(2);
 
-    int tilePx = Math.min(53, Math.round((Gdx.graphics.getWidth() - 600f) / GRID_SIZE));
+    int tilePx = Math.min(53, Math.round((stage.getWidth() - 600f) / GRID_SIZE));
 
     GameOfThrones freshGameData = mediator.getCurrentGame();
     if (freshGameData == null) {
@@ -3890,13 +3910,13 @@ private void renderTilesAndUpdate() {
         gridTable.row();
     }
 
-    gridTable.setPosition(955, Gdx.graphics.getHeight() - 550);
+    gridTable.setPosition(955, stage.getHeight() - 550);
     if (gridTable.getStage() == null) stage.addActor(gridTable);
 }
 
 
     private void buildEmptyGrid(int tilePx, Drawable tileDrawableOver, Drawable tileDrawableDown) {
-        gridTable.clear(); gridTable.defaults().pad(2); gridTable.setPosition(955, Gdx.graphics.getHeight() - 550);
+        gridTable.clear(); gridTable.defaults().pad(2); gridTable.setPosition(955, stage.getHeight() - 550);
         for (int r=0;r<GRID_SIZE;r++){
             for (int c=0;c<GRID_SIZE;c++){
                 final int rx=r,cx=c;
@@ -4030,8 +4050,12 @@ private void renderTilesAndUpdate() {
             lblInfantry.setText("Infantry: " + mediator.getSoldierCountByType(SoldierType.INFANTRY));
             lblArchers.setText("Archers: " + mediator.getSoldierCountByType(SoldierType.ARCHER));
             lblCavalry.setText("Cavalry: " + mediator.getSoldierCountByType(SoldierType.CAVALRY));
-            lblSpies.setText("Spies: " + mediator.getSoldierCountByType(SoldierType.SPY));
-            lblHero.setText("Hero: " + mediator.getCurrentUser().getKingdom().getHero().isAvailable());
+            if (mediator.getCurrentGameUser().getKingdom().getType() == com.yourname.got.logic.enums.KingdomType.DRAGONSTONE) {
+                lblSpies.setText("Spies: Dragons (hero)");
+            } else {
+                lblSpies.setText("Spies: " + mediator.getSoldierCountByType(SoldierType.SPY));
+            }
+            lblHero.setText("Hero: " + mediator.getCurrentGameUser().getKingdom().getHero().getStatusText());
             lblTotalSoldiers.setText(mediator.getTotalSoldierInfo());
         }
 
@@ -4053,7 +4077,7 @@ private void renderTilesAndUpdate() {
         TextButton close = new TextButton("X", skin);
         close.addListener(new ChangeListener(){ @Override public void changed(ChangeEvent event, Actor actor){ win.remove(); activeDialog=null; }});
         win.getTitleTable().add(close).padRight(5);
-        win.pack(); win.setPosition((Gdx.graphics.getWidth()-win.getWidth())/2f,(Gdx.graphics.getHeight()-win.getHeight())/2f);
+        win.pack(); win.setPosition((stage.getWidth()-win.getWidth())/2f,(stage.getHeight()-win.getHeight())/2f);
         stage.addActor(win); activeDialog = win;
     }
 
@@ -4302,6 +4326,7 @@ public void render(float delta) {
     // 1. آپدیت زمان و لاجیک
     timeSinceLastUpdate += delta;
     if (timeSinceLastUpdate >= REFRESH_INTERVAL) {
+        mediator.startLoopManager(); // watchdog: restarts the game loop if it never started or died (no-op when running)
         refreshDynamicInfo();
         updateGameMusic();
         updateAtmosphere(); // آپدیت رنگ محیط
@@ -4313,19 +4338,25 @@ public void render(float delta) {
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
     // 3. رسم لایه‌های گرافیکی
+    stage.getViewport().apply();
+    stage.getCamera().update();
+    stage.getBatch().setProjectionMatrix(stage.getCamera().combined);
     stage.getBatch().begin();
 
     // الف) رسم تصویر پس‌زمینه
     stage.getBatch().setColor(Color.WHITE);
     if (background != null) {
-        stage.getBatch().draw(background, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        // The batch keeps the colour of the last actor drawn in the previous frame (e.g. the green START button):
+        // without this the background was tinted green, and orange again whenever a white window was drawn last.
+        stage.getBatch().setColor(com.badlogic.gdx.graphics.Color.WHITE);
+        stage.getBatch().draw(background, 0, 0, stage.getWidth(), stage.getHeight());
     }
 
     // ب) رسم لایه اتمسفر (رنگ فصل) - با شرط ایمنی
     // فقط اگر تکسچر وجود داشت و شفافیت بیشتر از 0 بود رسم کن
     if (whiteTexture != null && currentAtmosphereColor.a > 0.01f) {
         stage.getBatch().setColor(currentAtmosphereColor);
-        stage.getBatch().draw(whiteTexture, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        stage.getBatch().draw(whiteTexture, 0, 0, stage.getWidth(), stage.getHeight());
     }
 
     // برگرداندن رنگ به سفید برای جلوگیری از رنگی شدن دکمه‌ها
@@ -4339,10 +4370,44 @@ public void render(float delta) {
 
     // 5. خروج با Escape
     if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-        mediator.saveGame();
-        Gdx.app.exit();
+        // ESC used to save and QUIT THE WHOLE APPLICATION at once. Now it closes the top window if there is one;
+        // with nothing open it asks first.
+        if (!closeTopWindow()) {
+            showExitConfirmation();
+        }
     }
 }
+
+    /** Closes the top-most window/dialog. Returns false if none is open. */
+    private boolean closeTopWindow() {
+        com.badlogic.gdx.utils.Array<Actor> actors = stage.getActors();
+        for (int i = actors.size - 1; i >= 0; i--) {
+            Actor a = actors.get(i);
+            if (a instanceof Window && a.isVisible()) {
+                a.remove();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Dialog exitDialog;
+
+    private void showExitConfirmation() {
+        if (exitDialog != null && exitDialog.getStage() != null) return;
+        exitDialog = new Dialog("Leave the game?", skin) {
+            @Override protected void result(Object object) {
+                if (Boolean.TRUE.equals(object)) {
+                    mediator.saveGame();
+                    Gdx.app.exit();
+                }
+            }
+        };
+        exitDialog.text("Save and quit the application?");
+        exitDialog.button("Save & Quit", true);
+        exitDialog.button("Cancel", false);
+        exitDialog.show(stage);
+    }
 
     @Override public void resize(int width, int height) { stage.getViewport().update(width,height,true); }
     @Override public void pause() {}
@@ -4353,6 +4418,7 @@ public void render(float delta) {
         // The player left the game screen: stop this session's loop so that re-entering
         // (show() -> startLoopManager()) never leaves two loops running.
         mediator.stopLoopManager();
+        com.yourname.got.logic.login.GameFileUtility.flushPendingSave(); // nothing may stay unsaved when leaving
     }
 
     @Override
@@ -4586,10 +4652,9 @@ public void render(float delta) {
      */
     private BuildingManager.UpgradeOption findUpgradeOptionSafely(int row, int col, MyLinkedList<BuildingManager.UpgradeOption> options) {
         String target1 = String.format("(%d,%d)", row, col);
-        String target2 = String.format("(%d,%d)", col, row);
 
         for (BuildingManager.UpgradeOption option : options) {
-            if (option.coords.equals(target1) || option.coords.equals(target2)) {
+            if (option.coords.equals(target1)) {
                 return option;
             }
         }
@@ -4601,10 +4666,9 @@ public void render(float delta) {
      */
     private BuildingManager.RepairOption findRepairOptionSafely(int row, int col, MyLinkedList<BuildingManager.RepairOption> options) {
         String target1 = String.format("(%d,%d)", row, col);
-        String target2 = String.format("(%d,%d)", col, row);
 
         for (BuildingManager.RepairOption option : options) {
-            if (option.coords.equals(target1) || option.coords.equals(target2)) {
+            if (option.coords.equals(target1)) {
                 return option;
             }
         }

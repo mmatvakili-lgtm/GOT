@@ -35,7 +35,7 @@ public class ObjectOnTile implements Serializable {
 
     public void setBuilding(Building building) {
         this.building = building;
-        this.type = "Building";
+        this.type = (building == null) ? "" : "Building"; // an emptied tile must not keep claiming "Building"
     }
 
     public void setMilitary(SoldierUnit[] military) {
@@ -44,13 +44,13 @@ public class ObjectOnTile implements Serializable {
     }
 
     public void setWall(Wall wall) {
-        wall = wall;
+        this.wall = wall; // was "wall = wall": the wall was never stored
         this.type = "Wall";
     }
 
     @Override
     public String toString() {
-        return building.toString()+military.toString()+ship.toString();
+        return "ObjectOnTile{type=" + type + ", building=" + building + ", ship=" + ship + "}"; // used to throw NPE
     }
 }
 

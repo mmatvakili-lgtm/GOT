@@ -30,6 +30,20 @@ public class KingdomUpdater implements Serializable {
         messages.addAll(updateMines(kingdom, gameSpeed));
         messages.addAll(updateBarracks(kingdom));
 
+        // The hero is unlocked as soon as the castle has the required level, whatever way it got there
+        // (it used to be checked only at the very moment of the "== 5" upgrade, so it could be missed).
+        com.yourname.got.logic.model.Building.Castle castle = kingdom.getCastle();
+        com.yourname.got.logic.model.Army.Hero hero = kingdom.getHero();
+        if (hero != null && !hero.isUnlocked() && castle != null && !castle.isDestroyed()
+                && castle.getLevel() >= hero.getUnlockLevel()) {
+            hero.unlock();
+            messages.add("Your Castle reached level " + hero.getUnlockLevel() + ". Hero " + hero.getName() + " has arrived!");
+            if (kingdom.getOwner() != null && kingdom.getOwner().getGame() != null) {
+                kingdom.getOwner().getGame().sendSystemNotificationToUser(kingdom.getOwner(), "Hero Unlocked!",
+                    "Your Castle reached level " + hero.getUnlockLevel() + ". Hero " + hero.getName() + " has arrived!");
+            }
+        }
+
         // A hero who fell in a duel comes back after a while.
         if (kingdom.getHero() != null && kingdom.getHero().tryRevive(gameSpeed)) {
             messages.add("Your hero " + kingdom.getHero().getName() + " has recovered and is ready to fight again.");

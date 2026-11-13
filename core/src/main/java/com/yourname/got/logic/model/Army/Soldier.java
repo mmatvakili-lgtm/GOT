@@ -17,17 +17,32 @@ public abstract class Soldier implements Serializable {
 
     private boolean isStarving = false;
 
+    /** True for soldiers hired on the market: they are quartered outside the camps (see Kingdom.getMercenaryCapacity). */
+    /** Full health of this soldier (0 = not recorded in an old save: the type default is used). */
+    private int maxHealth = 0;
+
+    /** Wounded soldiers recover at the camp after a battle: before, lost health stayed for ever. */
+    public void heal() {
+        int full = (maxHealth > 0) ? maxHealth : type.health;
+        if (this.health < full) this.health = full;
+    }
+
+    private boolean mercenary = false;
+    public boolean isMercenary() { return mercenary; }
+    public void setMercenary(boolean mercenary) { this.mercenary = mercenary; }
+
     public Soldier(SoldierType type) {
         this.type = type;
         this.attackPower = type.power;
         this.trainingTime = (int)(type.buildTimeMinutes * 60);
         this.health = type.health;
+        this.maxHealth = type.health;
     }
 
     public SoldierType getType() { return type; }
 
     public int getHealth() { return health; }
-    public void setHealth(int health) { this.health = health; }
+    public void setHealth(int health) { this.health = health; this.maxHealth = Math.max(this.maxHealth, health); }
     public void setDamage(int damage) { this.health -= damage; }
 
 

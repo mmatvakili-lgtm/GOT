@@ -68,6 +68,7 @@ public class WhiteWalkerMission extends Mission implements Serializable {
 
         System.out.println("\n> Reconciling defender's army...");
         defUser.getKingdom().getArmyManager().reconcileAllSoldiers();
+        defUser.getKingdom().getArmyManager().healAllSoldiers();
 
         defUser.setInFight(false);
         this.markCompleted();

@@ -367,6 +367,46 @@ public int getTotalSoldierCapacity() {
         return total;
     }
 
+    /** Mercenary quarters outside the walls: this many hired soldiers per Castle level. */
+    public static final int MERCENARY_SLOTS_PER_CASTLE_LEVEL = 20;
+
+    /**
+     * Soldiers hired on the market do not sleep in the camps; they are quartered outside the walls under the
+     * banner of the Castle. Their room grows with the Castle level, so buying a big package can never block
+     * the training of the lord's own levy any more (it used to fill the camps and every queued soldier was lost).
+     */
+    public int getMercenaryCapacity() {
+        Castle c = getCastle();
+        if (c == null || c.isDestroyed()) return 0;
+        return c.getLevel() * MERCENARY_SLOTS_PER_CASTLE_LEVEL;
+    }
+
+    /** Hired soldiers: at home + away on missions. */
+    public int getMercenaryCount() {
+        int n = (armyManager != null) ? armyManager.countMercenariesAtHome() : 0;
+        if (owner != null && owner.getGame() != null && owner.getGame().getMissions() != null) {
+            for (Mission m : owner.getGame().getMissions()) {
+                if (m == null || m.isCompleted() || m.getAttacker() == null || m.getAttacker().getId() != owner.getId()) continue;
+                SoldierUnit[] troops = m.getAttackerTroops();
+                if (troops == null) continue;
+                for (SoldierUnit u : troops) {
+                    if (u == null || u.getSoldiers() == null) continue;
+                    for (Soldier s : u.getSoldiers()) if (s != null && s.isMercenary()) n++;
+                }
+            }
+        }
+        return n;
+    }
+
+    public int getFreeMercenarySlots() {
+        return Math.max(0, getMercenaryCapacity() - getMercenaryCount());
+    }
+
+    /** Soldiers that live in the camps (trained by the lord): owned minus hired. */
+    public int getTrainedSoldierCount() {
+        return Math.max(0, getOwnedSoldierCount() - getMercenaryCount());
+    }
+
     /** Every soldier this kingdom owns: at home + away on missions. */
     public int getOwnedSoldierCount() {
         int atHome = (armyManager != null) ? armyManager.getTotalSoldier() : 0;
@@ -375,7 +415,7 @@ public int getTotalSoldierCapacity() {
 
     /** Free camp slots, NOT counting soldiers still waiting in the training queue. */
     public int getFreeSoldierSlots() {
-        return Math.max(0, getTotalSoldierCapacity() - getOwnedSoldierCount());
+        return Math.max(0, getTotalSoldierCapacity() - getTrainedSoldierCount()); // camps house only the trained levy
     }
 
     /** Free camp slots after reserving one slot for every soldier already queued for training. */
@@ -565,7 +605,10 @@ public int getTotalSoldierCapacity() {
             }
         }
 
-        if (this.getType()==KingdomType.DRAGONSTONE && getHero()!=null) {
+        // Dragonstone cannot train spies (no barracks) and spies are not sold on the market:
+        // its dragons act as the spy.
+        if (this.getType()==KingdomType.DRAGONSTONE && getHero()!=null
+                && getHero().isUnlocked() && !getHero().isDead()) {
             return true;
         }
 
@@ -619,33 +662,32 @@ public int getTotalSoldierCapacity() {
     }
 
     public int processBuildingDestruction(Building destroyedBuilding, Kingdom attackerKingdom) {
-        if (destroyedBuilding == null || destroyedBuilding.getStatus() == Status.destroyed) {
+        // The guard used to test the status, but the destroyed flag was never set by combat damage, so a
+        // building could be hit down to 0 strength and still count as "not destroyed" (endless attack loop).
+        if (destroyedBuilding == null || destroyedBuilding.isDestroyed()) {
             return 0;
         }
 
         int lootAmount = 0;
-
-        destroyedBuilding.setStatus(Status.destroyed);
-        destroyedBuilding.setStrength(0);
-
         if (destroyedBuilding instanceof Storage) {
             Storage storage = (Storage) destroyedBuilding;
-            lootAmount = storage.getQuantity() / 2;
-            if (lootAmount > 0) {
-                storage.useResource(lootAmount);
-                attackerKingdom.addResources(storage.getResourceType(), lootAmount);
-                System.out.println("⚔️ مهاجم " + lootAmount + " واحد " + storage.getResourceType() + " غارت کرد.");
+            int taken = storage.getQuantity() / 2;
+            if (taken > 0) {
+                storage.useResource(taken);
+                if (attackerKingdom != null) { // White Walkers (no attacker kingdom) just destroy the stock
+                    attackerKingdom.addResources(storage.getResourceType(), taken);
+                    lootAmount = taken;
+                }
             }
         }
 
-        Tile tile = userMap.mainMap.getMap()[destroyedBuilding.getPosition().getX()][destroyedBuilding.getPosition().getY()];
-        if (tile != null) {
-            tile.setObjectOnTile(new ObjectOnTile("Rubble")); // نمایش آوار
-        }
+        destroyedBuilding.setStrength(0);
+        destroyedBuilding.destroy(); // isDestroyed = true, status = destroyed: the owner can now repair it
 
+        // The ruin STAYS on its tile (it used to be replaced by an anonymous "Rubble" object that could be
+        // neither repaired nor built over, so a raided kingdom could never rebuild).
         if (userMap != null && userMap.arrangement != null) {
             userMap.arrangement.delete(destroyedBuilding);
-            System.out.println("LOG: ساختمان " + destroyedBuilding.getName() + " از چیدمان نقشه برای مسیریابی حذف شد.");
         }
 
         addHistory("Destroyed", destroyedBuilding);

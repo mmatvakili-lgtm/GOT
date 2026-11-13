@@ -90,8 +90,11 @@ public class GameLoopManager extends Thread {
             });
 
             if (game.getBazar() != null) {
+                // Expired deals used to be noticed only when somebody opened the market panel.
+                game.getBazar().checkBazar(game.getSpeed());
                 game.getBazar().autoSeedGenericOffersIfDue(game.getGameTime());
             }
+            com.yourname.got.logic.login.GameFileUtility.flushPendingSave();
         } catch (Exception e) {
             System.err.println("!!! Error during game tick !!!");
             e.printStackTrace();

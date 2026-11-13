@@ -42,10 +42,37 @@ public class GameJoinScreen implements Screen, GameMessageListener {
     private ButtonGroup<TextButton> gameButtonGroup;
     private Timer.Task refreshTask;
     private Window activeSettingsWindow;
+    // One colour for the lobby players panel. It used to be created with alpha 0.5 and re-set to a
+    // different colour (alpha 0.85) on every refresh, so the lobby background visibly changed.
+    private static final Color LOBBY_PANEL_COLOR = new Color(0.05f, 0.05f, 0.1f, 0.85f);
+
+    /** Puts exactly one panel into the layout. */
+    private void showPanel(Table panel) {
+        contentCell.setActor(panel);
+        notInGamePanel.setVisible(panel == notInGamePanel);
+        playerInGamePanel.setVisible(panel == playerInGamePanel);
+        ownerInGamePanel.setVisible(panel == ownerInGamePanel);
+        contentCell.getTable().invalidateHierarchy();
+    }
+
+    private boolean isSettingsOpen() {
+        return activeSettingsWindow != null && activeSettingsWindow.getStage() != null;
+    }
+
+    private void closeSettingsWindow() {
+        if (activeSettingsWindow != null) {
+            activeSettingsWindow.remove();
+            activeSettingsWindow = null; // it stayed non-null after closing, which froze the lobby refresh
+        }
+    }
 
     private List<String> gameDataList;
 
+    private com.badlogic.gdx.scenes.scene2d.ui.Cell<Table> contentCell;
     private Table lobbyPlayersTable; // جدول نمایش بازیکنان حاضر در لابی
+    // The owner panel and the player panel each need their OWN roster table: an actor has only one parent,
+    // so the single shared table ended up in the owner panel and the waiting page of normal players stayed empty.
+    private Table playerRosterTable;
 
     private Table footerTable; // جدول ثابت پایین صفحه برای دکمه‌ها
 
@@ -95,7 +122,9 @@ public class GameJoinScreen implements Screen, GameMessageListener {
         // ... (بقیه کدهای متد createUI بدون تغییر باقی بماند)
         titleLabel.setFontScale(1.5f);
         lobbyPlayersTable = new Table(skin);
-        lobbyPlayersTable.setBackground(skin.newDrawable("white", new Color(0, 0, 0, 0.5f)));
+        lobbyPlayersTable.setBackground(skin.newDrawable("white", LOBBY_PANEL_COLOR));
+        playerRosterTable = new Table(skin);
+        playerRosterTable.setBackground(skin.newDrawable("white", LOBBY_PANEL_COLOR));
 
         createNotInGamePanel();
         createPlayerInGamePanel();
@@ -105,9 +134,11 @@ public class GameJoinScreen implements Screen, GameMessageListener {
         errorLabel.setColor(Color.RED);
 
         rootTable.add(titleLabel).padBottom(20).row();
-        rootTable.add(notInGamePanel).row();
-        rootTable.add(playerInGamePanel).row();
-        rootTable.add(ownerInGamePanel).row();
+        // Only the panel that is shown lives in the layout. Before, all three panels were stacked in the table and
+        // the hidden ones still took space: after saving the settings the (hidden) game list was rebuilt, the
+        // visible roster jumped down about 110 px and the title was pushed out of the screen.
+        contentCell = rootTable.add(notInGamePanel);
+        contentCell.row();
         rootTable.add(errorLabel).height(30).padTop(10).row();
         rootTable.add(new Label("", skin)).height(80);
     }
@@ -151,7 +182,7 @@ public class GameJoinScreen implements Screen, GameMessageListener {
         // --- چیدمان (بدون دکمه‌ها) ---
         playerInGamePanel.add(statusLabel).colspan(2).padBottom(20).row();
         Table centerLayout = new Table();
-        centerLayout.add(lobbyPlayersTable).width(450).minHeight(300).fillY().padRight(15);
+        centerLayout.add(playerRosterTable).width(450).minHeight(300).fillY().padRight(15);
         centerLayout.add(gameInfoTable).width(350).fillY();
         playerInGamePanel.add(centerLayout).colspan(2).row();
         playerInGamePanel.add(tipTable).colspan(2).padTop(25).padBottom(15).row();
@@ -263,7 +294,7 @@ public class GameJoinScreen implements Screen, GameMessageListener {
     }
 
     private void openReadOnlySettingsWindow(int gameId) {
-        if (activeSettingsWindow != null) activeSettingsWindow.remove();
+        closeSettingsWindow();
 
         final Properties gameProps = mediator.getGameConfig(gameId);
 
@@ -292,7 +323,7 @@ public class GameJoinScreen implements Screen, GameMessageListener {
         backButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                if (activeSettingsWindow != null) activeSettingsWindow.remove();
+                closeSettingsWindow();
             }
         });
 
@@ -354,29 +385,28 @@ public class GameJoinScreen implements Screen, GameMessageListener {
 
         if (currentUser.getInGame() && currentUser.getGame() != null) {
             // --- رفع باگ شیفت شدن: اگر تنظیمات باز است، رفرش کل صفحه را متوقف کن تا پرش رخ ندهد ---
-            if (activeSettingsWindow != null && activeSettingsWindow.getStage() != null) {
+            if (isSettingsOpen()) {
                 return;
             }
-
-            notInGamePanel.setVisible(false);
 
             Result result = mediator.getGameDetails(currentUser.getGame().getName(), currentUser.getGame().getId());
             if (result.isSuccess()) {
                 GameOfThrones userGame = (GameOfThrones) result.getGameInstance();
                 mediator.setCurrentGame(userGame);
 
+                if (userGame.isGameReady()) {
+                    // The owner started the game: the waiting players used to stay on this page for ever.
+                    closeSettingsWindow();
+                    mediator.enterStartedGame(userGame);
+                    return;
+                }
+
                 // این تابع جدول بازیکنان را پاک کرده و دوباره پر می‌کند (بدون اضافه کردن فریم جدید به stage)
                 updateLobbyPlayerList(userGame);
 
                 boolean isOwner = userGame.getOwner().getUsername().equals(currentUser.getUsername());
 
-                if (isOwner) {
-                    playerInGamePanel.setVisible(false);
-                    ownerInGamePanel.setVisible(true);
-                } else {
-                    ownerInGamePanel.setVisible(false);
-                    playerInGamePanel.setVisible(true);
-                }
+                showPanel(isOwner ? ownerInGamePanel : playerInGamePanel);
 
                 updateFooterBar(isOwner, true);
 
@@ -387,19 +417,17 @@ public class GameJoinScreen implements Screen, GameMessageListener {
                 updateViewMode();
             }
         } else {
-            ownerInGamePanel.setVisible(false);
-            playerInGamePanel.setVisible(false);
-            notInGamePanel.setVisible(true);
+            showPanel(notInGamePanel);
 
             // --- جلوگیری از تلمبار شدن بازی‌های موجود ---
-            if (activeSettingsWindow == null) {
+            if (!isSettingsOpen()) {
                 rebuildGameListUI();
             }
             updateFooterBar(false, false);
         }
     }
     private void openGameSettingsWindow(int gameId) {
-        if (activeSettingsWindow != null) activeSettingsWindow.remove();
+        closeSettingsWindow();
 
         final Properties gameProps = mediator.getGameConfig(gameId);
         final Properties globalProps = mediator.adminGetGlobalConfig();
@@ -441,7 +469,9 @@ public class GameJoinScreen implements Screen, GameMessageListener {
             Label keyLabel = new Label(key + ":", skin);
             TextField valueField = new TextField(gameProps.getProperty(key, "0"), skin);
             keyLabel.setColor(Color.BLACK);
-            valueField.getStyle().fontColor = Color.BLACK;
+            TextField.TextFieldStyle blackStyle = new TextField.TextFieldStyle(skin.get(TextField.TextFieldStyle.class));
+            blackStyle.fontColor = Color.BLACK;      // own copy: changing getStyle() altered the style shared by the whole skin
+            valueField.setStyle(blackStyle);
             editorWidgets.put(key, valueField);
             settingsTable.add(keyLabel).left().pad(5);
             settingsTable.add(valueField).width(250).left().pad(5).row();
@@ -464,7 +494,7 @@ public class GameJoinScreen implements Screen, GameMessageListener {
                     }
                 }
                 showError(changes + " setting(s) updated successfully.");
-                if (activeSettingsWindow != null) activeSettingsWindow.remove();
+                closeSettingsWindow();
                 scheduleRefreshAndModeUpdate();
             }
         });
@@ -472,7 +502,7 @@ public class GameJoinScreen implements Screen, GameMessageListener {
         backButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                if (activeSettingsWindow != null) activeSettingsWindow.remove();
+                closeSettingsWindow();
             }
         });
 
@@ -506,7 +536,7 @@ public class GameJoinScreen implements Screen, GameMessageListener {
                 updateViewMode();
             }
         };
-        Timer.schedule(refreshTask, 5, 10);
+        Timer.schedule(refreshTask, 2, 3); // 10 s felt like the lobby never updated
     }
 
     @Override
@@ -518,7 +548,7 @@ public class GameJoinScreen implements Screen, GameMessageListener {
     @Override
     public void dispose() {
         if (refreshTask != null) refreshTask.cancel();
-        if (activeSettingsWindow != null) activeSettingsWindow.remove();
+        closeSettingsWindow();
         stage.dispose();
         skin.dispose();
         background.dispose();
@@ -528,6 +558,9 @@ public class GameJoinScreen implements Screen, GameMessageListener {
     public void render(float delta) {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         stage.getBatch().begin();
+        // The batch keeps the colour of the last actor drawn in the previous frame (e.g. the green START button):
+        // without this the background was tinted green, and orange again whenever a white window was drawn last.
+        stage.getBatch().setColor(com.badlogic.gdx.graphics.Color.WHITE);
         stage.getBatch().draw(background, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         stage.getBatch().end();
         stage.act(delta);
@@ -536,11 +569,16 @@ public class GameJoinScreen implements Screen, GameMessageListener {
 
     // متد اصلاح شده برای لیست بازیکنان (خواناتر و زیباتر)
     private void updateLobbyPlayerList(GameOfThrones game) {
+        fillRoster(lobbyPlayersTable, game);   // owner panel
+        fillRoster(playerRosterTable, game);   // waiting page of the other players
+    }
+
+    private void fillRoster(Table lobbyPlayersTable, GameOfThrones game) {
         lobbyPlayersTable.clear();
         lobbyPlayersTable.top();
 
         // تغییر ۱: پس‌زمینه تیره‌تر (0.8f) و کمی مایل به سرمه‌ای برای شیک شدن
-        lobbyPlayersTable.setBackground(skin.newDrawable("white", new Color(0.05f, 0.05f, 0.1f, 0.85f)));
+        lobbyPlayersTable.setBackground(skin.newDrawable("white", LOBBY_PANEL_COLOR));
         lobbyPlayersTable.pad(10); // فاصله داخلی
 
         // هدر جدول با رنگ طلایی
@@ -642,7 +680,6 @@ public class GameJoinScreen implements Screen, GameMessageListener {
                         if(currentUser.getGame() != null) {
                             Result r = mediator.startGameFromUI(currentUser, currentUser.getGame().getId());
                             errorLabel.setText(r.getMessage());
-                            if(r.isSuccess()) mediator.goToGamePlayScreen();
                         }
                     }
                 });
@@ -655,7 +692,7 @@ public class GameJoinScreen implements Screen, GameMessageListener {
                     startBtn.setColor(Color.GRAY);
                 }
 
-                footerTable.add(deleteBtn).width(150).height(50).padRight(10);
+                footerTable.add(deleteBtn).width(175).height(50).padRight(10);
                 footerTable.add(settingsBtn).width(150).height(50).padRight(10);
                 footerTable.add(startBtn).width(200).height(60);
 

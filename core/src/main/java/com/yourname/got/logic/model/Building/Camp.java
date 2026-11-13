@@ -33,7 +33,7 @@ public class Camp extends Building implements Serializable {
     public boolean addTrainedSoldier(Soldier soldier) {
         if (!hasCapacity()) {
             System.out.println("❌ Camp has no space for more soldiers.");
-            GameMediator.sendGlobalMessage("Camp has no space for more soldiers");
+            GameMediator.sendMessageToUser(owner == null ? null : owner.getOwner(), "Camp has no space for more soldiers");
             return false;
         }
         owner.getArmyManager().recruit(soldier);
@@ -50,7 +50,7 @@ public class Camp extends Building implements Serializable {
         // --- رفع باگ: کمپ باید ظرفیت را بر اساس کل سربازان فعلی ارتش بخواند ---
         // اگر owner یا armyManager نال بود، 0 برگردان
         if (owner == null) return 0;
-        return owner.getOwnedSoldierCount();
+        return owner.getTrainedSoldierCount(); // hired mercenaries are not housed in the camps
     }
 
     /** Free soldier slots of the whole kingdom (camps share one pool). */

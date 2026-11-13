@@ -72,9 +72,15 @@ public class Bazar extends MyLinkedList<Transaction> implements Serializable {
             Transaction transaction = current.data;
             current = current.next;
             if (Time.gameFormatTimeDay(transaction.sendTime, gameSpeed) > 5) {
-                GameMediator.sendGlobalMessage("A deal expired: " + transaction.toString());
-                System.out.println("یک معامله منقضی شد: " + transaction.toString());
+                GameUser seller = transaction.getExchanger();
                 returnTransaction(transaction);
+                if (seller != null) { // offers created by the system just disappear (they get re-seeded)
+                    String text = "A deal expired and your goods were returned: " + transaction.toString();
+                    GameMediator.sendMessageToUser(seller, text);
+                    if (seller.getGame() != null) {
+                        seller.getGame().sendSystemNotificationToUser(seller, "Deal expired", text);
+                    }
+                }
             }
         }
     }
@@ -283,6 +289,14 @@ public class Bazar extends MyLinkedList<Transaction> implements Serializable {
             return new Result(false, "This offer is restricted to " + transaction.getOnlyForKingdom().name() + ".");
         }
 
+        if (transaction.getSoldiersToGive() != null && transaction.getSoldiersToGive().getCount() > 0) {
+            int incoming = transaction.getSoldiersToGive().getCount();
+            if (buyerKingdom.getFreeMercenarySlots() < incoming) {
+                return new Result(false, "ERROR: Your mercenary quarters are full (" + buyerKingdom.getMercenaryCount() + "/"
+                    + buyerKingdom.getMercenaryCapacity() + "). Upgrade your Castle to hire more soldiers.");
+            }
+        }
+
         int woodPrice = 0, stonePrice = 0, coinPrice = 0, foodPrice = 0;
         for(ResourceItem item : transaction.getResourcesToTake()) {
             switch(item.type) {
@@ -311,6 +325,9 @@ public class Bazar extends MyLinkedList<Transaction> implements Serializable {
             }
         }
         if (transaction.getSoldiersToGive() != null) {
+            for (Soldier hired : transaction.getSoldiersToGive().getSoldiers()) {
+                if (hired != null) hired.setMercenary(true);
+            }
             buyerKingdom.getArmyManager().addSoldierPackage(transaction.getSoldiersToGive());
         }
 

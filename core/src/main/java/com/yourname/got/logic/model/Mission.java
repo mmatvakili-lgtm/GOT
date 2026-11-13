@@ -131,6 +131,8 @@ public class Mission implements Serializable {
                 if (spyUnit.getCount() == 0) {
                     defender.getKingdom().getArmyManager().getDefenceManager().getDefenders().remove(spyUnit);
                 }
+                // the spy is gone from the whole army too (the "Total Soldiers" number is read from there)
+                defender.getKingdom().getArmyManager().reconcileAllSoldiers();
             }
         } else {
             this.ambush = true;
@@ -308,6 +310,11 @@ public class Mission implements Serializable {
         attacker.getKingdom().getArmyManager().reconcileAllSoldiers();
         defender.getKingdom().getArmyManager().reconcileAllSoldiers();
 
+        // After the battle the wounded recover in the camps (nothing healed soldiers before, so every fight,
+        // the Winterfell -10% HP and the terrain penalty permanently weakened the army).
+        attacker.getKingdom().getArmyManager().healAllSoldiers();
+        defender.getKingdom().getArmyManager().healAllSoldiers();
+
         // Ship cleanup
         attacker.getKingdom().removeRentedShip();
         BattleShip finalShip = attacker.getKingdom().getBattleShip();
@@ -481,6 +488,7 @@ public class Mission implements Serializable {
         }
 
         Position currentPos = entry.getPosition();
+        java.util.Set<Building> abandoned = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
         int maxGlobalAdvancements = 100; // محدودکننده سطح بالا برای جلوگیری از حلقه بی‌نهایت
 
         while (getOverallSoldierCount(troopsAttacker) > 0 && maxGlobalAdvancements-- > 0) {
@@ -490,10 +498,14 @@ public class Mission implements Serializable {
                 break;
             }
 
-            Building target = findNextTarget(currentPos);
+            Building target = findNextTarget(currentPos, abandoned);
             if (target == null) {
-                this.allBuildingsDestroyed = true;
-                getReplayLog().add(new EventTextLog("All buildings destroyed!"));
+                if (abandoned.isEmpty()) {
+                    this.allBuildingsDestroyed = true;
+                    getReplayLog().add(new EventTextLog("All buildings destroyed!"));
+                } else {
+                    getReplayLog().add(new EventTextLog("The attackers cannot break the remaining buildings. Retreating."));
+                }
                 break;
             }
 
@@ -511,6 +523,10 @@ public class Mission implements Serializable {
             attackNormalBuilding(target, currentPos);
             if (target.isDestroyed()) {
                 currentPos = target.getPosition();
+            } else {
+                // Not destroyed in time: do not walk back to the very same building again and again
+                // (that produced 100 identical "Advancing to ... / Could not destroy ..." lines).
+                abandoned.add(target);
             }
         }
     }
@@ -519,7 +535,7 @@ public class Mission implements Serializable {
         int round = 0;
         final int MAX_ROUNDS = 20; // ** اصلاح: محدودیت برای هر ساختمان **
 
-        while (!targetBuilding.isDestroyed() && getOverallSoldierCount(troopsAttacker) > 0) {
+        while (!targetBuilding.isDestroyed() && targetBuilding.getHealth() > 0 && getOverallSoldierCount(troopsAttacker) > 0) {
 
             // ** اصلاح: خروج اضطراری **
             if (round++ > MAX_ROUNDS) {
@@ -534,7 +550,9 @@ public class Mission implements Serializable {
             TerrainEffect effect = getTerrainEffect(attackerPosition);
             damage = (int) (damage * effect.getAttackModifier());
 
-            if(effect.getHealthReductionPercentage() > 0) {
+            // The terrain's health penalty used to be applied in EVERY round (up to 20 times in a row,
+            // compounding). It now hits the attackers once per attacked building.
+            if (round == 1 && effect.getHealthReductionPercentage() > 0) {
                 for(SoldierUnit u : troopsAttacker) if(u!=null) u.applyHealthReductionPercentage(effect.getHealthReductionPercentage());
             }
 
@@ -547,9 +565,9 @@ public class Mission implements Serializable {
             }
         }
 
-        if (targetBuilding.isDestroyed()) {
+        if (targetBuilding.getHealth() <= 0 && !targetBuilding.isDestroyed()) {
             getReplayLog().add(new EventTextLog(targetBuilding.getName() + " destroyed!"));
-            processLoot(targetBuilding);
+            processLoot(targetBuilding); // takes the loot and marks the building as destroyed
         }
     }
 
@@ -729,12 +747,12 @@ public class Mission implements Serializable {
         return leftAtk > leftDef;
     }
 
-    private Building findNextTarget(Position currentPos) {
+    private Building findNextTarget(Position currentPos, java.util.Set<Building> abandoned) {
         Building closest = null;
         int minDist = Integer.MAX_VALUE;
 
         for (Building b : defender.getKingdom().getBuildings()) {
-            if (b != null && !b.isDestroyed() && !(b instanceof Castle) && !isDefenseStructure(b)) {
+            if (b != null && !b.isDestroyed() && !(b instanceof Castle) && !isDefenseStructure(b) && !abandoned.contains(b)) {
                 int dist = calculateDistance(currentPos, b.getPosition());
                 if (dist < minDist) {
                     minDist = dist;
@@ -743,7 +761,7 @@ public class Mission implements Serializable {
             }
         }
 
-        if (closest == null) {
+        if (closest == null && abandoned.isEmpty()) { // go for the castle only after every building fell
             Building castle = defender.getKingdom().getCastle();
             if (castle != null && !castle.isDestroyed()) return castle;
         }

@@ -24,7 +24,7 @@ public class GameUpdater implements Serializable {
         try {
             kingdomResult = KingdomUpdater.updateKingdom(user.getKingdom(), game.getSpeed());
             for (String message : kingdomResult.messages) {
-                GameMediator.sendGlobalMessage(message);
+                GameMediator.sendMessageToUser(user, message);
             }
             game.getBazar().autoSeedSoldierOffersIfDue(user.getKingdom(), game.getGameTime());
 

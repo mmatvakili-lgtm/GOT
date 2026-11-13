@@ -162,6 +162,9 @@ public class GameHistoryScreen implements Screen {
     public void render(float delta) {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         stage.getBatch().begin();
+        // The batch keeps the colour of the last actor drawn in the previous frame (e.g. the green START button):
+        // without this the background was tinted green, and orange again whenever a white window was drawn last.
+        stage.getBatch().setColor(com.badlogic.gdx.graphics.Color.WHITE);
         stage.getBatch().draw(background, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         stage.getBatch().end();
         stage.act(delta);

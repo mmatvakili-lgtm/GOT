@@ -92,7 +92,7 @@ public class TrainingTask implements Serializable {
             message = "ERROR: " + type + " training completed but there is no free camp space. Resources were refunded.";
         }
 
-        GameFileUtility.saveFullGameState(kingdom.getOwner().getGame());
+        GameFileUtility.saveFullGameStateSoon(kingdom.getOwner().getGame());
 
         return new Result(success, message);
     }

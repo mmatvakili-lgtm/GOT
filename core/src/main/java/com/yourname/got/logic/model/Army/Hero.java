@@ -80,6 +80,14 @@ public class Hero implements Serializable {
     public void restoreHealth() { this.currentHealth = maxHealth; this.diedAtMillis = 0; }
 
     public boolean isUnlocked() { return unlocked; }
+
+    /** Text for the HUD (the old label printed "true/false", which looked like "locked" while the hero was just busy). */
+    public String getStatusText() {
+        if (!unlocked) return "Locked (Castle Lv " + unlockLevel + ")";
+        if (currentHealth <= 0) return "Fallen (returns later)";
+        if (isBusy) return "Busy";
+        return "Ready";
+    }
     public int getAttackBonus() { return attackBonus; }
     public int getDefenseBonus() { return defenseBonus; }
     public boolean hasPassiveEffect() { return passiveEffect; }

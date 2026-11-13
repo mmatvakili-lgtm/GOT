@@ -552,11 +552,32 @@ public class GameMediator {
     }
 
 
+    /** A game-wide event (the Wall, market shipments...). Shown only on the in-game screen. */
     public static void sendGlobalMessage(String text) {
-        if (instance != null) {
-            instance.messageListener.onMessage(text);
-        } else {
+        if (instance == null) {
             System.out.println("GLOBAL MESSAGE (Mediator not ready): " + text);
+            return;
+        }
+        GameMessageListener listener = instance.messageListener;
+        if (listener != null && listener.acceptsGameEvents()) {
+            listener.onMessage(text);
+        }
+    }
+
+    /**
+     * An event that concerns ONE player (his storage is full, his deal expired...).
+     * It is shown only if that player is the one currently playing, and only on the in-game screen:
+     * before, such messages popped up on other kingdoms' screens and even on the login screen.
+     */
+    public static void sendMessageToUser(GameUser user, String text) {
+        if (user == null) return;
+        if (instance == null) {
+            System.out.println("MESSAGE for " + user.getUsername() + " (Mediator not ready): " + text);
+            return;
+        }
+        GameUser current = instance.currentUser;
+        if (current != null && current.getId() == user.getId()) {
+            sendGlobalMessage(text);
         }
     }
 
@@ -683,12 +704,40 @@ public class GameMediator {
         return currentUserTime < gameStartTime;
     }
 
+/**
+     * The player as it lives INSIDE the running game (the object the game loop updates).
+     * After "login -> resume game" the mediator used to keep a separate, stale copy of the user, so labels read
+     * from it (Hero: Locked...) never changed.
+     */
+    public GameUser getCurrentGameUser() {
+        if (currentGame != null && currentUser != null) {
+            GameUser inGame = currentGame.getUser(currentUser.getId());
+            if (inGame != null) return inGame;
+        }
+        return currentUser;
+    }
+
+/** Called by the lobby of a player who was waiting when the owner started the game. */
+    public void enterStartedGame(GameOfThrones game) {
+        if (game == null || currentUser == null) return;
+        GameUser inGame = game.getUser(currentUser.getId());
+        if (inGame != null) this.currentUser = inGame;
+        this.currentGame = game;
+        initiateGameSession(game);
+    }
+
 public void initiateGameSession(GameOfThrones game) {
     System.out.println("LOG: Initiating Game Session..."); // لاگ دیباگ
 
     if (game == null) {
         sendMessage("Error: Cannot start session for a null game.");
         return;
+    }
+
+    // Work with the user that lives inside this game from now on.
+    if (currentUser != null) {
+        GameUser inGameUser = game.getUser(currentUser.getId());
+        if (inGameUser != null) this.currentUser = inGameUser;
     }
 
     if (isTimeCheating(game)) {
@@ -731,7 +780,7 @@ public void initiateGameSession(GameOfThrones game) {
     public void startLoopManager() {
         if (currentGame == null || currentUser == null) return;
         GameUser me = currentGame.getUser(currentUser.getId());
-        if (me == null) return;
+        if (me == null || currentGame.isFinished()) return;
 
         if (gameLoopManager != null && gameLoopManager.isAlive()) {
             if (gameLoopManager.isRunningFor(currentGame, me.getId())) {
@@ -932,7 +981,9 @@ public void initiateGameSession(GameOfThrones game) {
             Kingdom kingdom = userInGame.getKingdom();
             // توجه: LibGDX معمولاً (0,0) را گوشه بالا-چپ در نظر می‌گیرد، اما منطق شما ممکن است متفاوت باشد.
             // اینجا فرض می‌کنیم y نماینده ردیف و x ستون است.
-            Building buildingToRepair = kingdom.getUserMap().getBuildingAt(y1Based - 1, x1Based - 1);
+            // Same convention as upgradeBuildingAt/destroyBuildingAt: local (x, y) of the selected tile. The old
+            // "(y - 1, x - 1)" pointed at a DIFFERENT tile, so a repair could hit the wrong building.
+            Building buildingToRepair = kingdom.getUserMap().getBuildingAt(x1Based, y1Based);
 
             if (buildingToRepair == null) {
                 return new Result(false, "هیچ ساختمانی در این مختصات یافت نشد.");
@@ -1534,7 +1585,9 @@ public void initiateGameSession(GameOfThrones game) {
         int currentCount = kingdom.getOwnedSoldierCount();
         int totalCapacity = kingdom.getTotalSoldierCapacity(); // فراخوانی متد جدید
 
-        return String.format("Total Soldiers: %d / %d", currentCount, totalCapacity);
+        int mercenaries = kingdom.getMercenaryCount();
+        return String.format("Total Soldiers: %d  (Camps %d / %d)\nMercenaries: %d / %d",
+            currentCount, kingdom.getTrainedSoldierCount(), totalCapacity, mercenaries, kingdom.getMercenaryCapacity());
     }
 
     public static class AttackReadySoldierInfo {
@@ -1581,6 +1634,18 @@ public void initiateGameSession(GameOfThrones game) {
         }
         Kingdom attackerKingdom = userInGame.getKingdom();
 
+        if (attackerKingdom.getType() == KingdomType.DRAGONSTONE && attackerKingdom.hasSpy()) {
+            Hero dragons = attackerKingdom.getHero();
+            SoldierUnit realSpy = attackerKingdom.getArmyManager().getDefenceManager().findUnitInDefenders(SoldierType.SPY);
+            if (realSpy == null || realSpy.getCount() <= 0) {
+                if (dragons != null && dragons.isAvailable()) {
+                    // The dragons scout the enemy and come back: nothing is consumed.
+                    return new Result(true, "Your dragons scouted the enemy lands! Intelligence is now clear.");
+                }
+                return new Result(false, "Your dragons are not available right now (busy or fallen).");
+            }
+        }
+
         if (attackerKingdom.hasSpy()) {
             SoldierUnit spyUnit = attackerKingdom.getArmyManager().getDefenceManager().findUnitInDefenders(SoldierType.SPY);
             if (spyUnit != null) {
@@ -1588,6 +1653,8 @@ public void initiateGameSession(GameOfThrones game) {
                 if (spyUnit.getCount() == 0) {
                     attackerKingdom.getArmyManager().getDefenceManager().getDefenders().remove(spyUnit);
                 }
+                // A used spy must also leave the total army count (it stayed at 56 before).
+                attackerKingdom.getArmyManager().reconcileAllSoldiers();
                 GameFileUtility.saveFullGameState(currentGame);
                 return new Result(true, "Spy deployed! Intelligence is now clear.");
             }

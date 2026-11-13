@@ -141,28 +141,41 @@ public class UserSubMap implements Serializable {
             System.out.println("(x, Y) OUT OF YOUR MAP");
             return false;
         }
+        // same buildable area as addBuildingInMap (the ring around it belongs to walls/gate)
+        if (x < 1 || y < 1 || x > 11 || y > 11) {
+            System.out.println("this location is outside the buildable area");
+            return false;
+        }
 
-        int mapX = startX + x ;
-        int mapY = startY + y ;
+        int mapX = startX + x;
+        int mapY = startY + y;
+        Tile dest = mainMap.getMap()[mapX][mapY];
 
-        if (!mainMap.getMap()[mapX][mapY].isEmpty()) {
+        if (!dest.isEmpty() || dest.getObjectOnTile().building != null) {
             System.out.println("this location is not empty");
             return false;
         }
 
-        Building b = tile.getObjectOnTile().building;
+        Building b = (tile == null || tile.getObjectOnTile() == null) ? null : tile.getObjectOnTile().building;
+        if (b == null) {
+            System.out.println("there is no building to move");
+            return false;
+        }
         if (b instanceof WallsOfGate || b instanceof Castle || b instanceof Gate || b instanceof Port) {
             System.out.println("this building is not moveable");
             return false;
         }
 
-        mainMap.getMap()[tile.position.getX()][tile.position.getY()] = mainMap.getMap()[mapX][mapY];
-        mainMap.getMap()[tile.position.getX()][tile.position.getY()].position = tile.position;
+        // Move the BUILDING between the two tiles. The old code swapped the Tile objects inside the map
+        // array and shared one Position object between them, so after a move the empty tile believed it
+        // was at the new coordinates and the building kept its old coordinates: buildings showed up on
+        // empty tiles and clicks pointed at things that were not there.
+        tile.getObjectOnTile().setBuilding(null);
+        tile.setEmpty(true);
 
-        mainMap.getMap()[mapX][mapY] = tile;
-        mainMap.getMap()[mapX][mapY].position.setX(mapX);
-        mainMap.getMap()[mapX][mapY].position.setY(mapY);
-
+        dest.getObjectOnTile().setBuilding(b);
+        dest.setEmpty(false);
+        b.setPosition(mapX, mapY);
         return true;
     }
 

@@ -291,6 +291,39 @@ public class GameFileUtility {
     }
 
 
+    /**
+     * games.txt holds one line per game: name,password,id,path,playerCount.
+     * The count was written once when the lobby was created and never updated, so the game list kept
+     * showing "1/7" however many players had joined. This rewrites the last field with the real number.
+     */
+    public static synchronized void syncLobbyEntry(GameOfThrones game) {
+        if (game == null) return;
+        File f = new File(MAIN_FILE);
+        if (!f.exists()) return;
+        try {
+            java.util.List<String> lines = java.nio.file.Files.readAllLines(f.toPath());
+            boolean changed = false;
+            for (int i = 0; i < lines.size(); i++) {
+                String line = lines.get(i);
+                String[] parts = line.split(",");
+                if (parts.length < 5) continue;
+                int id;
+                try { id = Integer.parseInt(parts[2]); } catch (NumberFormatException e) { continue; }
+                if (id != game.getId()) continue;
+                String updated = line.substring(0, line.lastIndexOf(',') + 1) + game.getNumberOfPlayers();
+                if (!updated.equals(line)) { lines.set(i, updated); changed = true; }
+            }
+            if (changed) java.nio.file.Files.write(f.toPath(), lines);
+        } catch (IOException e) {
+            System.err.println("Could not update the lobby list: " + e.getMessage());
+        }
+    }
+
+    /** The same line as it should currently read (used to refresh the list shown in the lobby). */
+    public static String lobbyLineFor(String oldLine, GameOfThrones game) {
+        return oldLine.substring(0, oldLine.lastIndexOf(',') + 1) + game.getNumberOfPlayers();
+    }
+
     public static void updateGame(GameOfThrones game) {
         String folder = "game_" + game.getId();
         String newPath = GAME_FOLDER + File.separator + folder + File.separator + game.getName() + "_" + game.getId() + ".ser";
@@ -307,6 +340,7 @@ public class GameFileUtility {
         try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(gameFile))) {
             out.writeObject(game);
             System.out.println(">>>>> [SAVE] SUCCESS: ObjectOutputStream has successfully written the game object.");
+            syncLobbyEntry(game);
         } catch (IOException e) {
             System.err.println(">>>>> [SAVE] FATAL ERROR: Could not write to the file. See stack trace below.");
             e.printStackTrace();
@@ -331,7 +365,7 @@ public class GameFileUtility {
 
 
     public static void checkGameActivity(LinkedList<String> games) {
-        Iterator<String> iterator = games.iterator();
+        java.util.ListIterator<String> iterator = games.listIterator();
 
         while (iterator.hasNext()) {
             String line = iterator.next();
@@ -354,6 +388,11 @@ public class GameFileUtility {
                 continue;
             }
 
+            if (parts.length >= 5) { // show (and store) the real number of players
+                iterator.set(lobbyLineFor(line, game));
+                syncLobbyEntry(game);
+            }
+
             long now = System.currentTimeMillis();
             long startTime = game.getGameTime().startTime;
             long daysElapsed = (now - startTime) / (1000 * 60 * 60 * 24);
@@ -366,11 +405,35 @@ public class GameFileUtility {
         }
     }
 
+    // --- throttled saving -------------------------------------------------------------------------------
+    // Saving the whole game (plus every user file) takes a noticeable moment and TrainingTask did it for EVERY
+    // trained soldier. Hot paths use saveFullGameStateSoon(): it saves at most every 2 seconds and the game loop
+    // flushes what is left (flushPendingSave), so at most a couple of seconds of progress are at risk.
+    private static long lastFullSaveMillis = 0;
+    private static GameOfThrones pendingSave = null;
+
+    public static synchronized void saveFullGameStateSoon(GameOfThrones game) {
+        if (game == null) return;
+        if (System.currentTimeMillis() - lastFullSaveMillis >= 2000) {
+            saveFullGameState(game);
+        } else {
+            pendingSave = game;
+        }
+    }
+
+    public static synchronized void flushPendingSave() {
+        if (pendingSave != null) {
+            saveFullGameState(pendingSave);
+        }
+    }
+
     public static void saveFullGameState(GameOfThrones game) {
         if (game == null) {
             System.err.println("خطا: تلاش برای ذخیره یک بازی null.");
             return;
         }
+        lastFullSaveMillis = System.currentTimeMillis();
+        if (pendingSave == game) pendingSave = null;
         updateGame(game);
         syncUsersFromGame(game);
         System.out.println("✅ وضعیت کامل بازی با موفقیت ذخیره و همگام‌سازی شد.");

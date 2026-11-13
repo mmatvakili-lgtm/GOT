@@ -81,6 +81,7 @@ public class ArmyManager implements Serializable {
         for (SoldierUnit survivorUnit : survivingAttackers) {
             if (survivorUnit != null && survivorUnit.getCount() > 0) {
 
+                for (Soldier survivor : survivorUnit.getSoldiers()) if (survivor != null) survivor.heal();
                 SoldierUnit unitInDefence = this.defenceManager.findOrCreateUnitInDefenders(survivorUnit.getType());
 
                 unitInDefence.addSoldiers(survivorUnit.getSoldiers());
@@ -191,6 +192,28 @@ public class ArmyManager implements Serializable {
         }
         return new Result(true, "Training for " + quantity + " " + type.name() + " has been added to the queue.");
     }
+    /** Heals every soldier at home (called after battles). */
+    public void healAllSoldiers() {
+        if (allSoldiers != null) {
+            for (Soldier s : allSoldiers) if (s != null) s.heal();
+        }
+        if (defenceManager != null && defenceManager.getDefenders() != null) {
+            for (SoldierUnit u : defenceManager.getDefenders()) {
+                if (u == null || u.getSoldiers() == null) continue;
+                for (Soldier s : u.getSoldiers()) if (s != null) s.heal();
+            }
+        }
+    }
+
+    /** Hired soldiers that are at home (the ones away on missions are counted by Kingdom). */
+    public int countMercenariesAtHome() {
+        int n = 0;
+        if (allSoldiers != null) {
+            for (Soldier s : allSoldiers) if (s != null && s.isMercenary()) n++;
+        }
+        return n;
+    }
+
     public void addSoldierPackage(SoldierUnit purchasedUnit) {
         if (purchasedUnit == null || purchasedUnit.getCount() <= 0) {
             return;
