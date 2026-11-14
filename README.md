@@ -103,5 +103,16 @@ cd GOT
 
 The compiled fat-JAR will be generated in lwjgl3/build/libs/AP-Game.jar.
 
+# 🧪 Tests
+
+The game logic has headless JUnit tests (capacity, training, ranking, combat, lobby, login ...):
+
+```bash
+./gradlew :core:test
+```
+
+They run in `core/build/test-work` because the game stores users and games in files next to the working
+directory. GitHub Actions (`.github/workflows/ci.yml`) builds the project and runs them on every push.
+
 # 📜 License
 Developed as an academic software engineering and project-based programming portfolio project at the University of Kashan.

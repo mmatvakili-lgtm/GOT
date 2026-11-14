@@ -13,6 +13,22 @@ dependencies {
     implementation "io.github.berstanio:gdx-svmhelper-annotations:$graalHelperVersion"
   }
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+
+    testImplementation "org.junit.jupiter:junit-jupiter:5.10.2"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.10.2"
+}
+
+// The game keeps users and games in files relative to the working directory (users/, GAMES/ ...).
+// Tests therefore run in their own folder, and every test recreates it (see support/TestWorld).
+test {
+    useJUnitPlatform()
+    workingDir = layout.buildDirectory.dir("test-work").get().asFile
+    doFirst { workingDir.mkdirs() }
+    testLogging {
+        events "passed", "failed"
+        exceptionFormat "full"
+        showStandardStreams = false
+    }
 }
 repositories {
     mavenCentral()

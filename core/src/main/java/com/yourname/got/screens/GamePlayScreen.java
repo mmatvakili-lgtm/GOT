@@ -3778,6 +3778,7 @@ private void renderTilesAndUpdate() {
         buildEmptyGrid(tilePx, null, null);
         return;
     }
+    final int gameSpeed = freshGameData.getSpeed(); // read once per redraw (it reads the game config)
     GameUser userInGame = freshGameData.getUser(currentUser.getId());
 
     if (userInGame == null || userInGame.getKingdom() == null || userInGame.getKingdom().getUserMap() == null) {
@@ -3903,6 +3904,32 @@ private void renderTilesAndUpdate() {
 
                 // اضافه کردن جدول نوار به استک (روی دکمه)
                 cellStack.add(barTable);
+            }
+
+            // Progress of a running construction / upgrade / repair: an always visible blue bar with the seconds left
+            // (the health bar above shows only on hover, and the time was only in the tooltip).
+            if (building != null) {
+                float work = building.getWorkProgress(gameSpeed);
+                if (work >= 0f) {
+                    ProgressBar.ProgressBarStyle workStyle = new ProgressBar.ProgressBarStyle();
+                    workStyle.background = skin.newDrawable("white", new Color(0.05f, 0.05f, 0.1f, 0.9f));
+                    workStyle.background.setMinHeight(7);
+                    workStyle.knobBefore = skin.newDrawable("white", new Color(0.25f, 0.6f, 1f, 1f));
+                    workStyle.knobBefore.setMinHeight(5);
+                    ProgressBar workBar = new ProgressBar(0, 1, 0.01f, false, workStyle);
+                    workBar.setValue(work);
+
+                    Label workTime = new Label(building.getWorkRemainingSeconds(gameSpeed) + "s", skin);
+                    workTime.setFontScale(0.55f);
+                    workTime.setColor(Color.WHITE);
+
+                    Table workTable = new Table();
+                    workTable.bottom();
+                    workTable.add(workTime).row();
+                    workTable.add(workBar).width(tilePx * 0.9f).padBottom(2f);
+                    workTable.setTouchable(Touchable.disabled); // clicks must still reach the tile button below
+                    cellStack.add(workTable);
+                }
             }
 
             gridTable.add(cellStack).size(tilePx, tilePx);

@@ -86,6 +86,11 @@ public class GameRulesManager implements Serializable {
             if (attacker.getKingdom().getType() == KingdomType.IRON_ISLANDS) {
                 return new Result(false, "Iron Islands cannot perform Ground Attacks.");
             }
+            if (defender.getKingdom().getType() == KingdomType.IRON_ISLANDS) {
+                // Iron Islands is built around ports and has no land gate: a ground army has no entry point.
+                // The attack used to be launched, wait for its ETA and then end silently without any effect.
+                return new Result(false, "Iron Islands has no land gate. It can only be attacked by sea.");
+            }
         } else if (attackType == AttackType.SEA) {
             if (!attacker.getKingdom().hasPort()) {
                 return new Result(false, "You need a Port to launch Sea Attacks.");

@@ -136,6 +136,45 @@ public abstract class Building implements Serializable {
         return strength;
     }
 
+    /**
+     * Progress (0..1) of the running construction, upgrade or repair, or -1 when nothing is in progress.
+     * Used by the map to draw a progress bar on the building.
+     */
+    public float getWorkProgress(int gameSpeed) {
+        long now = System.currentTimeMillis();
+        if (repairStartTime != -1) {
+            return fraction(now - repairStartTime, getAdjustedRepairTime(gameSpeed) * 1000L);
+        }
+        if (upgradeStartTime != -1) {
+            return fraction(now - upgradeStartTime, getAdjustedUpgradeTime(gameSpeed) * 1000L);
+        }
+        if (constructionStartTime != -1 && !isBuilt()) {
+            return fraction(now - constructionStartTime, getAdjustedBuildTime(gameSpeed) * 1000L);
+        }
+        return -1f;
+    }
+
+    /** Seconds left until the running construction, upgrade or repair is finished (0 when nothing is running). */
+    public long getWorkRemainingSeconds(int gameSpeed) {
+        long now = System.currentTimeMillis();
+        long remaining;
+        if (repairStartTime != -1) {
+            remaining = getAdjustedRepairTime(gameSpeed) * 1000L - (now - repairStartTime);
+        } else if (upgradeStartTime != -1) {
+            remaining = getAdjustedUpgradeTime(gameSpeed) * 1000L - (now - upgradeStartTime);
+        } else if (constructionStartTime != -1 && !isBuilt()) {
+            remaining = getAdjustedBuildTime(gameSpeed) * 1000L - (now - constructionStartTime);
+        } else {
+            return 0;
+        }
+        return Math.max(0, (remaining + 999) / 1000);
+    }
+
+    private static float fraction(long elapsedMillis, long totalMillis) {
+        if (totalMillis <= 0) return 1f;
+        return Math.min(1f, Math.max(0f, (float) elapsedMillis / totalMillis));
+    }
+
     public void startConstruction(int gameSpeed) {
         this.constructionStartTime = System.currentTimeMillis();
         SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");

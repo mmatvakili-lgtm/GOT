@@ -484,6 +484,7 @@ public class Mission implements Serializable {
         Building entry = defend.getDefenseComplex().getPrimaryTargetFor(this.attackType);
         if (entry == null) {
             System.out.println("No entry point found for advance.");
+            getReplayLog().add(new EventTextLog("There is no way in for this kind of attack. The army turns back."));
             return;
         }
 
