@@ -20,7 +20,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class GameLoopManager extends Thread {
     private final GameUserList userList;
     private final GameMediator mediator;
-    private final int tickMillis = 5000;
+    // One tick per second (was 5): construction, production and training now advance smoothly instead of in
+    // 5-second jumps. Everything a tick does is based on elapsed real time, so the speed of the game is unchanged.
+    private final int tickMillis = 1000;
     private final AtomicBoolean tickPending = new AtomicBoolean(false);
     private volatile boolean stopRequested = false;
     private final GameOfThrones game;

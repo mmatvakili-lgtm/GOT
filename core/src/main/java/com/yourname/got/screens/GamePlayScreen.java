@@ -84,6 +84,7 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
     private Label lblWood, lblFood, lblCoin, lblStone;
     private Label lblInfantry, lblArchers, lblCavalry, lblSpies ,lblHero;
     private Label lblTotalSoldiers;
+    private Label lblHousing;
 
     // message log
     private final LinkedList<String> messageLog = new LinkedList<>();
@@ -281,6 +282,13 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
         soldiersTable.add(lblCavalry).pad(5).row();
         soldiersTable.add(lblSpies).pad(5).row();
         soldiersTable.add(lblTotalSoldiers).padTop(8).row();
+        // Camps / mercenaries line: NOT part of the table. A second line in lblTotalSoldiers made the left column
+        // 26 px taller and everything in it (profile, resources, wall, day) moved up by 13 px.
+        lblHousing = new Label("", skin);
+        lblHousing.setColor(Color.YELLOW);
+        lblHousing.setFontScale(0.85f);
+        lblHousing.setTouchable(Touchable.disabled);
+        stage.addActor(lblHousing);
         left.add(soldiersTable).padTop(25).padLeft(2).expandX().fillX().row();
 
         left.add(statusLabel).pad(10).expandX().fillX().row();
@@ -404,7 +412,10 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
         // The group boxes (Buildings / Attack / Defend / Shop / Wall) are painted in the background picture.
         // The buttons used to be separated by hand-tuned empty labels, so several of them (Shipping, WhiteWalkers,
         // Sell) landed on the border of their box. Each button is now placed at a measured y position (stage px).
-        menuCursorY = 0f;
+        // The table used to be vertically CENTRED: its content (981 px) is shorter than its cell (1036 px), so every
+        // button was pushed down by (1036 - 981) / 2 + 10 = 38 px. Top aligned, the flow starts at the root padding (10).
+        right.top();
+        menuCursorY = 10f;
         // Buildings box: 123-360
         addMenuButtonAt(right, "New Building", this::openNewBuildingPanel, 187, 40);
         addMenuButtonAt(right, "Overhaul", this::openOverhaulPanel, 234, 40);
@@ -425,9 +436,12 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
         addMenuButtonAt(right, "Help", this::openHelpPanel, 963, 36);
 
         // layout root: left | center | right
-        root.add(left).width(360).fillY().top().padRight(8);
+        // Fixed row height (stage height minus the 10 px padding on both sides). The row height used to follow the
+        // tallest panel, so one panel getting a bit taller moved everything (left AND right) up or down.
+        float rowHeight = stage.getHeight() - 20f;
+        root.add(left).width(360).height(rowHeight).top().padRight(8);
         root.add(center).expand().fill().padRight(8);
-        root.add(right).width(300).fillY().top();
+        root.add(right).width(300).height(rowHeight).top();
 
         // initial update
         refreshDynamicInfo();
@@ -4084,6 +4098,9 @@ private void renderTilesAndUpdate() {
             }
             lblHero.setText("Hero: " + mediator.getCurrentGameUser().getKingdom().getHero().getStatusText());
             lblTotalSoldiers.setText(mediator.getTotalSoldierInfo());
+            lblHousing.setText(mediator.getArmyHousingInfo());
+            lblHousing.pack();
+            lblHousing.setPosition(24f, stage.getHeight() - 553f - lblHousing.getHeight() / 2f);
         }
 
         if (lblWallStatus != null) {

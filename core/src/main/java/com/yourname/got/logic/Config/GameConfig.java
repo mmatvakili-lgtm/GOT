@@ -182,6 +182,7 @@ public class GameConfig {
             e.printStackTrace();
             return false;
         }
+        configCache.remove(gameId); // the next read must see the new value even within the same file-time tick
 
         return true;
     }
@@ -189,9 +190,37 @@ public class GameConfig {
     public static Properties getGlobalProps() {
         return globalProps;
     }
+    // getGameProperty is called many times per game tick (speed, difficulty, once per mine ...). It used to read
+    // the config file from disk every single time. The parsed file is now cached and re-read only when the
+    // file changed on disk (modification time + size) or after our own write (updateGameConfig).
+    private static final java.util.Map<Integer, CachedConfig> configCache = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private static final class CachedConfig {
+        final Properties props;
+        final long modified;
+        final long length;
+        CachedConfig(Properties props, long modified, long length) {
+            this.props = props;
+            this.modified = modified;
+            this.length = length;
+        }
+    }
+
+    private static Properties cachedGameConfig(int gameId) {
+        if (gameId <= 0) return loadGameConfig(gameId);
+        File f = new File(GAME_FOLDER + File.separator + "game_" + gameId + File.separator + "config.properties");
+        CachedConfig c = configCache.get(gameId);
+        if (c != null && f.exists() && f.lastModified() == c.modified && f.length() == c.length) {
+            return c.props;
+        }
+        Properties fresh = loadGameConfig(gameId); // also creates the file when it is missing
+        configCache.put(gameId, new CachedConfig(fresh, f.lastModified(), f.length()));
+        return fresh;
+    }
+
     public static String getGameProperty(int gameId, String key) {
         try {
-            Properties props = loadGameConfig(gameId);
+            Properties props = cachedGameConfig(gameId);
             return props.getProperty(key);
         } catch (Exception e) {
             System.out.println("❌ خطا در خواندن فایل تنظیمات بازی: " + e.getMessage());

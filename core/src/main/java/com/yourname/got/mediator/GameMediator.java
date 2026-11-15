@@ -734,6 +734,7 @@ public void initiateGameSession(GameOfThrones game) {
         return;
     }
 
+    defeatPanelShownFor.clear();
     // Work with the user that lives inside this game from now on.
     if (currentUser != null) {
         GameUser inGameUser = game.getUser(currentUser.getId());
@@ -1573,6 +1574,15 @@ public void initiateGameSession(GameOfThrones game) {
         return (unit != null) ? unit.getCount() : 0;
     }
 
+    /** Second info line under "Total Soldiers": camp housing and mercenary quarters. */
+    public String getArmyHousingInfo() {
+        GameUser user = getCurrentGameUser();
+        if (user == null || user.getKingdom() == null) return "";
+        Kingdom k = user.getKingdom();
+        return String.format("Camps %d/%d   Mercenaries %d/%d",
+            k.getTrainedSoldierCount(), k.getTotalSoldierCapacity(), k.getMercenaryCount(), k.getMercenaryCapacity());
+    }
+
     public String getTotalSoldierInfo() {
         if (isGameStateInvalid()) return "Total: 0 / 0";
 
@@ -1586,8 +1596,7 @@ public void initiateGameSession(GameOfThrones game) {
         int totalCapacity = kingdom.getTotalSoldierCapacity(); // فراخوانی متد جدید
 
         int mercenaries = kingdom.getMercenaryCount();
-        return String.format("Total Soldiers: %d  (Camps %d / %d)\nMercenaries: %d / %d",
-            currentCount, kingdom.getTrainedSoldierCount(), totalCapacity, mercenaries, kingdom.getMercenaryCapacity());
+        return String.format("Total Soldiers: %d", currentCount);
     }
 
     public static class AttackReadySoldierInfo {
@@ -2080,9 +2089,13 @@ public void initiateGameSession(GameOfThrones game) {
 // In GameMediator.java
 
     // The method now accepts the defeated user's ID
+    private final java.util.Set<Integer> defeatPanelShownFor = new java.util.HashSet<>();
+
     public void triggerDefeatPanelDisplay(int defeatedUserId) {
         // Only trigger the panel if the currently logged-in user is the one who was defeated.
         if (panelPresenter != null && currentUser != null && currentUser.getId() == defeatedUserId) {
+            // The game tick calls this on EVERY tick while the castle is destroyed: open the panel once only.
+            if (!defeatPanelShownFor.add(defeatedUserId)) return;
             Gdx.app.postRunnable(() -> panelPresenter.showDefeatPanel());
         }
     }
