@@ -224,7 +224,11 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
 // فعلا add میکنیم، در متد render ترتیب رو مدیریت میکنیم یا همینجا میذاریم آخر همه
 
         Table left = new Table(skin);
-        left.top().left(); // چیدمان از بالا به چپ
+        left.top().left();
+        // The content of this column is taller than the screen (about 1248 px for 1036 px of room). It used to be
+        // centred, so it overflowed 106 px upwards, and the background art lines up with exactly that. Top aligned
+        // (needed so that a taller panel can no longer move the whole screen) it must be moved up by the same 106 px.
+        left.padTop(-106f); // چیدمان از بالا به چپ
 
         lblUsername = new Label("< " + safeUsername() + " >", skin);
         lblUsername.setFontScale(1.4f);
