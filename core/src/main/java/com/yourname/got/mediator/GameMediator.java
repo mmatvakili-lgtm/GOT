@@ -1132,6 +1132,13 @@ public void initiateGameSession(GameOfThrones game) {
     }
 
 
+    /** Current amount of a resource ("Wood", "Stone", "Coin", "Food") of the player; 0 outside a game. */
+    public int getResourceAmount(String type) {
+        GameUser user = getCurrentGameUser();
+        if (user == null || user.getKingdom() == null) return 0;
+        return user.getKingdom().getTotalResources(type);
+    }
+
     public String getResourceInfoWood() {
         if (currentUser == null || currentGame == null) return "0 / 0";
         GameUser userInGame = currentGame.getUser(currentUser.getId());

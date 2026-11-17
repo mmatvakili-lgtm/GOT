@@ -4081,6 +4081,31 @@ private void renderTilesAndUpdate() {
     }
 
 
+    private final java.util.Map<String, Integer> lastResourceAmount = new java.util.HashMap<>();
+
+    /**
+     * Floating "+N" (green) / "-N" (red) above a resource when its amount changed since the last refresh.
+     * It gives the HUD a living feel: production, trading and spending are visible at the moment they happen.
+     */
+    private void showResourceChange(Label anchor, String type) {
+        int now = mediator.getResourceAmount(type);
+        Integer before = lastResourceAmount.put(type, now);
+        if (before == null || now == before) return; // nothing to compare with on the first refresh
+
+        int delta = now - before;
+        Label change = new Label((delta > 0 ? "+" : "") + delta, skin);
+        change.setFontScale(0.75f);
+        change.setColor(delta > 0 ? new Color(0.45f, 1f, 0.55f, 1f) : new Color(1f, 0.45f, 0.4f, 1f));
+        change.setTouchable(Touchable.disabled);
+
+        Vector2 pos = anchor.localToStageCoordinates(new Vector2(anchor.getWidth() * 0.5f, anchor.getHeight()));
+        change.setPosition(pos.x, pos.y);
+        change.addAction(Actions.sequence(
+            Actions.parallel(Actions.moveBy(0, 28f, 1.1f), Actions.fadeOut(1.1f)),
+            Actions.removeActor()));
+        stage.addActor(change);
+    }
+
     private void refreshDynamicInfo() {
         lblUsername.setText("< " + safeUsername() + " >");
         lblKingdom.setText("Lord of " + safeKingdomName());
@@ -4115,6 +4140,10 @@ private void renderTilesAndUpdate() {
         lblStone.setText(mediator.getResourceInfoStone());
         lblFood.setText(mediator.getResourceInfoFood());
         lblCoin.setText(mediator.getResourceInfoCoin());
+        showResourceChange(lblWood, "Wood");
+        showResourceChange(lblStone, "Stone");
+        showResourceChange(lblFood, "Food");
+        showResourceChange(lblCoin, "Coin");
     }
     private void openCenteredWindow(String title, Actor content) {
         if (activeDialog != null && activeDialog.getStage() != null) { activeDialog.remove(); activeDialog = null; }
