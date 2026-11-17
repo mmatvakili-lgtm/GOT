@@ -1350,32 +1350,38 @@ public void initiateGameSession(GameOfThrones game) {
                 return new Result(false, "ERROR: You must build a Barrack first!");
             }
 
+            // The loop used to RETURN inside its first iteration, so only the first requested type was ever queued.
+            boolean everythingQueued = true;
+            StringBuilder report = new StringBuilder();
+            int totalQueued = 0;
             for (java.util.Map.Entry<SoldierType, Integer> entry : trainRequests.entrySet()) {
                 SoldierType type = entry.getKey();
                 int quantityToTrain = entry.getValue();
                 int successfullyQueued = 0;
 
                 for (int i = 0; i < quantityToTrain; i++) {
-                    boolean successThisOne = activeBarrack.trainSoldier(type, currentGame.getSpeed());
-                    if (successThisOne) {
+                    if (activeBarrack.trainSoldier(type, currentGame.getSpeed())) {
                         successfullyQueued++;
                     } else {
                         break;
                     }
                 }
+                totalQueued += successfullyQueued;
+                if (successfullyQueued < quantityToTrain) everythingQueued = false;
+                if (report.length() > 0) report.append(", ");
+                report.append(successfullyQueued).append("/").append(quantityToTrain).append(" ").append(type.name());
+            }
 
-                GameFileUtility.saveFullGameState(currentGame);
+            GameFileUtility.saveFullGameState(currentGame);
 
-                if (successfullyQueued == quantityToTrain) {
-                    return new Result(true, "SUCCESS: " + successfullyQueued + " " + type.name() + " added to the training queue.");
-                } else if (successfullyQueued > 0) {
-                    return new Result(false, "WARNING: Only " + successfullyQueued + " out of " + quantityToTrain + " could be queued. Check resources/capacity.");
-                } else {
-                    return new Result(false, "ERROR: Failed to queue any " + type.name() + ". Check resources/capacity.");
-                }
+            if (everythingQueued) {
+                return new Result(true, "SUCCESS: " + report + " added to the training queue.");
+            } else if (totalQueued > 0) {
+                return new Result(false, "WARNING: Only part of the request could be queued (" + report + "). Check resources/capacity.");
+            } else {
+                return new Result(false, "ERROR: Failed to queue anything (" + report + "). Check resources/capacity.");
             }
         }
-
 
         return new Result(false, "No action was performed.");
     }
@@ -1767,6 +1773,43 @@ public void initiateGameSession(GameOfThrones game) {
 
         GameUser attacker = currentGame.getUser(currentUser.getId());
         Kingdom kingdom = attacker.getKingdom();
+
+        // 1b. Validate EVERYTHING before a single soldier leaves the army. Soldiers used to be taken first, so any
+        // error afterwards (not enough of one type, bad formation) made the already packaged soldiers vanish.
+        Result rules = currentGame.getRulesManager().canAttack(attacker, target, attackType);
+        if (!rules.isSuccess()) return rules;
+
+        int totalSent = 0;
+        for (Map.Entry<SoldierType, Integer> entry : troopCounts.entrySet()) {
+            int wanted = entry.getValue() == null ? 0 : entry.getValue();
+            if (wanted <= 0) {
+                return new Result(false, "Every unit you send must have a positive number of soldiers.");
+            }
+            SoldierUnit home = kingdom.getArmyManager().getDefenceManager().findUnitInDefenders(entry.getKey());
+            int available = (home != null) ? home.getCount() : 0;
+            if (wanted > available) {
+                return new Result(false, "Not enough " + entry.getKey().name() + ": you have " + available + ", you chose " + wanted + ".");
+            }
+            totalSent += wanted;
+        }
+        if (formation.getSize() != troopCounts.size()) {
+            return new Result(false, "The formation must contain exactly the units you send.");
+        }
+        for (SoldierType inFormation : formation) {
+            if (!troopCounts.containsKey(inFormation)) {
+                return new Result(false, "The formation contains " + inFormation + " which you are not sending.");
+            }
+        }
+        if (attackType == AttackType.SEA) {
+            BattleShip ship = kingdom.getBattleShip();
+            if (ship == null) {
+                return new Result(false, "You need a ship for a sea attack.");
+            }
+            // The ship's capacity was displayed but never enforced.
+            if (totalSent > ship.soldiersCapacity) {
+                return new Result(false, "Your ship carries at most " + ship.soldiersCapacity + " soldiers (you chose " + totalSent + ").");
+            }
+        }
 
         // 2. بسته‌بندی ارتش (بدون تغییر)
         MyLinkedList<SoldierUnit> attackUnitsList = new MyLinkedList<>();

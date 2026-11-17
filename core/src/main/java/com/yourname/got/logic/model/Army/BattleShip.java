@@ -35,7 +35,7 @@ public class BattleShip implements Moveable, Serializable {
     }
     public void upgrade() {
         this.level++;
-        this.soldiersCapacity += 5000;
+        this.soldiersCapacity += 50; // was += 5000 (typo): one upgrade made the ship carry 5150 soldiers
         this.attackPower += 150;
     }
 }
