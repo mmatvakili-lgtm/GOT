@@ -77,6 +77,9 @@ public class DefenseComplex implements Serializable {
                 int damageToWall = Math.min(damage, w.getHealth());
                 w.takeDamage(damageToWall);
                 damage -= damageToWall;
+                // takeDamage only lowers the strength: without this the wall was never flagged destroyed, so it
+                // could not be repaired afterwards and "isDestroyed()" stayed false for a breached complex.
+                if (w.getHealth() <= 0 && !w.isDestroyed()) w.destroy();
 
                 if (w.isDestroyed()) {
                     System.out.println("    - دیوار در موقعیت " + w.getPosition() + " نابود شد.");
@@ -90,6 +93,7 @@ public class DefenseComplex implements Serializable {
             if (primaryTarget != null && !primaryTarget.isDestroyed()) {
                 System.out.println("  -> آسیب باقی‌مانده (" + damage + ") به " + primaryTarget.getName() + " وارد می‌شود.");
                 primaryTarget.takeDamage(damage);
+                if (primaryTarget.getHealth() <= 0 && !primaryTarget.isDestroyed()) primaryTarget.destroy();
 
                 if (primaryTarget.isDestroyed()) {
                     System.out.println("    - هدف اصلی، " + primaryTarget.getName() + "، نابود شد!");
@@ -104,18 +108,20 @@ public class DefenseComplex implements Serializable {
 
     public void destroyComplex() {
         System.out.println("The Defense Complex has been breached!");
-        if (gate != null) {
-            gate.setStatus(Status.destroyed);
+        // destroy() sets the destroyed flag as well as the status, so the owner can repair the parts later.
+        if (gate != null && !gate.isDestroyed()) {
             gate.setStrength(0);
+            gate.destroy();
         }
-        if (port != null) {
-            port.setStatus(Status.destroyed);
+        if (port != null && !port.isDestroyed()) {
+            port.setStrength(0);
+            port.destroy();
         }
         if (wall != null) {
             for (WallsOfGate w : wall) {
-                if (w != null) {
-                    w.setStatus(Status.destroyed);
+                if (w != null && !w.isDestroyed()) {
                     w.setStrength(0);
+                    w.destroy();
                 }
             }
         }

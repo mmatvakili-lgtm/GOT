@@ -173,6 +173,7 @@ public class WhiteWalkerManager implements Serializable {
                 break;
             case ALL_AT_ONCE:
                 attackAllKingdoms(day, false);
+                break; // there was no break: this case fell into default and attacked every kingdom TWICE
             default:
                 attackAllKingdoms(day, false);
                 break;
