@@ -234,9 +234,27 @@ public class Bazar extends MyLinkedList<Transaction> implements Serializable {
         }
     }
 
+    private static boolean hasInvalidAmount(MyLinkedList<ResourceItem> items) {
+        if (items == null) return false;
+        for (ResourceItem item : items) {
+            if (item == null || item.amount <= 0) return true;
+        }
+        return false;
+    }
+
     public Result listOffer(Transaction transaction) {
         GameUser seller = transaction.getExchanger();
         Kingdom sellerKingdom = seller.getKingdom();
+
+        // A negative amount used to be accepted: spending -100 wood ADDS 100 wood, so an offer could print resources.
+        if (hasInvalidAmount(transaction.getResourcesToGive()) || hasInvalidAmount(transaction.getResourcesToTake())) {
+            return new Result(false, "Every amount in an offer must be greater than zero.");
+        }
+        boolean givesResources = transaction.getResourcesToGive() != null && !transaction.getResourcesToGive().isEmpty();
+        boolean givesSoldiers = transaction.getSoldiersToGive() != null && transaction.getSoldiersToGive().getCount() > 0;
+        if (!givesResources && !givesSoldiers) {
+            return new Result(false, "An offer must give something.");
+        }
 
         if (transaction.getResourcesToGive() != null && !transaction.getResourcesToGive().isEmpty()) {
             int wood = 0, stone = 0, coin = 0, food = 0;
@@ -297,6 +315,14 @@ public class Bazar extends MyLinkedList<Transaction> implements Serializable {
             }
         }
 
+        // Soldiers the seller asks for as payment (they were checked in canAfford but never taken).
+        SoldierUnit soldierPayment = transaction.getSoldiersToTake();
+        boolean paysWithSoldiers = soldierPayment != null && soldierPayment.getCount() > 0;
+        if (paysWithSoldiers && !buyerKingdom.getArmyManager().hasEnoughSoldiers(soldierPayment.getType(), soldierPayment.getCount())) {
+            return new Result(false, "ERROR: You don't have " + soldierPayment.getCount() + " "
+                + soldierPayment.getType().name() + " to pay for this offer.");
+        }
+
         int woodPrice = 0, stonePrice = 0, coinPrice = 0, foodPrice = 0;
         for(ResourceItem item : transaction.getResourcesToTake()) {
             switch(item.type) {
@@ -310,7 +336,31 @@ public class Bazar extends MyLinkedList<Transaction> implements Serializable {
             return new Result(false, "ERROR: You don't have enough resources to afford this offer.");
         }
 
+        // Goods that do not fit into the storages were silently thrown away after the buyer had paid.
+        if (transaction.getResourcesToGive() != null) {
+            for (ResourceType type : ResourceType.values()) {
+                int incoming = 0;
+                for (ResourceItem item : transaction.getResourcesToGive()) if (item.type == type) incoming += item.amount;
+                if (incoming <= 0) continue;
+                int paidSameType = (type == ResourceType.Wood ? woodPrice : type == ResourceType.Stone ? stonePrice
+                    : type == ResourceType.Coin ? coinPrice : foodPrice);
+                int free = buyerKingdom.getTotalCapacity(type.name())
+                    - (buyerKingdom.getTotalResources(type.name()) - paidSameType);
+                if (incoming > free) {
+                    return new Result(false, "ERROR: Your " + type.name() + " storage cannot hold " + incoming
+                        + " more (room for " + Math.max(0, free) + "). Build or upgrade a Storage first.");
+                }
+            }
+        }
+
         buyerKingdom.detuctResources(woodPrice, stonePrice, coinPrice, foodPrice);
+
+        if (paysWithSoldiers) {
+            SoldierUnit paid = buyerKingdom.getArmyManager().removeAndPackageSoldiers(soldierPayment.getType(), soldierPayment.getCount());
+            if (seller != null && paid != null) {
+                seller.getKingdom().getArmyManager().addSoldierPackage(paid);
+            }
+        }
 
         if (seller != null) {
             seller.getKingdom().addResources("WOOD", woodPrice);
