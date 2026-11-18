@@ -378,7 +378,8 @@ public int getTotalSoldierCapacity() {
     public int getMercenaryCapacity() {
         Castle c = getCastle();
         if (c == null || c.isDestroyed()) return 0;
-        return c.getLevel() * MERCENARY_SLOTS_PER_CASTLE_LEVEL;
+        return c.getLevel() * com.yourname.got.logic.Balance.BalanceConfig.integer(
+            "mercenary.slots.per.castle.level", MERCENARY_SLOTS_PER_CASTLE_LEVEL, 0, 1000);
     }
 
     /** Hired soldiers: at home + away on missions. */
@@ -671,7 +672,8 @@ public int getTotalSoldierCapacity() {
         int lootAmount = 0;
         if (destroyedBuilding instanceof Storage) {
             Storage storage = (Storage) destroyedBuilding;
-            int taken = storage.getQuantity() / 2;
+            int lootPercent = com.yourname.got.logic.Balance.BalanceConfig.integer("loot.percent", 50, 0, 100);
+            int taken = (int) ((long) storage.getQuantity() * lootPercent / 100);
             if (taken > 0) {
                 storage.useResource(taken);
                 if (attackerKingdom != null) { // White Walkers (no attacker kingdom) just destroy the stock

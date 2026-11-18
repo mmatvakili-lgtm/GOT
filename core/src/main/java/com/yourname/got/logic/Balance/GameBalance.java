@@ -14,10 +14,10 @@ public final class GameBalance implements Serializable {
 
     public static int getProductionPerMinute(String type, int level) {
         return switch (type.toUpperCase()) {
-            case "WOOD"  -> (int) Math.round(BASE_WOOD * Math.pow(1.2, level-1));
-            case "STONE" -> (int) Math.round(BASE_STONE * Math.pow(1.2, level-1));
-            case "COIN"  -> (int) Math.round(BASE_COIN * Math.pow(1.2, level-1));
-            case "FOOD"  -> (int) Math.round(BASE_FOOD * Math.pow(1.2, level-1));
+            case "WOOD"  -> (int) Math.round(BASE_WOOD * Math.pow(1.2, level-1) * BalanceConfig.multiplier("production.multiplier"));
+            case "STONE" -> (int) Math.round(BASE_STONE * Math.pow(1.2, level-1) * BalanceConfig.multiplier("production.multiplier"));
+            case "COIN"  -> (int) Math.round(BASE_COIN * Math.pow(1.2, level-1) * BalanceConfig.multiplier("production.multiplier"));
+            case "FOOD"  -> (int) Math.round(BASE_FOOD * Math.pow(1.2, level-1) * BalanceConfig.multiplier("production.multiplier"));
             default -> 0;
         };
     }
@@ -255,12 +255,14 @@ public final class GameBalance implements Serializable {
     }
 
     private static int roundCost(int value) {
+        value = (int) Math.round(value * BalanceConfig.multiplier("cost.multiplier")); // 1.0 = unchanged
         if (value < 1000) return Math.round(value / 50f) * 50;
         if (value < 10000) return Math.round(value / 100f) * 100;
         return Math.round(value / 500f) * 500;
     }
 
     private static int roundTime(int value) {
+        value = (int) Math.round(value * BalanceConfig.multiplier("buildtime.multiplier")); // 1.0 = unchanged
         if (value < 60) return Math.round(value / 5f) * 5;
         if (value < 300) return Math.round(value / 10f) * 10;
         return Math.round(value / 30f) * 30;

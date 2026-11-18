@@ -290,7 +290,7 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
         // 26 px taller and everything in it (profile, resources, wall, day) moved up by 13 px.
         lblHousing = new Label("", skin);
         lblHousing.setColor(Color.YELLOW);
-        lblHousing.setFontScale(0.85f);
+        lblHousing.setFontScale(0.7f); // small: only ~16 px fit between "Total Soldiers" and "Selected Local Tile"
         lblHousing.setTouchable(Touchable.disabled);
         stage.addActor(lblHousing);
         left.add(soldiersTable).padTop(25).padLeft(2).expandX().fillX().row();
@@ -727,10 +727,8 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
     // اینجا هم باید از localX و localY استفاده کنیم چون getBuildingAt در Mediator یا UserSubMap مختصات نسبی می‌خواهد
         Building clickedBuilding = mediator.getBuildingAt(localX, localY);
 
-    // اگر با (x,y) پیدا نشد، (y,x) را چک کن (برای باگ‌های احتمالی جابجایی سطر/ستون)
-        if (clickedBuilding == null) {
-            clickedBuilding = mediator.getBuildingAt(localY, localX);
-        }
+        // No "try (y, x) as well" fallback any more: for an EMPTY tile (x, y) it returned the building that stands on the
+        // mirrored tile (y, x), so an empty tile showed e.g. "Mine of FOOD". Same coordinates as the grid drawing: exact.
 
         this.currentSelectedBuilding = clickedBuilding;
 
@@ -3787,6 +3785,7 @@ private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyI
 
 private void renderTilesAndUpdate() {
     gridTable.clear();
+    activeWorkBars.clear();
     gridTable.defaults().pad(2);
 
     int tilePx = Math.min(53, Math.round((stage.getWidth() - 600f) / GRID_SIZE));
@@ -3947,6 +3946,7 @@ private void renderTilesAndUpdate() {
                     workTable.add(workBar).width(tilePx * 0.9f).padBottom(2f);
                     workTable.setTouchable(Touchable.disabled); // clicks must still reach the tile button below
                     cellStack.add(workTable);
+                    activeWorkBars.add(new WorkBar(building, workBar, workTime));
                 }
             }
 
@@ -4081,13 +4081,49 @@ private void renderTilesAndUpdate() {
     }
 
 
+    /** A progress bar drawn on a tile, kept so it can be advanced without rebuilding the whole grid. */
+    private static final class WorkBar {
+        final Building building;
+        final ProgressBar bar;
+        final Label time;
+        WorkBar(Building building, ProgressBar bar, Label time) {
+            this.building = building;
+            this.bar = bar;
+            this.time = time;
+        }
+    }
+
+    private final java.util.List<WorkBar> activeWorkBars = new java.util.ArrayList<>();
+    private float workBarTimer = 0f;
+
+    /**
+     * Advances the progress bars of running constructions / upgrades / repairs. The tile grid is only rebuilt when
+     * something visible changes, so the bars used to jump forward only when you built something or did another action.
+     */
+    private void updateWorkBars(float delta) {
+        workBarTimer += delta;
+        if (workBarTimer < 0.25f || activeWorkBars.isEmpty()) return;
+        workBarTimer = 0f;
+        int speed = mediator.getCurrentGame() != null ? mediator.getCurrentGame().getSpeed() : 1;
+        for (WorkBar w : activeWorkBars) {
+            float p = w.building.getWorkProgress(speed);
+            if (p < 0f) { // finished: the game tick triggers a grid rebuild, hide the bar until then
+                w.bar.setVisible(false);
+                w.time.setVisible(false);
+                continue;
+            }
+            w.bar.setValue(p);
+            w.time.setText(w.building.getWorkRemainingSeconds(speed) + "s");
+        }
+    }
+
     private final java.util.Map<String, Integer> lastResourceAmount = new java.util.HashMap<>();
 
     /**
      * Floating "+N" (green) / "-N" (red) above a resource when its amount changed since the last refresh.
      * It gives the HUD a living feel: production, trading and spending are visible at the moment they happen.
      */
-    private void showResourceChange(Label anchor, String type) {
+    private void showResourceChange(Label anchor, String type, float x) {
         int now = mediator.getResourceAmount(type);
         Integer before = lastResourceAmount.put(type, now);
         if (before == null || now == before) return; // nothing to compare with on the first refresh
@@ -4098,10 +4134,10 @@ private void renderTilesAndUpdate() {
         change.setColor(delta > 0 ? new Color(0.45f, 1f, 0.55f, 1f) : new Color(1f, 0.45f, 0.4f, 1f));
         change.setTouchable(Touchable.disabled);
 
-        Vector2 pos = anchor.localToStageCoordinates(new Vector2(anchor.getWidth() * 0.5f, anchor.getHeight()));
-        change.setPosition(pos.x, pos.y);
+        Vector2 pos = anchor.localToStageCoordinates(new Vector2(0f, anchor.getHeight() * 0.5f));
+        change.setPosition(x, pos.y);
         change.addAction(Actions.sequence(
-            Actions.parallel(Actions.moveBy(0, 28f, 1.1f), Actions.fadeOut(1.1f)),
+            Actions.parallel(Actions.moveBy(0, 18f, 1.1f), Actions.fadeOut(1.1f)),
             Actions.removeActor()));
         stage.addActor(change);
     }
@@ -4129,7 +4165,7 @@ private void renderTilesAndUpdate() {
             lblTotalSoldiers.setText(mediator.getTotalSoldierInfo());
             lblHousing.setText(mediator.getArmyHousingInfo());
             lblHousing.pack();
-            lblHousing.setPosition(24f, stage.getHeight() - 553f - lblHousing.getHeight() / 2f);
+            lblHousing.setPosition(24f, stage.getHeight() - 548f - lblHousing.getHeight() / 2f);
         }
 
         if (lblWallStatus != null) {
@@ -4140,10 +4176,12 @@ private void renderTilesAndUpdate() {
         lblStone.setText(mediator.getResourceInfoStone());
         lblFood.setText(mediator.getResourceInfoFood());
         lblCoin.setText(mediator.getResourceInfoCoin());
-        showResourceChange(lblWood, "Wood");
-        showResourceChange(lblStone, "Stone");
-        showResourceChange(lblFood, "Food");
-        showResourceChange(lblCoin, "Coin");
+        // Left bar column -> x 306, right bar column -> x 356 (the free space beside the bars: they used to start on
+        // top of the profile text and the bar labels).
+        showResourceChange(lblWood, "Wood", 306f);
+        showResourceChange(lblStone, "Stone", 356f);
+        showResourceChange(lblFood, "Food", 356f);
+        showResourceChange(lblCoin, "Coin", 306f);
     }
     private void openCenteredWindow(String title, Actor content) {
         if (activeDialog != null && activeDialog.getStage() != null) { activeDialog.remove(); activeDialog = null; }
@@ -4400,6 +4438,7 @@ private void renderTilesAndUpdate() {
     }
 @Override
 public void render(float delta) {
+    updateWorkBars(delta); // progress bars move every 0.25 s, not only when the grid is rebuilt
     // 1. آپدیت زمان و لاجیک
     timeSinceLastUpdate += delta;
     if (timeSinceLastUpdate >= REFRESH_INTERVAL) {
@@ -4718,9 +4757,7 @@ public void render(float delta) {
         Building b = mediator.getBuildingAt(row, col);
         if (b != null) return b;
 
-        // تلاش دوم: جابجایی سطر و ستون (برای اطمینان)
-        b = mediator.getBuildingAt(col, row);
-        return b;
+        return b; // exact tile only (the mirrored lookup showed buildings on empty tiles)
     }
 
     /**

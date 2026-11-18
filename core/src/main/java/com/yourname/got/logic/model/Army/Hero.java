@@ -68,7 +68,8 @@ public class Hero implements Serializable {
     public boolean tryRevive(int gameSpeed) {
         if (currentHealth > 0 || !unlocked) return false;
         if (diedAtMillis == 0) { diedAtMillis = System.currentTimeMillis(); return false; }
-        long needed = (long) (REVIVE_MINUTES * 60_000L / Math.max(1, gameSpeed));
+        int reviveMinutes = com.yourname.got.logic.Balance.BalanceConfig.integer("hero.revive.minutes", REVIVE_MINUTES, 0, 10_000);
+        long needed = (long) (reviveMinutes * 60_000L / Math.max(1, gameSpeed));
         if (System.currentTimeMillis() - diedAtMillis < needed) return false;
         restoreHealth();
         return true;
