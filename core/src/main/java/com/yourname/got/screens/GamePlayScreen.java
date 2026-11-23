@@ -3562,7 +3562,21 @@ private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyI
     // --- تغییر ۳: افزایش ارتفاع اسکرول ---
     logContainer.add(logScroll).expand().fill().pad(10).minHeight(450); // ارتفاع بیشتر
 
-    panel.getContentTable().add(logContainer).expand().fill().row();
+    // Visual part of the replay: a small map of the defender's kingdom next to the text log. It is fed by the
+    // structured events (setup / target / destroyed) in the playback loop below.
+    final BattlefieldView battlefield = new BattlefieldView(skin,
+        (buildingName, buildingLevel) -> getCachedBuildingDrawable(buildingName, Math.max(0, buildingLevel - 1)), 22f);
+    Table battlefieldBox = new Table(skin);
+    battlefieldBox.setBackground(skin.newDrawable("white", new Color(0f, 0f, 0f, 0.6f)));
+    Label battlefieldTitle = new Label("Battlefield", skin);
+    battlefieldTitle.setFontScale(0.8f);
+    battlefieldBox.add(battlefieldTitle).padTop(6f).row();
+    battlefieldBox.add(battlefield).size(battlefield.getWidth(), battlefield.getHeight()).pad(8f).row();
+
+    Table replayBody = new Table();
+    replayBody.add(battlefieldBox).top().padRight(10f);
+    replayBody.add(logContainer).expand().fill();
+    panel.getContentTable().add(replayBody).expand().fill().row();
 
     // --- بخش ۳: کنترلر پخش ---
     final boolean[] isPaused = {false};
@@ -3594,6 +3608,14 @@ private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyI
                 }
 
                 BattleEvent event = events.get(currentIndex[0]++);
+                battlefield.handle(event);
+                if (event instanceof com.yourname.got.logic.util.EventBattleSetup
+                        || event instanceof com.yourname.got.logic.util.EventBuildingFocus
+                        || event instanceof com.yourname.got.logic.util.EventBuildingDestroyed) {
+                    // Map-only events take no time of their own: the text event next to them sets the pace.
+                    timeToNextEvent[0] = 0f;
+                    return false;
+                }
                 addEventToLogTable(logTable, event, skin, attackerHealthBar, defenderHealthBar);
 
                 logScroll.layout();
@@ -3630,6 +3652,7 @@ private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyI
     closeBtn.addListener(new ChangeListener() {
         @Override
         public void changed(ChangeEvent event, Actor actor) {
+            stage.removeAction(replayDriver); // the playback loop kept running after the window was closed
             panel.remove();
         }
     });

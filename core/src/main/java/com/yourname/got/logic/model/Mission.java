@@ -488,6 +488,8 @@ public class Mission implements Serializable {
             return;
         }
 
+        addBattleSetupEvent();
+
         Position currentPos = entry.getPosition();
         java.util.Set<Building> abandoned = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
         int maxGlobalAdvancements = 100; // محدودکننده سطح بالا برای جلوگیری از حلقه بی‌نهایت
@@ -511,6 +513,7 @@ public class Mission implements Serializable {
             }
 
             getReplayLog().add(new EventTextLog("Advancing to " + target.getName()));
+            addFocusEvent(target);
 
             if (target instanceof Castle) {
                 if (!isConquest) {
@@ -592,6 +595,7 @@ public class Mission implements Serializable {
                 defHero.setHealth(0); // کشتن هیروی مدافع
                 castle.destroy();
                 this.castleDestroyed = true;
+                addDestroyedEvent(castle, null, 0);
             } else {
                 getReplayLog().add(new EventTextLog("Defender Hero Won! Attack Repelled."));
                 atkHero.setHealth(0); // کشتن هیروی مهاجم
@@ -604,6 +608,7 @@ public class Mission implements Serializable {
             getReplayLog().add(new EventTextLog("Castle Undefended by Hero. Breaching..."));
             castle.destroy();
             this.castleDestroyed = true;
+                addDestroyedEvent(castle, null, 0);
         } else {
             // حالت خاص: مدافع هیرو دارد ولی مهاجم ندارد (که طبق لاجیک Raid نباید به اینجا برسد، اما محض اطمینان)
             getReplayLog().add(new EventTextLog("Defender Hero repelled the army easily."));
@@ -773,8 +778,43 @@ public class Mission implements Serializable {
         return b instanceof Gate || b instanceof WallsOfGate || b instanceof Port;
     }
 
+    /** Local (x, y) of a building inside the defender's kingdom area, or null if it has no position. */
+    private int[] localTile(Building b) {
+        if (b == null || b.getPosition() == null || defender == null || defender.getKingdom().getUserMap() == null) return null;
+        Position p = defender.getKingdom().getUserMap().globalToLocal(b.getPosition());
+        return new int[]{p.getX(), p.getY()};
+    }
+
+    /** Structured snapshot of the defender's buildings for the visual replay. */
+    private void addBattleSetupEvent() {
+        com.yourname.got.logic.util.EventBattleSetup setup = new com.yourname.got.logic.util.EventBattleSetup();
+        for (Building b : defender.getKingdom().getBuildings()) {
+            if (b == null || b.isDestroyed() || isDefenseStructure(b)) continue;
+            int[] at = localTile(b);
+            if (at == null) continue;
+            setup.pieces.add(new com.yourname.got.logic.util.EventBattleSetup.Piece(b.getName(), b.getLevel(), at[0], at[1]));
+        }
+        getReplayLog().add(setup);
+    }
+
+    private void addFocusEvent(Building b) {
+        int[] at = localTile(b);
+        if (at != null) {
+            getReplayLog().add(new com.yourname.got.logic.util.EventBuildingFocus(b.getName(), b.getLevel(), at[0], at[1]));
+        }
+    }
+
+    private void addDestroyedEvent(Building b, String lootType, int lootAmount) {
+        int[] at = localTile(b);
+        if (at != null) {
+            getReplayLog().add(new com.yourname.got.logic.util.EventBuildingDestroyed(
+                b.getName(), b.getLevel(), at[0], at[1], lootType, lootAmount));
+        }
+    }
+
     private void processLoot(Building b) {
         int loot = defender.getKingdom().processBuildingDestruction(b, attacker.getKingdom());
+        addDestroyedEvent(b, (loot > 0 && b instanceof Storage) ? ((Storage) b).getResourceType().toUpperCase() : null, loot);
         if (loot > 0 && b instanceof Storage) {
             String type = ((Storage) b).getResourceType().toUpperCase();
             switch (type) {
