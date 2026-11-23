@@ -3652,7 +3652,7 @@ private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyI
     closeBtn.addListener(new ChangeListener() {
         @Override
         public void changed(ChangeEvent event, Actor actor) {
-            stage.removeAction(replayDriver); // the playback loop kept running after the window was closed
+            stage.getRoot().removeAction(replayDriver);
             panel.remove();
         }
     });

@@ -77,6 +77,8 @@ public class MyLinkedList<T> implements Iterable<T>, Serializable {
 
     public void clear() {
         this.head = null;
+        this.tail = null;
+        this.size = 0;
     }
 
     public void addAll(MyLinkedList<T> other) {
