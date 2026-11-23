@@ -1823,6 +1823,7 @@ public void initiateGameSession(GameOfThrones game) {
         for (Map.Entry<SoldierType, Integer> entry : troopCounts.entrySet()) {
             SoldierUnit packagedUnit = kingdom.getArmyManager().removeAndPackageSoldiers(entry.getKey(), entry.getValue());
             if (packagedUnit == null) {
+                restorePackagedTroops(kingdom, attackUnitsList);
                 return new Result(false, "Internal Error: Not enough " + entry.getKey().name() + " available during packaging.");
             }
             attackUnitsList.add(packagedUnit);
@@ -1842,6 +1843,7 @@ public void initiateGameSession(GameOfThrones game) {
         for (SoldierType typeInFormation : formation) {
             SoldierUnit unit = unitMap.get(typeInFormation);
             if (unit == null) {
+                restorePackagedTroops(kingdom, attackUnitsList);
                 return new Result(false, "Internal Error: Mismatch in formation logic for type " + typeInFormation);
             }
             attackingForce[i] = unit;
@@ -1861,18 +1863,36 @@ public void initiateGameSession(GameOfThrones game) {
         }
         int durationSeconds = currentGame.getGameTime().getTimeForDistance(distance, speedMov);
 
-        Mission mission = new Mission(attacker, target, attackingForce, durationSeconds, attackType);
-        currentGame.getMissions().add(mission);
+        Mission mission;
+        try {
+            mission = new Mission(attacker, target, attackingForce, durationSeconds, attackType);
+            currentGame.getMissions().add(mission);
 
-        // 5. به‌روزرسانی وضعیت کشتی (بدون تغییر)
-        if (attackType == AttackType.SEA && kingdom.getBattleShip() != null) {
-            kingdom.getBattleShip().setAvailable(false);
+            // 5. به‌روزرسانی وضعیت کشتی (بدون تغییر)
+            if (attackType == AttackType.SEA && kingdom.getBattleShip() != null) {
+                kingdom.getBattleShip().setAvailable(false);
+            }
+        } catch (RuntimeException ex) {
+            // The soldiers are already out of the army: never lose them because the mission could not be created.
+            ex.printStackTrace();
+            restorePackagedTroops(kingdom, attackUnitsList);
+            target.setInFight(false);
+            return new Result(false, "The attack could not be launched. Your soldiers stayed home.");
         }
 
         // 6. ذخیره وضعیت و ارسال پیام موفقیت (بدون تغییر)
         GameFileUtility.saveFullGameState(currentGame);
         return new Result(true, "Attack launched! ETA: " + Time.formatSeconds(durationSeconds));
     }
+    /** Puts soldiers that were packaged for an attack back into the army (used when a launch fails half-way). */
+    private void restorePackagedTroops(Kingdom kingdom, MyLinkedList<SoldierUnit> packagedUnits) {
+        if (kingdom == null || packagedUnits == null || packagedUnits.isEmpty()) return;
+        SoldierUnit[] units = new SoldierUnit[packagedUnits.getSize()];
+        packagedUnits.fillArray(units);
+        kingdom.getArmyManager().returnSurvivorsToDefence(units);
+        kingdom.getArmyManager().reconcileAllSoldiers();
+    }
+
     public MyLinkedList<BattleHistoryInfo> getBattleHistory() {
         MyLinkedList<BattleHistoryInfo> historyList = new MyLinkedList<>();
         if (isGameStateInvalid() || currentGame.getBATTLE_LOG_FILE() == null) {

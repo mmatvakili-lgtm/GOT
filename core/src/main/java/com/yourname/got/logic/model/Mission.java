@@ -839,12 +839,15 @@ public class Mission implements Serializable {
     }
 
     private boolean validateAndUpdateParticipants() {
-        if (attacker.getGame() == null) return false;
-        this.attacker = attacker.getGame().getUser(attacker.getId());
-        this.defender = attacker.getGame().getUser(defender.getId());
+        if (attacker == null || defender == null || attacker.getGame() == null) return false;
+        GameUser freshAttacker = attacker.getGame().getUser(attacker.getId());
+        GameUser freshDefender = attacker.getGame().getUser(defender.getId());
 
-        if (attacker == null || defender == null) return false;
-        if (defender.getKingdom() == null) return false;
+        // A player removed from the game meanwhile used to cause a NullPointerException right here.
+        if (freshAttacker == null || freshDefender == null) return false;
+        if (freshDefender.getKingdom() == null || freshAttacker.getKingdom() == null) return false;
+        this.attacker = freshAttacker;
+        this.defender = freshDefender;
 
         this.defenderMap = defender.getKingdom().getUserMap();
         this.defend = defender.getKingdom().getArmyManager().getDefenceManager();

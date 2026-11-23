@@ -22,11 +22,9 @@ public class MyLinkedList<T> implements Iterable<T>, Serializable {
             this.head = node;
             this.tail = node;
         } else {
-            Node<T> current = this.head;
-            while (current.next != null)
-                current = current.next;
-            current.next = node;
-            this.tail=node;
+            // tail is always kept up to date, so there is no need to walk the whole list (was O(n) per add)
+            this.tail.next = node;
+            this.tail = node;
         }
         this.size++;
     }
@@ -105,7 +103,11 @@ public class MyLinkedList<T> implements Iterable<T>, Serializable {
         return tail;
     }
     public void removeFirst(){
-        this.head=this.head.next;
+        if (this.head == null) return;
+        this.head = this.head.next;
+        if (this.head == null) {
+            this.tail = null;
+        }
         this.size--;
     }
     @Override
@@ -120,6 +122,7 @@ public class MyLinkedList<T> implements Iterable<T>, Serializable {
 
             @Override
             public T next() {
+                if (current == null) throw new java.util.NoSuchElementException();
                 T data = current.data;
                 current = current.next;
                 return data;

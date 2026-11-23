@@ -130,8 +130,8 @@ public class GameFileUtility {
 
         // ۵. آبجکت بازی را که حالا مسیرهای صحیح را دارد، در فایل .ser ذخیره می‌کنیم
         String filePath = folderPath + File.separator + fileName;
-        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(filePath))) {
-            out.writeObject(game);
+        try {
+            writeObjectAtomically(new File(filePath), game);
             System.out.println("SUCCESS: Game object saved successfully to: " + filePath);
         } catch (IOException e) {
             System.err.println("ERROR: Could not save the game .ser file: " + e.getMessage());
@@ -324,6 +324,27 @@ public class GameFileUtility {
         return oldLine.substring(0, oldLine.lastIndexOf(',') + 1) + game.getNumberOfPlayers();
     }
 
+    /**
+     * Writes the object to a temporary file next to the target and only then replaces the target.
+     * A crash or a full disk in the middle of a save used to leave a half-written (unreadable) .ser file,
+     * i.e. the whole game was lost. Now the previous save stays intact until the new one is complete.
+     */
+    private static void writeObjectAtomically(File target, Object object) throws IOException {
+        File tmp = new File(target.getPath() + ".tmp");
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(tmp))) {
+            out.writeObject(object);
+        } catch (IOException | RuntimeException e) {
+            tmp.delete();
+            throw e;
+        }
+        try {
+            java.nio.file.Files.move(tmp.toPath(), target.toPath(),
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+        } catch (java.nio.file.AtomicMoveNotSupportedException e) {
+            java.nio.file.Files.move(tmp.toPath(), target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
     public static void updateGame(GameOfThrones game) {
         String folder = "game_" + game.getId();
         String newPath = GAME_FOLDER + File.separator + folder + File.separator + game.getName() + "_" + game.getId() + ".ser";
@@ -337,8 +358,8 @@ public class GameFileUtility {
         System.out.println(">>>>> [SAVE] Preparing to save game to: " + gameFile.getAbsolutePath());
         System.out.println(">>>>> [SAVE] Building count in memory BEFORE save: " + buildingCountBeforeSave);
 
-        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(gameFile))) {
-            out.writeObject(game);
+        try {
+            writeObjectAtomically(gameFile, game);
             System.out.println(">>>>> [SAVE] SUCCESS: ObjectOutputStream has successfully written the game object.");
             syncLobbyEntry(game);
         } catch (IOException e) {
