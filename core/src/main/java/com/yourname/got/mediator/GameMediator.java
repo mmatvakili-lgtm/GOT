@@ -1,5 +1,7 @@
 package com.yourname.got.mediator;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.badlogic.gdx.Gdx;
 import com.yourname.got.GoTGame;
 import com.yourname.got.logic.Balance.BuildingManager;
@@ -152,6 +154,25 @@ public class GameMediator {
         public ArcherDeploymentInfo(int availableArchers, int archersOnWall) {
             this.availableArchers = availableArchers;
             this.archersOnWall = archersOnWall;
+        }
+    }
+
+    /** What the attacker should know before pressing "Launch Attack" (shown in the confirmation step). */
+    public static class AttackPreview {
+        public final int totalSoldiers;
+        public final int totalAttackPower;
+        public final int totalHealth;
+        public final int etaSeconds;
+        public final boolean heroLeads;
+        public final String targetNote;
+
+        public AttackPreview(int totalSoldiers, int totalAttackPower, int totalHealth, int etaSeconds, boolean heroLeads, String targetNote) {
+            this.totalSoldiers = totalSoldiers;
+            this.totalAttackPower = totalAttackPower;
+            this.totalHealth = totalHealth;
+            this.etaSeconds = etaSeconds;
+            this.heroLeads = heroLeads;
+            this.targetNote = targetNote;
         }
     }
 
@@ -337,7 +358,7 @@ public class GameMediator {
 
     public void triggerResultsPanelDisplay() {
         if (panelPresenter == null || currentUser == null || currentGame == null) {
-            System.err.println("WARN: Cannot trigger results panel - presenter/user/game missing.");
+            GameLog.error("WARN: Cannot trigger results panel - presenter/user/game missing.");
             return;
         }
 
@@ -361,7 +382,7 @@ public class GameMediator {
             try {
                 panelPresenter.showGameResultsPanel(record);
             } catch (Throwable t) {
-                System.err.println("ERROR showing results panel: " + t.getMessage());
+                GameLog.error("ERROR showing results panel: " + t.getMessage());
                 sendMessage("Error: Could not show results panel.");
                 goToGameJoin();
             }
@@ -420,7 +441,7 @@ public class GameMediator {
                 if (activeGame != null) {
                     // *** اصلاح حیاتی: مدیریت بازی تمام شده ***
                     if (activeGame.isFinished()) {
-                        System.out.println("LOG: User logged into a finished game. Clearing state and showing history.");
+                        GameLog.info("LOG: User logged into a finished game. Clearing state and showing history.");
 
                         // چون بازی تمام شده، نیازی نیست دوباره وارد بازی شویم
                         this.currentGame = null;
@@ -441,7 +462,7 @@ public class GameMediator {
                         return;
                     }
                 } else {
-                    System.out.println("WARN: Game file not found. Resetting user state.");
+                    GameLog.info("WARN: Game file not found. Resetting user state.");
                     currentUser.setInGame(false);
                     currentUser.setGame(null);
                     UserSystem.updateUser(currentUser);
@@ -454,7 +475,7 @@ public class GameMediator {
     public void finishGameForUser() {
         if (currentUser == null) return;
 
-        System.out.println("Cleaning up user " + currentUser.getUsername() + " after game end.");
+        GameLog.info("Cleaning up user " + currentUser.getUsername() + " after game end.");
 
         // پاک‌سازی وضعیت کاربر
         currentUser.setInGame(false);
@@ -555,7 +576,7 @@ public class GameMediator {
     /** A game-wide event (the Wall, market shipments...). Shown only on the in-game screen. */
     public static void sendGlobalMessage(String text) {
         if (instance == null) {
-            System.out.println("GLOBAL MESSAGE (Mediator not ready): " + text);
+            GameLog.info("GLOBAL MESSAGE (Mediator not ready): " + text);
             return;
         }
         GameMessageListener listener = instance.messageListener;
@@ -572,7 +593,7 @@ public class GameMediator {
     public static void sendMessageToUser(GameUser user, String text) {
         if (user == null) return;
         if (instance == null) {
-            System.out.println("MESSAGE for " + user.getUsername() + " (Mediator not ready): " + text);
+            GameLog.info("MESSAGE for " + user.getUsername() + " (Mediator not ready): " + text);
             return;
         }
         GameUser current = instance.currentUser;
@@ -682,12 +703,12 @@ public class GameMediator {
             this.currentGame = gameInstance;
             initiateGameSession(gameInstance);
 // ...
-            System.out.println("thereds start in start method");
+            GameLog.info("thereds start in start method");
             return new Result(true, "Game started successfully!", gameInstance);
 
 
         } catch (Exception e) {
-            System.err.println("FATAL: An unexpected error occurred while starting game ID " + gameId);
+            GameLog.error("FATAL: An unexpected error occurred while starting game ID " + gameId);
             e.printStackTrace();
             return new Result(false, "An unexpected server error occurred.");
         }
@@ -727,7 +748,7 @@ public class GameMediator {
     }
 
 public void initiateGameSession(GameOfThrones game) {
-    System.out.println("LOG: Initiating Game Session..."); // لاگ دیباگ
+    GameLog.info("LOG: Initiating Game Session..."); // لاگ دیباگ
 
     if (game == null) {
         sendMessage("Error: Cannot start session for a null game.");
@@ -769,11 +790,11 @@ public void initiateGameSession(GameOfThrones game) {
             });
         }
 
-        System.out.println("LOG: Game Session Started Successfully.");
+        GameLog.info("LOG: Game Session Started Successfully.");
 
     } catch (Exception e) {
         // چاپ کامل خطا برای فهمیدن علت گیر کردن
-        System.err.println("CRITICAL ERROR in initiateGameSession:");
+        GameLog.error("CRITICAL ERROR in initiateGameSession:");
         e.printStackTrace();
         sendMessage("Error starting game: " + e.getMessage());
     }
@@ -785,7 +806,7 @@ public void initiateGameSession(GameOfThrones game) {
 
         if (gameLoopManager != null && gameLoopManager.isAlive()) {
             if (gameLoopManager.isRunningFor(currentGame, me.getId())) {
-                System.out.println("INFO: Game loop is already running.");
+                GameLog.info("INFO: Game loop is already running.");
                 return;
             }
             // A loop of another game / another user is still running: stop it first,
@@ -793,7 +814,7 @@ public void initiateGameSession(GameOfThrones game) {
             gameLoopManager.requestStop();
         }
 
-        System.out.println("INFO: Starting GameLoopManager thread...");
+        GameLog.info("INFO: Starting GameLoopManager thread...");
         GameUserList list = new GameUserList();
         list.add(me);
         GameLoopManager loop = new GameLoopManager(list, this);
@@ -1032,7 +1053,7 @@ public void initiateGameSession(GameOfThrones game) {
         // 3. گرفتن تایل منبع به روش امن (getTile) — NOT selectTile
         // getTile باید 1-based بگیرد (مطابق پیاده‌سازی شما)
         Tile srcTile = kingdom.getUserMap().getTile(srcX1, srcY1);
-        System.out.println("moveBuilding: srcTile=" + srcTile + " building=" +
+        GameLog.info("moveBuilding: srcTile=" + srcTile + " building=" +
             (srcTile != null && srcTile.getObjectOnTile() != null ? srcTile.getObjectOnTile().getBuilding() : "null"));
 
         if (srcTile == null) {
@@ -1823,6 +1844,7 @@ public void initiateGameSession(GameOfThrones game) {
         for (Map.Entry<SoldierType, Integer> entry : troopCounts.entrySet()) {
             SoldierUnit packagedUnit = kingdom.getArmyManager().removeAndPackageSoldiers(entry.getKey(), entry.getValue());
             if (packagedUnit == null) {
+                restorePackagedTroops(kingdom, attackUnitsList);
                 return new Result(false, "Internal Error: Not enough " + entry.getKey().name() + " available during packaging.");
             }
             attackUnitsList.add(packagedUnit);
@@ -1842,6 +1864,7 @@ public void initiateGameSession(GameOfThrones game) {
         for (SoldierType typeInFormation : formation) {
             SoldierUnit unit = unitMap.get(typeInFormation);
             if (unit == null) {
+                restorePackagedTroops(kingdom, attackUnitsList);
                 return new Result(false, "Internal Error: Mismatch in formation logic for type " + typeInFormation);
             }
             attackingForce[i] = unit;
@@ -1861,18 +1884,91 @@ public void initiateGameSession(GameOfThrones game) {
         }
         int durationSeconds = currentGame.getGameTime().getTimeForDistance(distance, speedMov);
 
-        Mission mission = new Mission(attacker, target, attackingForce, durationSeconds, attackType);
-        currentGame.getMissions().add(mission);
+        Mission mission;
+        try {
+            mission = new Mission(attacker, target, attackingForce, durationSeconds, attackType);
+            currentGame.getMissions().add(mission);
 
-        // 5. به‌روزرسانی وضعیت کشتی (بدون تغییر)
-        if (attackType == AttackType.SEA && kingdom.getBattleShip() != null) {
-            kingdom.getBattleShip().setAvailable(false);
+            // 5. به‌روزرسانی وضعیت کشتی (بدون تغییر)
+            if (attackType == AttackType.SEA && kingdom.getBattleShip() != null) {
+                kingdom.getBattleShip().setAvailable(false);
+            }
+        } catch (RuntimeException ex) {
+            // The soldiers are already out of the army: never lose them because the mission could not be created.
+            ex.printStackTrace();
+            restorePackagedTroops(kingdom, attackUnitsList);
+            target.setInFight(false);
+            return new Result(false, "The attack could not be launched. Your soldiers stayed home.");
         }
 
         // 6. ذخیره وضعیت و ارسال پیام موفقیت (بدون تغییر)
         GameFileUtility.saveFullGameState(currentGame);
         return new Result(true, "Attack launched! ETA: " + Time.formatSeconds(durationSeconds));
     }
+    /**
+     * Totals of the army the player is about to send (the first N soldiers of every chosen unit, exactly the ones
+     * launchAttack will take), the travel time and the rules that will apply. Does not change anything.
+     */
+    public AttackPreview getAttackPreview(GameUser target, AttackType attackType, Map<SoldierType, Integer> troopCounts) {
+        if (isGameStateInvalid() || target == null || troopCounts == null) return null;
+        GameUser attacker = currentGame.getUser(currentUser.getId());
+        if (attacker == null || attacker.getKingdom() == null) return null;
+        Kingdom kingdom = attacker.getKingdom();
+
+        int soldiers = 0;
+        long power = 0;
+        long health = 0;
+        for (Map.Entry<SoldierType, Integer> entry : troopCounts.entrySet()) {
+            SoldierUnit home = kingdom.getArmyManager().getDefenceManager().findUnitInDefenders(entry.getKey());
+            if (home == null || entry.getValue() == null) continue;
+            int left = entry.getValue();
+            for (Soldier soldier : home.getSoldiers()) {
+                if (left <= 0) break;
+                if (soldier == null) continue;
+                soldiers++;
+                power += soldier.getAttackPower();
+                health += soldier.getHealth();
+                left--;
+            }
+        }
+
+        Hero hero = kingdom.getHero();
+        boolean heroLeads = hero != null && hero.isAvailable();
+        if (heroLeads) power = Math.round(power * Mission.heroAttackBuff()); // the same buff Mission applies to the whole army
+
+        String note = null;
+        if (target.getKingdom() != null) {
+            if (target.getKingdom().getType() == KingdomType.WINTERFELL) {
+                note = "Winterfell: your soldiers lose " + Mission.winterfellHealthPercentForDisplay() + "% health.";
+            } else if (target.getKingdom().getType() == KingdomType.EYRIE) {
+                note = "Eyrie: your attack power is reduced by " + Mission.eyrieAttackPercentForDisplay() + "%.";
+            }
+        }
+
+        int distance;
+        double speedMov;
+        if (attackType == AttackType.SEA) {
+            distance = currentGame.seaDistance(attacker, target);
+            speedMov = (kingdom.getBattleShip() != null) ? kingdom.getBattleShip().Speed : 1.0;
+        } else {
+            distance = currentGame.GroundDistance(attacker, target);
+            speedMov = kingdom.getArmyManager().getSoldierSpeed();
+        }
+        int eta = currentGame.getGameTime().getTimeForDistance(distance, speedMov);
+
+        return new AttackPreview(soldiers, (int) Math.min(Integer.MAX_VALUE, power),
+            (int) Math.min(Integer.MAX_VALUE, health), eta, heroLeads, note);
+    }
+
+    /** Puts soldiers that were packaged for an attack back into the army (used when a launch fails half-way). */
+    private void restorePackagedTroops(Kingdom kingdom, MyLinkedList<SoldierUnit> packagedUnits) {
+        if (kingdom == null || packagedUnits == null || packagedUnits.isEmpty()) return;
+        SoldierUnit[] units = new SoldierUnit[packagedUnits.getSize()];
+        packagedUnits.fillArray(units);
+        kingdom.getArmyManager().returnSurvivorsToDefence(units);
+        kingdom.getArmyManager().reconcileAllSoldiers();
+    }
+
     public MyLinkedList<BattleHistoryInfo> getBattleHistory() {
         MyLinkedList<BattleHistoryInfo> historyList = new MyLinkedList<>();
         if (isGameStateInvalid() || currentGame.getBATTLE_LOG_FILE() == null) {
@@ -1913,7 +2009,7 @@ public void initiateGameSession(GameOfThrones game) {
                 }
             }
         } catch (Exception e) {
-            System.err.println("Error reading or parsing detailed battle log: " + e.getMessage());
+            GameLog.error("Error reading or parsing detailed battle log: " + e.getMessage());
         }
 
         return historyList;
@@ -1922,22 +2018,22 @@ public void initiateGameSession(GameOfThrones game) {
     // این متد را در فایل GameMediator.java به طور کامل جایگزین کنید
     public ReplayData loadReplayLog(String replayFilePath) {
         if (replayFilePath == null || replayFilePath.equals("N/A")) {
-            System.err.println("ERROR [Mediator]: Replay file path is null or N/A.");
+            GameLog.error("ERROR [Mediator]: Replay file path is null or N/A.");
             return null;
         }
 
-        System.out.println("LOG [Mediator]: Attempting to load replay from relative path: " + replayFilePath);
+        GameLog.info("LOG [Mediator]: Attempting to load replay from relative path: " + replayFilePath);
 
         File replayFile = new File(replayFilePath);
         String absolutePath = replayFile.getAbsolutePath();
-        System.out.println("LOG [Mediator]: Resolved to absolute path: " + absolutePath);
+        GameLog.info("LOG [Mediator]: Resolved to absolute path: " + absolutePath);
 
         if (!replayFile.exists()) {
-            System.err.println("FATAL ERROR [Mediator]: Replay file does NOT exist at the resolved path!");
+            GameLog.error("FATAL ERROR [Mediator]: Replay file does NOT exist at the resolved path!");
             return null;
         }
 
-        System.out.println("SUCCESS [Mediator]: Replay file found. Attempting to deserialize...");
+        GameLog.info("SUCCESS [Mediator]: Replay file found. Attempting to deserialize...");
 
         try (FileInputStream fis = new FileInputStream(replayFile);
              ObjectInputStream ois = new ObjectInputStream(fis)) {
@@ -1945,17 +2041,17 @@ public void initiateGameSession(GameOfThrones game) {
             Object obj = ois.readObject();
             if (obj instanceof ReplayData) {
                 ReplayData data = (ReplayData) obj;
-                System.out.println("LOAD DEBUG: Loaded ReplayData with events = " +
+                GameLog.info("LOAD DEBUG: Loaded ReplayData with events = " +
                     (data.getEvents() != null ? data.getEvents().size() : "null"));
                 return data;
 
             } else {
-                System.err.println("ERROR [Mediator]: Unexpected object in replay file: "
+                GameLog.error("ERROR [Mediator]: Unexpected object in replay file: "
                     + obj.getClass().getName());
             }
 
         } catch (Exception e) {
-            System.err.println("FATAL ERROR [Mediator]: An exception occurred while reading the replay file.");
+            GameLog.error("FATAL ERROR [Mediator]: An exception occurred while reading the replay file.");
             e.printStackTrace();
         }
 

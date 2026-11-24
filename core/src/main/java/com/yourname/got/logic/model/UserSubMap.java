@@ -1,5 +1,7 @@
 package com.yourname.got.logic.model;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.model.Building.*;
 import com.yourname.got.logic.model.Building.WallsOfGate;
 import com.yourname.got.logic.util.MapArrangement;
@@ -65,11 +67,11 @@ public class UserSubMap implements Serializable {
 
     public  Tile selectTile( int x, int y){
         if(!isInsideBounds(x,y)) {
-            System.out.println("(x,Y) OUT OF YOUR MAP");
+            GameLog.info("(x,Y) OUT OF YOUR MAP");
             return  null;
         }
         else if (mainMap.getMap()[startX+x][startY+y].isEmpty()) {
-            System.out.println("this location is empty");
+            GameLog.info("this location is empty");
             return  null;
         }
         else {
@@ -94,7 +96,7 @@ public class UserSubMap implements Serializable {
         int buildableMax = 11;
 
         if (localX < buildableMin || localY < buildableMin || localX > buildableMax || localY > buildableMax) {
-            System.err.println("ERROR: Coordinates (" + localX + ", " + localY + ") are out of the buildable area.");
+            GameLog.error("ERROR: Coordinates (" + localX + ", " + localY + ") are out of the buildable area.");
             return false;
         }
 
@@ -103,7 +105,7 @@ public class UserSubMap implements Serializable {
         Tile targetTile = mainMap.getMap()[globalX][globalY];
 
         if (targetTile.getObjectOnTile() != null && targetTile.getObjectOnTile().getBuilding() != null) {
-            System.err.println("ERROR: A building already exists at this location.");
+            GameLog.error("ERROR: A building already exists at this location.");
             return false;
         }
 
@@ -111,7 +113,7 @@ public class UserSubMap implements Serializable {
         building.setPosition(globalX, globalY);
         targetTile.setEmpty(false);
 
-        System.out.println("INFO: Building placed at global map coordinates: " + globalX + "/" + globalY);
+        GameLog.info("INFO: Building placed at global map coordinates: " + globalX + "/" + globalY);
         return true;
     }
 
@@ -138,12 +140,12 @@ public class UserSubMap implements Serializable {
     }
     public Boolean changeTilePosition(Tile tile, int x, int y) {
         if (!isInsideBounds(x, y)) {
-            System.out.println("(x, Y) OUT OF YOUR MAP");
+            GameLog.info("(x, Y) OUT OF YOUR MAP");
             return false;
         }
         // same buildable area as addBuildingInMap (the ring around it belongs to walls/gate)
         if (x < 1 || y < 1 || x > 11 || y > 11) {
-            System.out.println("this location is outside the buildable area");
+            GameLog.info("this location is outside the buildable area");
             return false;
         }
 
@@ -152,17 +154,17 @@ public class UserSubMap implements Serializable {
         Tile dest = mainMap.getMap()[mapX][mapY];
 
         if (!dest.isEmpty() || dest.getObjectOnTile().building != null) {
-            System.out.println("this location is not empty");
+            GameLog.info("this location is not empty");
             return false;
         }
 
         Building b = (tile == null || tile.getObjectOnTile() == null) ? null : tile.getObjectOnTile().building;
         if (b == null) {
-            System.out.println("there is no building to move");
+            GameLog.info("there is no building to move");
             return false;
         }
         if (b instanceof WallsOfGate || b instanceof Castle || b instanceof Gate || b instanceof Port) {
-            System.out.println("this building is not moveable");
+            GameLog.info("this building is not moveable");
             return false;
         }
 
@@ -191,7 +193,7 @@ public class UserSubMap implements Serializable {
             Tile tile = getTile(x, y);
             tile.setEmpty(false);
             tile.getObjectOnTile().setBuilding(null);
-            System.out.println("🔒 مختصات " + x + "," + y + " برای ساخت قفل شد.");
+            GameLog.info("🔒 مختصات " + x + "," + y + " برای ساخت قفل شد.");
         }
     }
 
@@ -200,7 +202,7 @@ public class UserSubMap implements Serializable {
         int buildableLength = 11;
 
         if(!isInsideBounds(x,y)){
-            System.out.println("⛔️ مختصات خارج از محدوده ساخت‌وساز (روی دیوار یا گیت) است.");
+            GameLog.info("⛔️ مختصات خارج از محدوده ساخت‌وساز (روی دیوار یا گیت) است.");
             return false;
         }
 
@@ -211,7 +213,7 @@ public class UserSubMap implements Serializable {
         Building targetBuilding = tile.getObjectOnTile().getBuilding();
 
         if (targetBuilding == null) {
-            System.out.println("❌ ساختمانی در این مکان نیست.");
+            GameLog.info("❌ ساختمانی در این مکان نیست.");
             return false;
         }
 

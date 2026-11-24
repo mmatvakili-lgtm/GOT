@@ -1,5 +1,7 @@
 package com.yourname.got.logic.model.Building;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.Balance.GameBalance;
 import com.yourname.got.logic.model.Kingdom;
 
@@ -32,14 +34,14 @@ public class DefensiveTower extends Building implements Serializable {
 
     @Override
     public boolean upgrade(int gameSpeed) {
-        System.out.println("🏰 Defensive Tower upgraded to Level " + level + "! Health: " + strength + ", Attack Power: " + powerAttack);
+        GameLog.info("🏰 Defensive Tower upgraded to Level " + level + "! Health: " + strength + ", Attack Power: " + powerAttack);
         startUpgrade(gameSpeed);
         return true;
     }
 
     @Override
     public boolean repair(int gameSpeed) {
-        System.out.println("🏋️‍♂️ DEFENSIVETOWER start to repair " );
+        GameLog.info("🏋️‍♂️ DEFENSIVETOWER start to repair " );
         startRepair(gameSpeed);
         return true;
     }

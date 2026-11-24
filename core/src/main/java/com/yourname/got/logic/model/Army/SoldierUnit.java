@@ -1,5 +1,7 @@
 package com.yourname.got.logic.model.Army;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.enums.KingdomType;
 import com.yourname.got.logic.enums.SoldierType;
 import com.yourname.got.logic.util.MyLinkedList;
@@ -24,7 +26,7 @@ public class SoldierUnit implements Serializable {
             return true;
         }
         else
-            System.out.println("نوع سرباز اشتباه است");
+            GameLog.info("نوع سرباز اشتباه است");
         return false;
 
     }

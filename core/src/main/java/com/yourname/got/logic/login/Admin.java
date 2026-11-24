@@ -1,5 +1,7 @@
 package com.yourname.got.logic.login;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.util.MyLinkedList;
 import com.yourname.got.logic.util.Result;
 import java.io.*;
@@ -14,7 +16,7 @@ public final class Admin {
             try {
                 file.createNewFile();
             } catch (IOException e) {
-                System.err.println("ERROR: Could not create info.txt: " + e.getMessage());
+                GameLog.error("ERROR: Could not create info.txt: " + e.getMessage());
             }
         }
     }
@@ -110,7 +112,7 @@ public final class Admin {
                 blocks.add(currentBlock.toString());
             }
         } catch (IOException e) {
-            System.err.println("ERROR reading info.txt: " + e.getMessage());
+            GameLog.error("ERROR reading info.txt: " + e.getMessage());
         }
         return blocks;
     }
@@ -122,7 +124,7 @@ public final class Admin {
             }
             return true;
         } catch (IOException e) {
-            System.err.println("ERROR writing to info.txt: " + e.getMessage());
+            GameLog.error("ERROR writing to info.txt: " + e.getMessage());
             return false;
         }
     }

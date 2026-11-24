@@ -1,5 +1,7 @@
 package com.yourname.got.logic.system;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.login.GameUser;
 
 import java.io.*;
@@ -10,7 +12,7 @@ public class GameSaverLoader implements Serializable {
                 new FileOutputStream("saves/" + user.getUsername() + ".sav"))) {
             oos.writeObject(user);
         } catch (IOException e) {
-            System.out.println("❌ Save failed for " + user.getUsername() + ": " + e.getMessage());
+            GameLog.info("❌ Save failed for " + user.getUsername() + ": " + e.getMessage());
         }
     }
 
@@ -19,7 +21,7 @@ public class GameSaverLoader implements Serializable {
                 new FileInputStream("saves/" + username + ".sav"))) {
             return (GameUser) ois.readObject();
         } catch (Exception e) {
-            System.out.println("❌ Load failed for " + username + ": " + e.getMessage());
+            GameLog.info("❌ Load failed for " + username + ": " + e.getMessage());
             return null;
         }
     }

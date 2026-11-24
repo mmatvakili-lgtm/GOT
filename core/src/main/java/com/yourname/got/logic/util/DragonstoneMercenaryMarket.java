@@ -1,6 +1,8 @@
 // DragonstoneMercenaryMarket.java  (کلاس جدیدِ Utility)
 package com.yourname.got.logic.util;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.enums.*;
 import com.yourname.got.logic.model.Army.*;
 import com.yourname.got.logic.model.Kingdom;
@@ -76,7 +78,7 @@ public final class DragonstoneMercenaryMarket implements Serializable {
                 KingdomType.DRAGONSTONE // محدودیت خریدار
         );
         bazar.add(t);
-        System.out.println("✅ یک محموله سیستمی جدید به بازار اضافه شد.");
+        GameLog.info("✅ یک محموله سیستمی جدید به بازار اضافه شد.");
     }
 
     private static boolean hasActiveOffer(Bazar bazar, KingdomType onlyFor, SoldierType type) {

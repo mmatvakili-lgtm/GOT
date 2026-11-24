@@ -2,6 +2,8 @@
 
 package com.yourname.got.logic.system;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.login.GameUser;
 import com.yourname.got.logic.model.GameOfThrones;
 import com.yourname.got.logic.util.MyLinkedList;
@@ -29,7 +31,7 @@ public class GameUpdater implements Serializable {
             game.getBazar().autoSeedSoldierOffersIfDue(user.getKingdom(), game.getGameTime());
 
         } catch (Exception e) {
-            System.err.println("!!! An error occurred during GameUpdater.updateUser for user: " + user.getUsername());
+            GameLog.error("!!! An error occurred during GameUpdater.updateUser for user: " + user.getUsername());
             e.printStackTrace();
         }
 
@@ -56,7 +58,7 @@ public class GameUpdater implements Serializable {
             game.checkMissions();
             game.checkGameOver();
         } catch (Exception e) {
-            System.err.println("!!! An error occurred during GLOBAL game update !!!");
+            GameLog.error("!!! An error occurred during GLOBAL game update !!!");
             e.printStackTrace();
         }
     }

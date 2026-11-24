@@ -1,5 +1,7 @@
 package com.yourname.got.logic.model.Building;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.Balance.GameBalance;
 //import Game.enums.SoldierType;
 import com.yourname.got.logic.model.Army.Soldier;
@@ -32,7 +34,7 @@ public class Camp extends Building implements Serializable {
 
     public boolean addTrainedSoldier(Soldier soldier) {
         if (!hasCapacity()) {
-            System.out.println("❌ Camp has no space for more soldiers.");
+            GameLog.info("❌ Camp has no space for more soldiers.");
             GameMediator.sendMessageToUser(owner == null ? null : owner.getOwner(), "Camp has no space for more soldiers");
             return false;
         }
@@ -64,14 +66,14 @@ public class Camp extends Building implements Serializable {
 
     @Override
     public boolean upgrade(int gameSpeed) {
-        System.out.println("⛺ Camp started to upgrade to level " + this.level + " ( Capacity: " + this.maxCapacity + ")");
+        GameLog.info("⛺ Camp started to upgrade to level " + this.level + " ( Capacity: " + this.maxCapacity + ")");
         startUpgrade(gameSpeed);
         return true;
     }
 
     @Override
     public boolean repair(int gameSpeed) {
-        System.out.println("🏋️‍♂️ CAMP start to repair ");
+        GameLog.info("🏋️‍♂️ CAMP start to repair ");
         startRepair(gameSpeed);
         return true;
 

@@ -1,5 +1,7 @@
 package com.yourname.got.logic.model;
 
+
+import com.yourname.got.logic.util.GameLog;
 import java.io.Serializable;
 
 public class Position implements Serializable {
@@ -21,7 +23,7 @@ public class Position implements Serializable {
     public int getY() { return this.y; }
     public void setY(int y) { this.y = y; }
     public  int  distance(Position origin){
-        System.out.println(this+"->"+origin);
+        GameLog.info(this+"->"+origin);
         return Math.abs(x-origin.getX())+ Math.abs(y-origin.getY());
     }
     public  Double  realDistance(Position origin){

@@ -1,5 +1,7 @@
 package com.yourname.got.logic.login;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.model.Army.SoldierUnit;
 import com.yourname.got.logic.model.GameOfThrones;
 import com.yourname.got.logic.model.Mission;
@@ -18,7 +20,7 @@ public class BattleLogger {
 
         // ماموریت و مدافع حتما باید وجود داشته باشند
         if (mission == null || mission.getDefender() == null || logFileName == null || logFileName.isEmpty()) {
-            System.err.println("خطا در لاگ کردن نبرد: اطلاعات ماموریت یا نام فایل ناقص است.");
+            GameLog.error("خطا در لاگ کردن نبرد: اطلاعات ماموریت یا نام فایل ناقص است.");
             return;
         }
 
@@ -55,7 +57,7 @@ public class BattleLogger {
             pw.println(record);
 
         } catch (IOException e) {
-            System.err.println("خطا در نوشتن لاگ نبرد در فایل " + logFileName + ": " + e.getMessage());
+            GameLog.error("خطا در نوشتن لاگ نبرد در فایل " + logFileName + ": " + e.getMessage());
         }
     }
     private static String getTroopComposition(SoldierUnit[] troops) {
@@ -86,7 +88,7 @@ public class BattleLogger {
 
         String replaysFolder = game.getReplaysFolderPath();
         if (replaysFolder == null || replaysFolder.isEmpty()) {
-            System.err.println("ERROR: Replays folder path is not set in the game object!");
+            GameLog.error("ERROR: Replays folder path is not set in the game object!");
             return "N/A";
         }
 
@@ -106,12 +108,12 @@ public class BattleLogger {
             replayData.attackerName = (mission.getAttacker() != null ? mission.getAttacker().getUsername() : "White Walkers");
             replayData.defenderName = mission.getDefender().getUsername();
             replayData.initialTroops = mission.getAttackerTroops();
-            System.out.println("SAVE DEBUG: Events to save = " + (replayLog != null ? replayLog.size() : "null"));
+            GameLog.info("SAVE DEBUG: Events to save = " + (replayLog != null ? replayLog.size() : "null"));
 
             oos.writeObject(replayData);
             return filePath;
         } catch (IOException e) {
-            System.err.println("Error saving battle replay file: " + e.getMessage());
+            GameLog.error("Error saving battle replay file: " + e.getMessage());
             return "N/A";
         }
     }

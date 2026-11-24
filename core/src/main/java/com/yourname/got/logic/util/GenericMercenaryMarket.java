@@ -1,5 +1,7 @@
 package com.yourname.got.logic.util;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.enums.ResourceType;
 import com.yourname.got.logic.enums.SoldierType;
 import com.yourname.got.logic.model.Army.*;
@@ -60,6 +62,6 @@ public final class GenericMercenaryMarket implements Serializable {
         );
         bazar.add(t);
         GameMediator.sendGlobalMessage("A new general mercenary shipment has been added to the market");
-        System.out.println("✅ A new general mercenary shipment has been added to the market");
+        GameLog.info("✅ A new general mercenary shipment has been added to the market");
     }
 }

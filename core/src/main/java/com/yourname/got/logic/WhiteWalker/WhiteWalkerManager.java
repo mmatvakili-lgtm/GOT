@@ -1,5 +1,7 @@
 package com.yourname.got.logic.WhiteWalker;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.login.GameUser;
 import com.yourname.got.logic.model.Army.SoldierUnit;
 import com.yourname.got.logic.model.GameOfThrones;
@@ -55,7 +57,7 @@ public class WhiteWalkerManager implements Serializable {
         try {  game.getWall(); } catch (Throwable ignored) {
         }
 
-        System.out.println("✅ WhiteWalkerManager initialized: startDay=" + this.startDay +
+        GameLog.info("✅ WhiteWalkerManager initialized: startDay=" + this.startDay +
             " finalDay=" + this.finalDay + " interval=" + this.attackInterval +
             " baseWallDamage=" + this.baseWallDamage);
     }
@@ -110,7 +112,7 @@ public class WhiteWalkerManager implements Serializable {
 
         if (!finalWaveTriggered && day >= finalDay) {
             finalWaveTriggered = true;
-            System.out.println("💥 [WWManager] Day " + finalDay + " -> FINAL WAVE. Forcing wall collapse.");
+            GameLog.info("💥 [WWManager] Day " + finalDay + " -> FINAL WAVE. Forcing wall collapse.");
             try { game.getWall().forceCollapseOnFinalDay(finalDay); } catch (Throwable ignored) {}
             attackAllKingdoms(finalDay, true);
             lastAttackDay = finalDay;
@@ -122,7 +124,7 @@ public class WhiteWalkerManager implements Serializable {
         }
 
         if (day >= startDay && ((day - startDay) % attackInterval == 0) && day != lastAttackDay) {
-            System.out.println("\n❄️ [WWManager] Day " + day + " -> Periodic wave.");
+            GameLog.info("\n❄️ [WWManager] Day " + day + " -> Periodic wave.");
             int waveIndex = Math.max(0, (day - startDay) / Math.max(1, attackInterval));
             String difficulty = game.getDifficulty();
             int difficultyMultiplier;
@@ -138,16 +140,16 @@ public class WhiteWalkerManager implements Serializable {
             try {
                 if (!game.getWall().isDestroyed()) {
                     game.getWall().takeDamage(damage, day);
-                    System.out.println("🧱 Wall damaged by " + damage + " -> health=" + game.getWall().getHealth());
+                    GameLog.info("🧱 Wall damaged by " + damage + " -> health=" + game.getWall().getHealth());
                     if (game.getWall().isDestroyed()) {
-                        System.out.println("⚠️ Wall collapsed on day " + day + ". Now attacking kingdoms.");
+                        GameLog.info("⚠️ Wall collapsed on day " + day + ". Now attacking kingdoms.");
                         attackAfterWall(day);
                     }
                 } else {
                     attackAfterWall(day);
                 }
             } catch (Throwable t) {
-                System.out.println("⚠️ Error during periodic WW attack: " + t.getMessage());
+                GameLog.info("⚠️ Error during periodic WW attack: " + t.getMessage());
             }
             lastAttackDay = day;
         }
@@ -157,11 +159,11 @@ public class WhiteWalkerManager implements Serializable {
     private void attackAfterWall(int day) {
         if (day < (startDay + (finalDay - startDay) / 2.0)) {
             this.strategy = WhiteWalkerAttackStrategy.NEAREST;
-            System.out.println("...استراتژی وایت‌واکرها: حمله به نزدیک‌ترین‌ها (NEAREST)...");
+            GameLog.info("...استراتژی وایت‌واکرها: حمله به نزدیک‌ترین‌ها (NEAREST)...");
         }
         else {
             this.strategy = WhiteWalkerAttackStrategy.RANDOM;
-            System.out.println("...استراتژی وایت‌واکرها: حمله تصادفی و پراکنده (RANDOM)...");
+            GameLog.info("...استراتژی وایت‌واکرها: حمله تصادفی و پراکنده (RANDOM)...");
         }
 
         switch (strategy) {
@@ -182,17 +184,17 @@ public class WhiteWalkerManager implements Serializable {
 
     private void attackAllKingdoms(int day, boolean isFinalWave) {
         String message = isFinalWave ? "The Final Wave is upon you! Prepare for the Long Night!" : "The White Walkers have breached the Wall and attack all fronts!";
-        System.out.println("...Strategy: ATTACK ALL KINGDOMS...");
+        GameLog.info("...Strategy: ATTACK ALL KINGDOMS...");
 
         SoldierUnit[] template = new WhiteWalkerWave(game, day, attackInterval, isFinalWave).generateArmy();
 
         GameUser[] targets = getActivePlayerPool();
         if (targets.length == 0) {
-            System.out.println("...No kingdoms left to attack.");
+            GameLog.info("...No kingdoms left to attack.");
             return;
         }
 
-        System.out.println("-> Launching a full-scale invasion against " + targets.length + " kingdoms.");
+        GameLog.info("-> Launching a full-scale invasion against " + targets.length + " kingdoms.");
 
         for (GameUser target : targets) {
             launchWhiteWalkerMission(target, template, message);
@@ -204,12 +206,12 @@ public class WhiteWalkerManager implements Serializable {
 
         GameUser[] pool = getActivePlayerPool();
         if (pool.length == 0) {
-            System.out.println("...No valid targets found for a random attack.");
+            GameLog.info("...No valid targets found for a random attack.");
             return;
         }
 
         int totalTargets = Math.max(1, pool.length / 2);
-        System.out.println("-> Random targets selected. Count: " + totalTargets);
+        GameLog.info("-> Random targets selected. Count: " + totalTargets);
 
         for (int i = 0; i < totalTargets; i++) {
             int swapIndex = i + rng.nextInt(pool.length - i);
@@ -241,7 +243,7 @@ public class WhiteWalkerManager implements Serializable {
         }
 
         int toAttack = Math.max(1, pool.length / 2);
-        System.out.println("-> اهداف نزدیک مشخص شدند. تعداد: " + toAttack);
+        GameLog.info("-> اهداف نزدیک مشخص شدند. تعداد: " + toAttack);
         for (int i = 0; i < toAttack; i++) {
             launchWhiteWalkerMission(pool[i], template, "خطر! از لحاظ فاصله هدف گرفته شده‌اید.");
         }

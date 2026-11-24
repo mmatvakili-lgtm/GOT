@@ -1,8 +1,9 @@
 package com.yourname.got.logic.login;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.model.*;
 import java.io.Serializable;
-import java.util.Scanner;
 
 public class GameUser  implements Serializable{
     private String username;
@@ -62,45 +63,6 @@ public class GameUser  implements Serializable{
         return password;
     }
 
-    public Boolean changePass(){
-        //todo چک کردن رمز قبلی
-        Scanner input=new Scanner(System.in);
-
-        String password;
-        while (true) {
-            System.out.print("رمز عبور (4 رقم) .(برای خروج 'exit')");
-            password = input.next();
-
-            if (password.equalsIgnoreCase("exit")) {
-                return false;
-            }
-
-            if (password.length() != 4) {
-                System.out.println("⚠ رمز عبور باید دقیقاً 4 رقم باشد. (برای خروج 'exit').");
-                continue;
-            }
-            break;
-        }
-        while (true) {
-            System.out.print(" (exit تایید رمز عبور .(برای خروج  ");
-            String confirmPassword = input.nextLine();
-
-            if (confirmPassword.equalsIgnoreCase("exit")) {
-                return false;
-            }
-
-            if (!password.equals(confirmPassword)) {
-                System.out.println("⚠ رمز عبور و تأیید آن یکسان نیستند.");
-            }
-
-            else {
-                this.password=password;
-                return true;
-
-            }
-
-        }
-    }
 
     public Boolean getInGame() {
         return isInGame;
@@ -139,7 +101,7 @@ public class GameUser  implements Serializable{
     }
 
     public void receiveMessage(String message) {
-        System.out.println("[GAME MESSAGE to " + username + "]: " + message);
+        GameLog.info("[GAME MESSAGE to " + username + "]: " + message);
     }
 
     public void setPassword(String newPassword) {

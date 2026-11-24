@@ -1,5 +1,7 @@
 package com.yourname.got.logic.model;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.login.GameUser;
 import com.yourname.got.logic.enums.*;
 import com.yourname.got.logic.model.Army.*;
@@ -68,7 +70,7 @@ public class Kingdom implements Serializable {
             var hero = this.getHero();
             if (hero != null && !hero.isUnlocked()) {
                 hero.unlock();
-                System.out.println("🦸‍♂️ Hero " + hero.getName() + " has been unlocked!");
+                GameLog.info("🦸‍♂️ Hero " + hero.getName() + " has been unlocked!");
             }
         }
 
@@ -182,9 +184,9 @@ public class Kingdom implements Serializable {
     }
 
     public void printMap() {
-        System.out.println("=== Kingdom: " + type + " ===");
+        GameLog.info("=== Kingdom: " + type + " ===");
         for (Building b : buildings) {
-            System.out.println(b);
+            GameLog.info(b);
         }
     }
 
@@ -248,7 +250,7 @@ public class Kingdom implements Serializable {
     }
 
     public void showAllResources() {
-        System.out.println("📦 Your Current Resources:");
+        GameLog.info("📦 Your Current Resources:");
 
         String[] types = {"WOOD", "STONE", "FOOD" ,  "COIN"};
 
@@ -266,9 +268,9 @@ public class Kingdom implements Serializable {
                 node = node.next;
             }
 
-            System.out.println("- " + type + ": " + amount + " / " + capacity);
+            GameLog.info("- " + type + ": " + amount + " / " + capacity);
         }
-        System.out.println("- DRAGONGLASS: " + dragonGlass);
+        GameLog.info("- DRAGONGLASS: " + dragonGlass);
     }
 
     public void  addResource(ResourceType resourceType, int  totalGoldReward) {
@@ -301,7 +303,7 @@ public class Kingdom implements Serializable {
         Node<Storage> node = storages.getHead();
 
         if (getTotalResources(type) < amount) {
-            System.out.println("⛔ Not enough " + type + "!");
+            GameLog.info("⛔ Not enough " + type + "!");
             return false;
         }
 
@@ -494,15 +496,15 @@ public int getTotalSoldierCapacity() {
     }
 
     public void showBuildingStatuses(int gameSpeed) {
-        System.out.println("📋 Building Status Overview: \n");
+        GameLog.info("📋 Building Status Overview: \n");
 
         System.out.printf("%-15s %-10s %-10s %-12s %-10s %-20s %-20s %-20s\n",
             "🏛️ نام ساختمان", "Level", "X", "Y", "وضعیت", "سلامت", "⏳ ساخت/ارتقاء", "🛠️ تعمیر");
 
-        System.out.println("=".repeat(125));
+        GameLog.info("=".repeat(125));
 
         for (Building b : buildings) {
-            System.out.println(b.getStatusReport(gameSpeed , this.getUserMap()));
+            GameLog.info(b.getStatusReport(gameSpeed , this.getUserMap()));
         }
     }
 
@@ -540,13 +542,13 @@ public int getTotalSoldierCapacity() {
     }
 
     public void showBuildingHistory() {
-        System.out.println("\n📜 تاریخچه ساخت‌وساز:");
+        GameLog.info("\n📜 تاریخچه ساخت‌وساز:");
         if (buildingHistory == null || buildingHistory.isEmpty()) {
-            System.out.println("هیچ فعالیتی ثبت نشده است.");
+            GameLog.info("هیچ فعالیتی ثبت نشده است.");
             return;
         }
         for (BuildingHistoryEntry entry : buildingHistory) {
-            System.out.println(entry.getFormattedEntry());
+            GameLog.info(entry.getFormattedEntry());
         }
     }
 
@@ -563,14 +565,14 @@ public int getTotalSoldierCapacity() {
     }
 
     public void showTrainingLogs() {
-        System.out.println("\n📜 Training Log:");
+        GameLog.info("\n📜 Training Log:");
         if (trainingLogs.isEmpty()) {
-            System.out.println("No training has been completed yet.");
+            GameLog.info("No training has been completed yet.");
             return;
         }
 
         for (TrainingLogEntry log : trainingLogs) {
-            System.out.println(log);
+            GameLog.info(log);
         }
     }
     public Boolean hasCrowTower(){
@@ -659,7 +661,7 @@ public int getTotalSoldierCapacity() {
             }
         }
         dragonGlass -= equipped;
-        System.out.println("🧪 " + equipped + " سرباز با شیشه اژدها تجهیز شدند.");
+        GameLog.info("🧪 " + equipped + " سرباز با شیشه اژدها تجهیز شدند.");
     }
 
     public int processBuildingDestruction(Building destroyedBuilding, Kingdom attackerKingdom) {

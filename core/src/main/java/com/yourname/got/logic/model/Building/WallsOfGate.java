@@ -1,5 +1,7 @@
 package com.yourname.got.logic.model.Building;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.Balance.GameBalance;
 import com.yourname.got.logic.model.Kingdom;
 
@@ -25,7 +27,7 @@ public class WallsOfGate extends Building implements Serializable {
 
     @Override
     public boolean upgrade(int gameSpeed) {
-        System.out.println("🚪 WallsOfGate upgraded to Level " + level + "! Health: " + strength);
+        GameLog.info("🚪 WallsOfGate upgraded to Level " + level + "! Health: " + strength);
         startUpgrade(gameSpeed);
         return true;
     }

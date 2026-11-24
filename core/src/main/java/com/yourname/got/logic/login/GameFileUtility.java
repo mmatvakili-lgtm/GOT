@@ -1,5 +1,7 @@
 package com.yourname.got.logic.login;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.yourname.got.logic.Config.GameConfig;
@@ -14,6 +16,10 @@ public class GameFileUtility {
     private static final String MAIN_FILE = "games.txt";
     private static final String GAME_FOLDER = "GAMES";
     private static int currentId = 1;
+    /** Backup copy kept next to every save (see writeObjectAtomically). */
+    private static final String BACKUP_SUFFIX = ".bak";
+    /** The backup is refreshed at most this often, so frequent saves do not copy the whole file every time. */
+    private static final long BACKUP_REFRESH_MILLIS = 60_000L;
 
     static {
         ensureMainFileAndFolder();
@@ -29,7 +35,7 @@ public class GameFileUtility {
             if (!folder.exists()) folder.mkdir();
 
         } catch (IOException e) {
-            System.err.println("خطا در ساخت فایل/پوشه: " + e.getMessage());
+            GameLog.error("خطا در ساخت فایل/پوشه: " + e.getMessage());
         }
     }
     public static String getGameFolder(int gameId) {
@@ -53,7 +59,7 @@ public class GameFileUtility {
                 }
             }
         } catch (IOException e) {
-            System.err.println("خطا در خواندن فایل games.txt برای تعیین ID: " + e.getMessage());
+            GameLog.error("خطا در خواندن فایل games.txt برای تعیین ID: " + e.getMessage());
         }
 
         int maxIdFromFolder = 0;
@@ -74,7 +80,7 @@ public class GameFileUtility {
         }
 
         currentId = Math.max(maxIdFromTxt, maxIdFromFolder) + 1;
-        System.out.println("INFO: ID بعدی برای بازی جدید روی " + currentId + " تنظیم شد.");
+        GameLog.info("INFO: ID بعدی برای بازی جدید روی " + currentId + " تنظیم شد.");
     }
 
     // این متد را در فایل GameFileUtility.java به طور کامل جایگزین کنید
@@ -86,15 +92,15 @@ public class GameFileUtility {
         String folder = "game_" + id;
         String folderPath = GAME_FOLDER + File.separator + folder;
 
-        System.out.println("LOG: Initializing new game structure for ID: " + id + " at path: " + folderPath);
+        GameLog.info("LOG: Initializing new game structure for ID: " + id + " at path: " + folderPath);
 
         // ۲. پوشه اصلی بازی را می‌سازیم
         File gameFolder = new File(folderPath);
         if (!gameFolder.exists()) {
             boolean created = gameFolder.mkdirs();
             if (!created) {
-                System.err.println("FATAL ERROR: Could not create the main game directory: " + folderPath);
-                System.err.println("Please check permissions for the application folder.");
+                GameLog.error("FATAL ERROR: Could not create the main game directory: " + folderPath);
+                GameLog.error("Please check permissions for the application folder.");
                 return; // اگر پوشه اصلی ساخته نشود، ادامه نمی‌دهیم
             }
         }
@@ -123,18 +129,18 @@ public class GameFileUtility {
             if (!recordFile.exists()) {
                 recordFile.createNewFile();
             }
-            System.out.println("SUCCESS: Battle log file and replays folder created successfully.");
+            GameLog.info("SUCCESS: Battle log file and replays folder created successfully.");
         } catch (IOException e) {
-            System.err.println("ERROR: Failed to create battle log/replay folder structure: " + e.getMessage());
+            GameLog.error("ERROR: Failed to create battle log/replay folder structure: " + e.getMessage());
         }
 
         // ۵. آبجکت بازی را که حالا مسیرهای صحیح را دارد، در فایل .ser ذخیره می‌کنیم
         String filePath = folderPath + File.separator + fileName;
-        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(filePath))) {
-            out.writeObject(game);
-            System.out.println("SUCCESS: Game object saved successfully to: " + filePath);
+        try {
+            writeObjectAtomically(new File(filePath), game);
+            GameLog.info("SUCCESS: Game object saved successfully to: " + filePath);
         } catch (IOException e) {
-            System.err.println("ERROR: Could not save the game .ser file: " + e.getMessage());
+            GameLog.error("ERROR: Could not save the game .ser file: " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -143,7 +149,7 @@ public class GameFileUtility {
             writer.write(game.getName() + "," + game.getPassword() + "," + id + "," + filePath + "," + game.getNumberOfPlayers());
             writer.newLine();
         } catch (IOException e) {
-            System.err.println("ERROR: Could not write game info to the main lobby file: " + e.getMessage());
+            GameLog.error("ERROR: Could not write game info to the main lobby file: " + e.getMessage());
         }
 
         // ۷. کانفیگ مربوط به بازی را بارگذاری می‌کنیم
@@ -153,15 +159,32 @@ public class GameFileUtility {
     public static GameOfThrones loadGame(String name, int id) {
         String filePath = GAME_FOLDER + File.separator + "game_" + id + File.separator + name + "_" + id + ".ser";
         File gameFile = new File(filePath);
+        File backupFile = new File(filePath + BACKUP_SUFFIX);
 
         // --- DIAGNOSTIC LOG 1: Print absolute path on load attempt ---
-        System.out.println("<<<<< [LOAD] Attempting to load game from: " + gameFile.getAbsolutePath());
+        GameLog.info("<<<<< [LOAD] Attempting to load game from: " + gameFile.getAbsolutePath());
 
-        if (!gameFile.exists()) {
-            System.err.println("<<<<< [LOAD] ERROR: Game file not found at the specified path.");
-            return null;
+        GameOfThrones game = gameFile.exists() ? readGameFile(gameFile) : null;
+        if (game != null) return game;
+
+        // The main save is missing or unreadable (e.g. the disk was full or the PC lost power): use the backup
+        // instead of dropping the whole game.
+        if (backupFile.exists()) {
+            GameLog.error("<<<<< [LOAD] WARNING: Main save unusable, trying the backup: " + backupFile.getAbsolutePath());
+            game = readGameFile(backupFile);
+            if (game != null) {
+                GameLog.error("<<<<< [LOAD] Recovered the game from its backup (the next save rewrites the main file).");
+                return game;
+            }
         }
+        if (!gameFile.exists()) {
+            GameLog.error("<<<<< [LOAD] ERROR: Game file not found at the specified path.");
+        }
+        return null;
+    }
 
+    /** Reads one serialized game; null if the file cannot be read. */
+    private static GameOfThrones readGameFile(File gameFile) {
         try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(gameFile))) {
             GameOfThrones game = (GameOfThrones) in.readObject();
 
@@ -172,14 +195,14 @@ public class GameFileUtility {
             // --- DIAGNOSTIC LOG 2: Print building count immediately after loading ---
             if (game != null && game.getOwner() != null && game.getOwner().getKingdom() != null) {
                 int buildingCount = game.getOwner().getKingdom().getBuildings().size();
-                System.out.println("<<<<< [LOAD] SUCCESS: Game loaded. Found " + buildingCount + " buildings in the kingdom.");
+                GameLog.info("<<<<< [LOAD] SUCCESS: Game loaded. Found " + buildingCount + " buildings in the kingdom.");
             } else {
-                System.out.println("<<<<< [LOAD] SUCCESS: Game loaded, but owner or kingdom is null.");
+                GameLog.info("<<<<< [LOAD] SUCCESS: Game loaded, but owner or kingdom is null.");
             }
             return game;
 
         } catch (Exception e) {
-            System.err.println("<<<<< [LOAD] FATAL ERROR: Exception during deserialization.");
+            GameLog.error("<<<<< [LOAD] FATAL ERROR: Exception during deserialization of " + gameFile.getName());
             e.printStackTrace();
             return null;
         }
@@ -197,7 +220,7 @@ public class GameFileUtility {
 
     public static void removeGameFromLobbyList(GameOfThrones game) {
         if (game == null) {
-            System.err.println("خطا: تلاش برای حذف یک بازی null از لیست.");
+            GameLog.error("خطا: تلاش برای حذف یک بازی null از لیست.");
             return;
         }
 
@@ -218,12 +241,12 @@ public class GameFileUtility {
                 }
             }
         } catch (IOException e) {
-            System.err.println("خطا در حذف بازی از لیست لابی: " + e.getMessage());
+            GameLog.error("خطا در حذف بازی از لیست لابی: " + e.getMessage());
         }
 
         inputFile.delete();
         tempFile.renameTo(inputFile);
-        System.out.println("INFO: بازی '" + game.getName() + "' از لیست لابی حذف شد و به وضعیت 'در حال اجرا' درآمد.");
+        GameLog.info("INFO: بازی '" + game.getName() + "' از لیست لابی حذف شد و به وضعیت 'در حال اجرا' درآمد.");
     }
     public static void deleteGameFromList(String lineToRemove) {
         File inputFile = new File(MAIN_FILE);
@@ -240,7 +263,7 @@ public class GameFileUtility {
                 }
             }
         } catch (IOException e) {
-            System.err.println("خطا در حذف خط از فایل: " + e.getMessage());
+            GameLog.error("خطا در حذف خط از فایل: " + e.getMessage());
         }
 
         inputFile.delete();
@@ -255,7 +278,7 @@ public class GameFileUtility {
 
         if (gameFolder.exists()) {
             deleteDirectory(gameFolder);
-            System.out.println("INFO: پوشه بازی '" + game.getName() + "' (ID: " + game.getId() + ") با موفقیت حذف شد.");
+            GameLog.info("INFO: پوشه بازی '" + game.getName() + "' (ID: " + game.getId() + ") با موفقیت حذف شد.");
         }
 
         for (int i = 0; i < game.getNumberOfPlayers(); i++) {
@@ -283,7 +306,7 @@ public class GameFileUtility {
                 }
             }
         } catch (IOException e) {
-            System.err.println("خطا در حذف بازی از لیست: " + e.getMessage());
+            GameLog.error("خطا در حذف بازی از لیست: " + e.getMessage());
         }
 
         inputFile.delete();
@@ -315,13 +338,47 @@ public class GameFileUtility {
             }
             if (changed) java.nio.file.Files.write(f.toPath(), lines);
         } catch (IOException e) {
-            System.err.println("Could not update the lobby list: " + e.getMessage());
+            GameLog.error("Could not update the lobby list: " + e.getMessage());
         }
     }
 
     /** The same line as it should currently read (used to refresh the list shown in the lobby). */
     public static String lobbyLineFor(String oldLine, GameOfThrones game) {
         return oldLine.substring(0, oldLine.lastIndexOf(',') + 1) + game.getNumberOfPlayers();
+    }
+
+    /** Copies the current (still valid) save to "<name>.bak" before it is replaced; at most once a minute. */
+    private static void refreshBackup(File target) {
+        try {
+            if (!target.exists() || target.length() == 0) return;
+            File backup = new File(target.getPath() + BACKUP_SUFFIX);
+            if (backup.exists() && System.currentTimeMillis() - backup.lastModified() < BACKUP_REFRESH_MILLIS) return;
+            java.nio.file.Files.copy(target.toPath(), backup.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException | RuntimeException e) {
+            GameLog.error("Could not refresh the save backup: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Writes the object to a temporary file next to the target and only then replaces the target.
+     * A crash or a full disk in the middle of a save used to leave a half-written (unreadable) .ser file,
+     * i.e. the whole game was lost. Now the previous save stays intact until the new one is complete.
+     */
+    private static void writeObjectAtomically(File target, Object object) throws IOException {
+        File tmp = new File(target.getPath() + ".tmp");
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(tmp))) {
+            out.writeObject(object);
+        } catch (IOException | RuntimeException e) {
+            tmp.delete();
+            throw e;
+        }
+        refreshBackup(target);
+        try {
+            java.nio.file.Files.move(tmp.toPath(), target.toPath(),
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+        } catch (java.nio.file.AtomicMoveNotSupportedException e) {
+            java.nio.file.Files.move(tmp.toPath(), target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        }
     }
 
     public static void updateGame(GameOfThrones game) {
@@ -334,15 +391,15 @@ public class GameFileUtility {
         if (game.getOwner() != null && game.getOwner().getKingdom() != null) {
             buildingCountBeforeSave = game.getOwner().getKingdom().getBuildings().size();
         }
-        System.out.println(">>>>> [SAVE] Preparing to save game to: " + gameFile.getAbsolutePath());
-        System.out.println(">>>>> [SAVE] Building count in memory BEFORE save: " + buildingCountBeforeSave);
+        GameLog.info(">>>>> [SAVE] Preparing to save game to: " + gameFile.getAbsolutePath());
+        GameLog.info(">>>>> [SAVE] Building count in memory BEFORE save: " + buildingCountBeforeSave);
 
-        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(gameFile))) {
-            out.writeObject(game);
-            System.out.println(">>>>> [SAVE] SUCCESS: ObjectOutputStream has successfully written the game object.");
+        try {
+            writeObjectAtomically(gameFile, game);
+            GameLog.info(">>>>> [SAVE] SUCCESS: ObjectOutputStream has successfully written the game object.");
             syncLobbyEntry(game);
         } catch (IOException e) {
-            System.err.println(">>>>> [SAVE] FATAL ERROR: Could not write to the file. See stack trace below.");
+            GameLog.error(">>>>> [SAVE] FATAL ERROR: Could not write to the file. See stack trace below.");
             e.printStackTrace();
         }
 
@@ -358,7 +415,7 @@ public class GameFileUtility {
                 }
             }
         } catch (IOException e) {
-            System.err.println("خطا در جستجو در فایل: " + e.getMessage());
+            GameLog.error("خطا در جستجو در فایل: " + e.getMessage());
         }
         return results;
     }
@@ -371,7 +428,7 @@ public class GameFileUtility {
             String line = iterator.next();
             String[] parts = line.split(",");
             if (parts.length < 3) {
-                System.out.println("هشدار: خط نامعتبر در games.txt پیدا و حذف شد: " + line);
+                GameLog.info("هشدار: خط نامعتبر در games.txt پیدا و حذف شد: " + line);
                 iterator.remove();
                 deleteGameFromList(line);
                 continue;
@@ -382,7 +439,7 @@ public class GameFileUtility {
             GameOfThrones game = GameFileUtility.loadGame(name, id);
 
             if (game == null) {
-                System.out.println("هشدار: فایل ذخیره برای بازی '" + name + "' (ID: " + id + ") یافت نشد. این رکورد از لیست بازی‌ها پاک می‌شود.");
+                GameLog.info("هشدار: فایل ذخیره برای بازی '" + name + "' (ID: " + id + ") یافت نشد. این رکورد از لیست بازی‌ها پاک می‌شود.");
                 iterator.remove();
                 deleteGameFromList(line);
                 continue;
@@ -398,7 +455,7 @@ public class GameFileUtility {
             long daysElapsed = (now - startTime) / (1000 * 60 * 60 * 24);
 
             if (daysElapsed >= 25) {
-                System.out.println("بازی '" + name + "' به دلیل عدم فعالیت (بیش از 25 روز) حذف می‌شود.");
+                GameLog.info("بازی '" + name + "' به دلیل عدم فعالیت (بیش از 25 روز) حذف می‌شود.");
                 GameFileUtility.deleteGame(game);
                 iterator.remove();
             }
@@ -429,24 +486,24 @@ public class GameFileUtility {
 
     public static void saveFullGameState(GameOfThrones game) {
         if (game == null) {
-            System.err.println("خطا: تلاش برای ذخیره یک بازی null.");
+            GameLog.error("خطا: تلاش برای ذخیره یک بازی null.");
             return;
         }
         lastFullSaveMillis = System.currentTimeMillis();
         if (pendingSave == game) pendingSave = null;
         updateGame(game);
         syncUsersFromGame(game);
-        System.out.println("✅ وضعیت کامل بازی با موفقیت ذخیره و همگام‌سازی شد.");
+        GameLog.info("✅ وضعیت کامل بازی با موفقیت ذخیره و همگام‌سازی شد.");
     }
 
     public static void syncUsersFromGame(GameOfThrones game) {
         if (game == null) {
-            System.out.println("Cannot sync users: game is null.");
+            GameLog.info("Cannot sync users: game is null.");
             return;
         }
         GameUser[] players = game.getUsers();
         if (players == null) {
-            System.out.println("Game has no players.");
+            GameLog.info("Game has no players.");
             return;
         }
         for (GameUser user : players) {
@@ -454,7 +511,7 @@ public class GameFileUtility {
                 UserSystem.updateUser(user);
             }
         }
-        System.out.println("Users synced from game successfully.");
+        GameLog.info("Users synced from game successfully.");
     }
 
 

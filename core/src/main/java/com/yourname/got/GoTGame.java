@@ -1,5 +1,7 @@
 package com.yourname.got;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.Gdx;
@@ -45,7 +47,7 @@ public class GoTGame extends Game implements GameMessageListener {
             try {
                 previous.dispose();
             } catch (Exception e) {
-                System.err.println("Could not dispose previous screen: " + e);
+                GameLog.error("Could not dispose previous screen: " + e);
             }
         }
     }

@@ -1,5 +1,7 @@
 package com.yourname.got.logic.model.Building;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.Balance.GameBalance;
 import com.yourname.got.logic.enums.SoldierType;
 import com.yourname.got.logic.model.Army.TrainingTask;
@@ -19,22 +21,22 @@ public class Barrack extends Building implements Serializable {
 
     public boolean trainSoldier (SoldierType type, int gameSpeed) {
         if (!this.isActiveBuilding()) {
-            System.out.println("⛔ Barrack is not available right now");
+            GameLog.info("⛔ Barrack is not available right now");
             return false;
         }
         if (type == SoldierType.SPY && owner.hasSpy()) {
-            System.out.println("⛔ جاسوس قبلاً ساخته شده یا در حال آموزش است.");
+            GameLog.info("⛔ جاسوس قبلاً ساخته شده یا در حال آموزش است.");
             return false;
         }
 
         // Capacity check: soldiers at home + soldiers away on missions + soldiers already queued
         // must stay below the total capacity of all built camps.
         if (owner.getTotalSoldierCapacity() == 0) {
-            System.out.println(" No active Camp exists. Cannot train " + type);
+            GameLog.info(" No active Camp exists. Cannot train " + type);
             return false;
         }
         if (owner.getFreeTrainingSlots() <= 0) {
-            System.out.println(" Army capacity is full. Cannot train " + type);
+            GameLog.info(" Army capacity is full. Cannot train " + type);
             return false;
         }
 
@@ -42,10 +44,10 @@ public class Barrack extends Building implements Serializable {
         int woodCost = type.woodCost;
         int coinCost = type.coinCost;
 
-        System.out.println(type + " training cost: " + woodCost + " WOOD " + coinCost + " COIN " + foodCost + " FOOD");
+        GameLog.info(type + " training cost: " + woodCost + " WOOD " + coinCost + " COIN " + foodCost + " FOOD");
 
         if (!owner.canAffordResources(woodCost, 0, coinCost, foodCost)) {
-            System.out.println("⛔ Not enough resources to train " + type);
+            GameLog.info("⛔ Not enough resources to train " + type);
             return false;
         }
 
@@ -62,7 +64,7 @@ public class Barrack extends Building implements Serializable {
 
         // سازنده دقیقاً با پارامترهای TrainingTask شما تنظیم شده است
         owner.getTrainingQueue().add(new TrainingTask(type, owner, startTime, gameSpeed));
-        System.out.println("⏳ Training " + type + " added to queue.");
+        GameLog.info("⏳ Training " + type + " added to queue.");
         return true;
     }
 
@@ -99,11 +101,11 @@ public class Barrack extends Building implements Serializable {
 
         MyLinkedList<TrainingTask> queue = owner.getTrainingQueue();
         if (queue.isEmpty()) {
-            System.out.println("📭 " + GRAY + "Training queue is empty." + RESET);
+            GameLog.info("📭 " + GRAY + "Training queue is empty." + RESET);
             return;
         }
 
-        System.out.println("📋 " + CYAN + "Training Queue:" + RESET);
+        GameLog.info("📋 " + CYAN + "Training Queue:" + RESET);
         for (TrainingTask task : queue) {
             long remainingMillis = task.getRemainingMillis();
             String status;
@@ -124,7 +126,7 @@ public class Barrack extends Building implements Serializable {
                 color = GRAY;
             }
 
-            System.out.println(" - " + task.getType() + " → " + color + status + RESET);
+            GameLog.info(" - " + task.getType() + " → " + color + status + RESET);
         }
     }
 
@@ -139,14 +141,14 @@ public class Barrack extends Building implements Serializable {
 
     @Override
     public boolean upgrade(int gameSpeed) {
-        System.out.println("🏋️‍♂️ Barrack start to upgrade to level " + level);
+        GameLog.info("🏋️‍♂️ Barrack start to upgrade to level " + level);
         startUpgrade(gameSpeed);
         return true;
     }
 
     @Override
     public boolean repair(int gameSpeed) {
-        System.out.println("🏋️‍♂️ Barrack start to repair " );
+        GameLog.info("🏋️‍♂️ Barrack start to repair " );
         startRepair(gameSpeed);
         return true;
     }

@@ -45,3 +45,9 @@ status.txt
 assets/images/background
 assets/images/background.psd
 *.psd
+
+## Runtime logs and save backups
+logs/
+*.ser.bak
+*.ser.tmp
+javac.*.args

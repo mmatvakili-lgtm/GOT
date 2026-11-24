@@ -1,5 +1,7 @@
 package com.yourname.got.logic.login;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.model.GameRecord;
 import com.yourname.got.logic.util.MyLinkedList;
 import com.yourname.got.logic.util.Result;
@@ -148,10 +150,10 @@ public class UserSystem {
 
         try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(filePath))) {
             out.writeObject(record);
-            System.out.println("INFO: Game record for user '" + user.getUsername() + "' saved successfully.");
+            GameLog.info("INFO: Game record for user '" + user.getUsername() + "' saved successfully.");
             return new Result(true, "Game record saved.");
         } catch (IOException e) {
-            System.err.println("ERROR: Could not save game record for user '" + user.getUsername() + "': " + e.getMessage());
+            GameLog.error("ERROR: Could not save game record for user '" + user.getUsername() + "': " + e.getMessage());
             return new Result(false, "Failed to save game record.");
         }
     }
@@ -173,9 +175,9 @@ public class UserSystem {
                             records.add((GameRecord) obj);
                         }
                     } catch (EOFException eof) {
-                        System.err.println("WARN: Record file " + file.getName() + " is empty or corrupted. Skipping.");
+                        GameLog.error("WARN: Record file " + file.getName() + " is empty or corrupted. Skipping.");
                     } catch (IOException | ClassNotFoundException e) {
-                        System.err.println("WARN: Could not load record file " + file.getName() + ": " + e.getMessage());
+                        GameLog.error("WARN: Could not load record file " + file.getName() + ": " + e.getMessage());
                     }
                 }
             }
@@ -197,7 +199,7 @@ public class UserSystem {
                 GameRecord record = (GameRecord) in.readObject();
                 return new Result(true, "Game record found.", record);
             } catch (IOException | ClassNotFoundException e) {
-                System.err.println("ERROR: Failed to load record " + recordFile.getName() + ": " + e.getMessage());
+                GameLog.error("ERROR: Failed to load record " + recordFile.getName() + ": " + e.getMessage());
                 return new Result(false, "Error loading game record file.");
             }
         }
@@ -215,7 +217,7 @@ public class UserSystem {
         try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(userFilePath))) {
             out.writeObject(user);
         } catch (IOException e) {
-            System.err.println("ERROR: Failed to save user file for " + user.getUsername() + ": " + e.getMessage());
+            GameLog.error("ERROR: Failed to save user file for " + user.getUsername() + ": " + e.getMessage());
             return new Result(false, "Failed to save user file.");
         }
 
@@ -243,17 +245,17 @@ public class UserSystem {
                 writer.newLine();
             }
         } catch (IOException e) {
-            System.err.println("ERROR: Failed to update index file for " + user.getUsername() + ": " + e.getMessage());
+            GameLog.error("ERROR: Failed to update index file for " + user.getUsername() + ": " + e.getMessage());
             tempFile.delete();
             return new Result(false, "Failed to update user index.");
         }
 
         if (!inputFile.delete()) {
-            System.err.println("ERROR: Could not delete old index file.");
+            GameLog.error("ERROR: Could not delete old index file.");
             return new Result(false, "Could not finalize user update (delete failed).");
         }
         if (!tempFile.renameTo(inputFile)) {
-            System.err.println("ERROR: Could not rename temp index file.");
+            GameLog.error("ERROR: Could not rename temp index file.");
             return new Result(false, "Could not finalize user update (rename failed).");
         }
 

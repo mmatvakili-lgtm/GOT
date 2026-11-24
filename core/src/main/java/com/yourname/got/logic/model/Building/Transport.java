@@ -1,5 +1,7 @@
 package com.yourname.got.logic.model.Building;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.Balance.GameBalance;
 import com.yourname.got.logic.model.Kingdom;
 
@@ -16,7 +18,7 @@ public class Transport extends Building implements Serializable {   private King
 
     @Override
     public boolean upgrade(int gameSpeed) {
-        System.out.println("🏯 Transport start to upgrade to level " + level);
+        GameLog.info("🏯 Transport start to upgrade to level " + level);
         startUpgrade(gameSpeed);
         return true;
     }
@@ -26,7 +28,7 @@ public class Transport extends Building implements Serializable {   private King
 
     @Override
     public boolean repair(int gameSpeed) {
-        System.out.println("🏋️‍♂️ Transport start to repair " );
+        GameLog.info("🏋️‍♂️ Transport start to repair " );
         startRepair(gameSpeed);
         return true;
     }
