@@ -73,6 +73,16 @@ public class LeaderboardScreen implements Screen {
             }
         }
 
+        java.util.List<String> badges = com.yourname.got.logic.system.Achievements.unlocked(
+            currentUser == null ? null : com.yourname.got.logic.system.Achievements.find(currentUser.getUsername()));
+        if (!badges.isEmpty()) {
+            list.row();
+            Label head = new Label("Your achievements", skin);
+            head.setColor(Color.GOLD);
+            list.add(head).colspan(6).left().padTop(15).row();
+            for (String b : badges) list.add(new Label("* " + b, skin)).colspan(6).left().row();
+        }
+
         ScrollPane scroll = new ScrollPane(list, skin);
         scroll.setFadeScrollBars(false);
 
