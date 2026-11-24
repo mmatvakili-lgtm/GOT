@@ -1,5 +1,7 @@
 package com.yourname.got.logic.util;
 
+
+import com.yourname.got.logic.util.GameLog;
 import java.io.Serializable;
 import java.util.Iterator;
 
@@ -34,7 +36,7 @@ public class MyLinkedList<T> implements Iterable<T>, Serializable {
     public void printAll() {
         Node<T> current = this.head;
         while (current != null) {
-            System.out.println(current.data);
+            GameLog.info(current.data);
             current = current.next;
         }
     }
@@ -148,7 +150,7 @@ public class MyLinkedList<T> implements Iterable<T>, Serializable {
     }
     public void fillArray(T[] array) {
         if (array.length < this.size()) {
-            System.out.println("خطا: آرایه ورودی برای جا دادن تمام عناصر کوچک است.");
+            GameLog.info("خطا: آرایه ورودی برای جا دادن تمام عناصر کوچک است.");
             return;
         }
 

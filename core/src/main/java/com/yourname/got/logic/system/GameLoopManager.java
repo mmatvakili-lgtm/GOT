@@ -1,5 +1,7 @@
 package com.yourname.got.logic.system;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.badlogic.gdx.Gdx;
 import com.yourname.got.logic.login.GameUser;
 import com.yourname.got.logic.model.GameOfThrones;
@@ -51,7 +53,7 @@ public class GameLoopManager extends Thread {
     @Override
     public void run() {
         if (game == null) {
-            System.err.println("GameLoopManager: Game instance is null. Loop will not start.");
+            GameLog.error("GameLoopManager: Game instance is null. Loop will not start.");
             return;
         }
 
@@ -76,7 +78,7 @@ public class GameLoopManager extends Thread {
                 break;
             }
         }
-        System.out.println("Game loop has gracefully ended.");
+        GameLog.info("Game loop has gracefully ended.");
     }
 
     /** One game tick. Always runs on a single thread (see class comment). */
@@ -98,7 +100,7 @@ public class GameLoopManager extends Thread {
             }
             com.yourname.got.logic.login.GameFileUtility.flushPendingSave();
         } catch (Exception e) {
-            System.err.println("!!! Error during game tick !!!");
+            GameLog.error("!!! Error during game tick !!!");
             e.printStackTrace();
         }
     }

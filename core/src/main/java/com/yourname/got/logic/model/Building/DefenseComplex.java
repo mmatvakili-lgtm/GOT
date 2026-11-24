@@ -1,5 +1,7 @@
 package com.yourname.got.logic.model.Building;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.enums.*;
 import com.yourname.got.logic.model.Army.Soldier;
 import com.yourname.got.logic.model.Army.SoldierUnit;
@@ -65,7 +67,7 @@ public class DefenseComplex implements Serializable {
         }
 
         if (wall != null && !wall.isEmpty()) {
-            System.out.println("  -> آسیب ابتدا به دیوارها وارد می‌شود...");
+            GameLog.info("  -> آسیب ابتدا به دیوارها وارد می‌شود...");
             for (WallsOfGate w : wall) {
                 if (damage <= 0) {
                     break;
@@ -82,7 +84,7 @@ public class DefenseComplex implements Serializable {
                 if (w.getHealth() <= 0 && !w.isDestroyed()) w.destroy();
 
                 if (w.isDestroyed()) {
-                    System.out.println("    - دیوار در موقعیت " + w.getPosition() + " نابود شد.");
+                    GameLog.info("    - دیوار در موقعیت " + w.getPosition() + " نابود شد.");
                 }
             }
         }
@@ -91,23 +93,23 @@ public class DefenseComplex implements Serializable {
 
             Building primaryTarget = getPrimaryTargetFor(attackType);
             if (primaryTarget != null && !primaryTarget.isDestroyed()) {
-                System.out.println("  -> آسیب باقی‌مانده (" + damage + ") به " + primaryTarget.getName() + " وارد می‌شود.");
+                GameLog.info("  -> آسیب باقی‌مانده (" + damage + ") به " + primaryTarget.getName() + " وارد می‌شود.");
                 primaryTarget.takeDamage(damage);
                 if (primaryTarget.getHealth() <= 0 && !primaryTarget.isDestroyed()) primaryTarget.destroy();
 
                 if (primaryTarget.isDestroyed()) {
-                    System.out.println("    - هدف اصلی، " + primaryTarget.getName() + "، نابود شد!");
+                    GameLog.info("    - هدف اصلی، " + primaryTarget.getName() + "، نابود شد!");
                 }
             } else {
-                System.out.println("  -> آسیب باقی‌مانده دفع شد زیرا هدف اصلی قبلاً نابود شده است.");
+                GameLog.info("  -> آسیب باقی‌مانده دفع شد زیرا هدف اصلی قبلاً نابود شده است.");
             }
         } else {
-            System.out.println("  -> تمام آسیب توسط دیوارها جذب شد.");
+            GameLog.info("  -> تمام آسیب توسط دیوارها جذب شد.");
         }
     }
 
     public void destroyComplex() {
-        System.out.println("The Defense Complex has been breached!");
+        GameLog.info("The Defense Complex has been breached!");
         // destroy() sets the destroyed flag as well as the status, so the owner can repair the parts later.
         if (gate != null && !gate.isDestroyed()) {
             gate.setStrength(0);
@@ -165,7 +167,7 @@ public class DefenseComplex implements Serializable {
             defensiveArchers.addSoldier(soldier);
             return true;
         } else {
-            System.out.println("نوع سرباز اشتباه است");
+            GameLog.info("نوع سرباز اشتباه است");
             return false;
         }
     }

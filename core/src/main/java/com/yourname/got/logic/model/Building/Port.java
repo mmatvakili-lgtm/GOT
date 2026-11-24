@@ -1,5 +1,7 @@
 package com.yourname.got.logic.model.Building;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.Balance.GameBalance;
 import com.yourname.got.logic.model.Kingdom;
 import java.io.Serializable;
@@ -27,7 +29,7 @@ public class Port extends Building implements Serializable {
 
     @Override
     public boolean upgrade(int gameSpeed) {
-        System.out.println("🚪 Port started to upgrade to Level " + level + "! Health: " + strength);
+        GameLog.info("🚪 Port started to upgrade to Level " + level + "! Health: " + strength);
         startUpgrade(gameSpeed);
         return true;
     }

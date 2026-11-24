@@ -1,5 +1,7 @@
 package com.yourname.got.logic.model.Building;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.Balance.GameBalance;
 import com.yourname.got.logic.model.Kingdom;
 
@@ -26,7 +28,7 @@ public class CrowTower extends Building implements Serializable {
 
     @Override
     public boolean upgrade(int gameSpeed) {
-        System.out.println("🏯 CrowTower start to upgrade to level " + level);
+        GameLog.info("🏯 CrowTower start to upgrade to level " + level);
         startUpgrade(gameSpeed);
         return true;
     }
@@ -36,7 +38,7 @@ public class CrowTower extends Building implements Serializable {
     }
     @Override
     public boolean repair(int gameSpeed) {
-        System.out.println("🏋️‍♂️ CROWTOWER start to repair ");
+        GameLog.info("🏋️‍♂️ CROWTOWER start to repair ");
         startRepair(gameSpeed);
         return true;
     }

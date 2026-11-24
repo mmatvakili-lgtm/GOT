@@ -1,5 +1,7 @@
 package com.yourname.got.logic.system;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.enums.AttackType;
 import com.yourname.got.logic.enums.KingdomType;
 import com.yourname.got.logic.login.GameUser;
@@ -39,7 +41,7 @@ public class GameRulesManager implements Serializable {
         if (uiMediator != null && messageListener != null) {
             messageListener.onMessage(msg);
         } else {
-            System.out.println("[UI Missing] " + msg);
+            GameLog.info("[UI Missing] " + msg);
         }
     }
 

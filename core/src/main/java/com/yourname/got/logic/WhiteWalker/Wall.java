@@ -1,5 +1,7 @@
 package com.yourname.got.logic.WhiteWalker;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.model.Kingdom;
 import com.yourname.got.logic.util.MyLinkedList;
 import com.yourname.got.logic.util.Node;
@@ -40,10 +42,10 @@ public class Wall implements Serializable {
         if (health <= 0) {
             destroyed = true;
             health = 0;
-            System.out.println("❌ دیوار نابود شد!");
+            GameLog.info("❌ دیوار نابود شد!");
             GameMediator.sendGlobalMessage("The Wall was destroyed!");
         } else {
-            System.out.println("⚔️ دیوار آسیب دید. سلامت فعلی: " + health);
+            GameLog.info("⚔️ دیوار آسیب دید. سلامت فعلی: " + health);
             GameMediator.sendGlobalMessage("The wall was damaged. Current health: "+health);
 
         }
@@ -55,7 +57,7 @@ public class Wall implements Serializable {
             ContributionRecord rec = findOrCreateRecord(k);
             rec.add(amount);
             totalHelpCount++;
-            System.out.println("📦 کمک ثبت شد برای بازسازی: " + amount + " از " + k.getType());
+            GameLog.info("📦 کمک ثبت شد برای بازسازی: " + amount + " از " + k.getType());
             return;
         }
         health += amount;
@@ -63,7 +65,7 @@ public class Wall implements Serializable {
         ContributionRecord rec = findOrCreateRecord(k);
         rec.add(amount);
         GameMediator.sendGlobalMessage("The Wall was reinforced "+ amount);
-        System.out.println("🛡 دیوار تقویت شد +" + amount + " ، سلامت: " + health);
+        GameLog.info("🛡 دیوار تقویت شد +" + amount + " ، سلامت: " + health);
     }
 
     private ContributionRecord findOrCreateRecord(Kingdom k) {
@@ -91,7 +93,7 @@ public class Wall implements Serializable {
         this.destroyed = false;
         this.restoredOnce = true;
         this.contributions.clear();
-        System.out.println("🧱 دیوار با تلاش جمعی بازسازی شد!");
+        GameLog.info("🧱 دیوار با تلاش جمعی بازسازی شد!");
         return true;
     }
 
@@ -99,7 +101,7 @@ public class Wall implements Serializable {
         destroyed = true;
         health = 0;
         lastAttackDay = day100;
-        System.out.println("💥 دیوار در روز " + day100 + " فرو ریخت (حمله نهایی)!");
+        GameLog.info("💥 دیوار در روز " + day100 + " فرو ریخت (حمله نهایی)!");
     }
 
     public MyLinkedList<ContributionRecord > getContributions() {
@@ -108,7 +110,7 @@ public class Wall implements Serializable {
 
     public void printContributions() {
         for (ContributionRecord c : contributions) {
-            System.out.println(c.toString());
+            GameLog.info(c.toString());
         }
     }
 

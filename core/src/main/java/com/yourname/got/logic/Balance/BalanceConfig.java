@@ -14,7 +14,9 @@ import java.util.Properties;
  * The file is "balance.properties" in the working directory (or in "assets/"). It is re-read when it changes.
  *
  * Keys: production.multiplier, cost.multiplier, buildtime.multiplier (1.0 = unchanged),
- *       mercenary.slots.per.castle.level, hero.revive.minutes, loot.percent, game.tick.millis
+ *       mercenary.slots.per.castle.level, hero.revive.minutes, loot.percent, game.tick.millis,
+ *       battle.row.efficiency, battle.hero.attack.buff, battle.ambush.defense.factor,
+ *       battle.winterfell.health.percent, battle.eyrie.attack.percent
  */
 public final class BalanceConfig {
     private static final String[] LOCATIONS = {"balance.properties", "assets/balance.properties"};
@@ -76,6 +78,12 @@ public final class BalanceConfig {
         } catch (NumberFormatException e) {
             return fallback;
         }
+    }
+
+    /** A number that must stay inside [min, max]; otherwise the fallback is used. */
+    public static double number(String key, double fallback, double min, double max) {
+        double v = number(key, fallback);
+        return (v < min || v > max) ? fallback : v;
     }
 
     /** An integer that must stay inside [min, max]; otherwise the fallback is used. */

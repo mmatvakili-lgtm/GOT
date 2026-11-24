@@ -1,0 +1,6 @@
+-proc:none
+-Xmaxerrs
+3000
+-d
+/tmp/llcheck/o6
+core/src/main/java/com/yourname/got/screens/GamePlayScreen.java

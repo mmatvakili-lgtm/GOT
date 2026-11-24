@@ -1,5 +1,7 @@
 package com.yourname.got.screens;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.ScreenAdapter;
@@ -184,7 +186,7 @@ public class LoginScreen extends ScreenAdapter implements GameMessageListener {
                 } else {
                     // Show an error message. For simplicity, we print it.
                     // In a real UI, you might add a temporary error label to the dialog.
-                    System.out.println("Login Failed: Incorrect Admin Password!");
+                    GameLog.info("Login Failed: Incorrect Admin Password!");
                     // You could also update a label: errorLabel.setText("Incorrect Password");
                 }
             }
@@ -300,10 +302,10 @@ public class LoginScreen extends ScreenAdapter implements GameMessageListener {
                     String title = titleField.getText();
                     String body = bodyArea.getText();
                     Result result = mediator.adminAddNotice(day, title, body);
-                    System.out.println("Admin Action: " + result.getMessage()); // For developer log
+                    GameLog.info("Admin Action: " + result.getMessage()); // For developer log
                     openAdminPanel(); // Go back to the main admin panel
                 } catch (NumberFormatException e) {
-                    System.out.println("Admin Action Error: Day must be a number.");
+                    GameLog.info("Admin Action Error: Day must be a number.");
                 }
             }
         });
@@ -367,11 +369,11 @@ public class LoginScreen extends ScreenAdapter implements GameMessageListener {
                 int selectedIndex = noticeListWidget.getSelectedIndex();
                 if (selectedIndex != -1) {
                     Result result = mediator.adminDeleteNotice(selectedIndex);
-                    System.out.println("Admin Action: " + result.getMessage());
+                    GameLog.info("Admin Action: " + result.getMessage());
 
                     openDeleteNoticeWindow();
                 } else {
-                    System.out.println("Admin Action: No notice selected.");
+                    GameLog.info("Admin Action: No notice selected.");
                 }
             }
         });
@@ -488,14 +490,14 @@ public class LoginScreen extends ScreenAdapter implements GameMessageListener {
 
                     if (!originalValue.equals(newValue)) {
                         Result update = mediator.adminUpdateGlobalConfig(key, newValue);
-                        System.out.println(update.getMessage());
+                        GameLog.info(update.getMessage());
                         if (!update.isSuccess()){
                             return;
                         }
                         changes++;
                     }
                 }
-                System.out.println("Admin Action: " + changes + " config value(s) updated.");
+                GameLog.info("Admin Action: " + changes + " config value(s) updated.");
                 openGlobalConfigWindow(); // Refresh panel to show saved values
             }
         });

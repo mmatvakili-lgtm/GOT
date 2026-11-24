@@ -1,6 +1,8 @@
 
 package com.yourname.got.logic.model;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.login.BattleLogger;
 import com.yourname.got.logic.login.GameUser;
 import com.yourname.got.logic.enums.*;
@@ -35,7 +37,27 @@ public class Mission implements Serializable {
     private final AttackType attackType;
     private MyLinkedList<BattleEvent> replayLog;
     private BattleShip attackerBattleShip;
-    private static final double SOLDIER_EFFICIENCY = 0.9;
+    // Battle tuning (defaults are the original values; balance.properties can change them without recompiling).
+    /** Every further row of the formation hits a little weaker: power * efficiency^row. */
+    static double rowEfficiency() {
+        return com.yourname.got.logic.Balance.BalanceConfig.number("battle.row.efficiency", 0.9, 0.1, 1.0);
+    }
+    /** Attack multiplier an available hero gives to his army. */
+    public static double heroAttackBuff() {
+        return com.yourname.got.logic.Balance.BalanceConfig.number("battle.hero.attack.buff", 1.1, 1.0, 3.0);
+    }
+    /** Share of its power the garrison keeps when it is surprised by an ambush. */
+    static double ambushDefenseFactor() {
+        return com.yourname.got.logic.Balance.BalanceConfig.number("battle.ambush.defense.factor", 0.5, 0.0, 1.0);
+    }
+    static int winterfellHealthPercent() {
+        return com.yourname.got.logic.Balance.BalanceConfig.integer("battle.winterfell.health.percent", 10, 0, 90);
+    }
+    static int eyrieAttackPercent() {
+        return com.yourname.got.logic.Balance.BalanceConfig.integer("battle.eyrie.attack.percent", 15, 0, 90);
+    }
+    public static int winterfellHealthPercentForDisplay() { return winterfellHealthPercent(); }
+    public static int eyrieAttackPercentForDisplay() { return eyrieAttackPercent(); }
 
     // --- افزودنی‌های جدید برای قوانین بازی ---
     private boolean isConquest; // قانون 2و3: آیا حمله با هیرو است؟
@@ -96,11 +118,11 @@ public class Mission implements Serializable {
         if (h != null && h.isAvailable()) {
             this.isConquest = true;
             this.heroParticipated = true;
-            System.out.println("Mission Type: CONQUEST (Hero Present)");
+            GameLog.info("Mission Type: CONQUEST (Hero Present)");
         } else {
             this.isConquest = false;
             this.heroParticipated = false;
-            System.out.println("Mission Type: RAID (No Hero)");
+            GameLog.info("Mission Type: RAID (No Hero)");
         }
         // -------------------------------------------------------
     }
@@ -109,16 +131,16 @@ public class Mission implements Serializable {
         if (defender == null || defender.getKingdom() == null) return;
         Building entryPoint = defend.getDefenseComplex().getPrimaryTargetFor(this.attackType);
         if (entryPoint != null) {
-            System.out.println("DEBUG: Entry point found: " + entryPoint.getName());
+            GameLog.info("DEBUG: Entry point found: " + entryPoint.getName());
         } else {
-            System.err.println("WARNING: No valid entry point found!");
+            GameLog.error("WARNING: No valid entry point found!");
         }
     }
 
     private void checkAmbushStatus() {
         if (defender != null && defender.getKingdom() != null && defender.getKingdom().hasSpy()) {
             this.ambush = false;
-            System.out.println("Defender's spy detected the attack! Ambush cancelled.");
+            GameLog.info("Defender's spy detected the attack! Ambush cancelled.");
 
             // پیدا کردن یگان جاسوس‌ها
             SoldierUnit spyUnit = defender.getKingdom().getArmyManager().getDefenceManager().findUnitInDefenders(com.yourname.got.logic.enums.SoldierType.SPY);
@@ -155,14 +177,14 @@ public class Mission implements Serializable {
         if (startTime == null) return;
         long elapsedSeconds = Duration.between(startTime, LocalDateTime.now()).getSeconds();
         if (elapsedSeconds >= durationSeconds) {
-            System.out.println("DEBUG: Mission duration passed.");
+            GameLog.info("DEBUG: Mission duration passed.");
         }
     }
 
     public Boolean startAttack() {
         checkMissionTime();
         if (!isReadyToAttack()) {
-            System.out.println("Attack not ready yet.");
+            GameLog.info("Attack not ready yet.");
             return false;
         }
         try {
@@ -172,7 +194,7 @@ public class Mission implements Serializable {
                 return true;
             }
 
-            System.out.println("___Attack started!___");
+            GameLog.info("___Attack started!___");
             getReplayLog().add(new EventTextLog("Battle Started!"));
             snapshotAttackPower();
 
@@ -200,7 +222,7 @@ public class Mission implements Serializable {
                 // استفاده از متد جدیدی که در SoldierUnit ساختیم
                 for (SoldierUnit unit : troopsAttacker) {
                     if (unit != null) {
-                        unit.applyAttackBuff(1.1); // افزایش ۱۰ درصدی قدرت
+                        unit.applyAttackBuff(heroAttackBuff()); // افزایش قدرت (پیش‌فرض ۱۰ درصد)
                     }
                 }
             }
@@ -210,11 +232,11 @@ public class Mission implements Serializable {
 
             // 3. Execute Battle Scenario
             if (this.ambush) {
-                System.out.println("--- Ambush Attack ---");
+                GameLog.info("--- Ambush Attack ---");
                 getReplayLog().add(new EventTextLog("Ambush Attack! Defenders are surprised."));
                 ambushAttackScenario();
             } else {
-                System.out.println("--- Direct Attack ---");
+                GameLog.info("--- Direct Attack ---");
                 getReplayLog().add(new EventTextLog("Direct Attack! Defenders are ready."));
                 directAttackScenario();
             }
@@ -224,7 +246,7 @@ public class Mission implements Serializable {
             boolean defenderHeroDefeated = (defender.getKingdom().getHero() == null || !defender.getKingdom().getHero().isAvailable() || defender.getKingdom().getHero().getHealth() <= 0);
 
             if (this.isConquest && this.castleDestroyed && defenderHeroDefeated) {
-                System.out.println("⚠️ PLAYER ELIMINATED: " + defender.getUsername());
+                GameLog.info("⚠️ PLAYER ELIMINATED: " + defender.getUsername());
                 getReplayLog().add(new EventTextLog("⚖️ ELIMINATION: Criteria met. Kingdom Fallen."));
                 attacker.getGame().handlePlayerDefeat(defender);
             }
@@ -235,7 +257,7 @@ public class Mission implements Serializable {
             getReplayLog().add(new EventTextLog("Battle Finished."));
 
             int stars = calculateStars();
-            System.out.println("Final Result: " + stars + " Stars.");
+            GameLog.info("Final Result: " + stars + " Stars.");
 
             // 5. Logging and Replay Saving
             String replayFilePath = BattleLogger.saveReplayLog(getReplayLog(), getAttacker().getGame(), this);
@@ -247,7 +269,7 @@ public class Mission implements Serializable {
             );
 
             // 6. Return Troops and Clean up
-            System.out.println("\n--- Processing Battle Results ---");
+            GameLog.info("\n--- Processing Battle Results ---");
 
             restoreBuffedAttackPower();
             returnTroopsAndCleanup();
@@ -301,7 +323,7 @@ public class Mission implements Serializable {
         if (troopsReturned) return;
         troopsReturned = true;
 
-        System.out.println("\n--- Processing Battle Results ---");
+        GameLog.info("\n--- Processing Battle Results ---");
 
         // Return surviving attackers
         attacker.getKingdom().getArmyManager().returnSurvivorsToDefence(this.troopsAttacker);
@@ -320,7 +342,7 @@ public class Mission implements Serializable {
         BattleShip finalShip = attacker.getKingdom().getBattleShip();
         if (finalShip != null) {
             finalShip.setAvailable(true);
-            System.out.println("BattleShip returned and is available.");
+            GameLog.info("BattleShip returned and is available.");
         }
     }
 
@@ -400,7 +422,7 @@ public class Mission implements Serializable {
 
             for (SoldierUnit unit : troopsAttacker) {
                 if (unit == null || unit.getCount() <= 0) continue;
-                double power = unit.getTotalAttackPower() * Math.pow(SOLDIER_EFFICIENCY, currentRow++);
+                double power = unit.getTotalAttackPower() * Math.pow(rowEfficiency(), currentRow++);
                 if (unit.getType() == SoldierType.ARCHER) attackerArchersAP += power;
                 else attackerMeleeAP += power;
             }
@@ -443,13 +465,13 @@ public class Mission implements Serializable {
             // ** اصلاح ۲: خروج اضطراری اگر جنگ طولانی شد **
             if (round++ > MAX_ROUNDS) {
                 getReplayLog().add(new EventTextLog("⚠️ Battle stalemate! Forces disengage due to exhaustion."));
-                System.out.println("Battle Loop Broken: Max rounds reached.");
+                GameLog.info("Battle Loop Broken: Max rounds reached.");
                 break;
             }
 
             int attackerAP = Math.max(1, calculateRowBasedAttackPower(troopsAttacker));            // ** اصلاح ۳: تضمین حداقل ۱ واحد آسیب برای پیشبرد جنگ **
             int defenderAP = calculateTotalAttackPower(defenderUnits);
-            if (isSurprise) defenderAP = (int)(defenderAP * 0.5); // تضعیف در کمین            if (defenderAP <= 0) defenderAP = 1;
+            if (isSurprise) defenderAP = (int)(defenderAP * ambushDefenseFactor()); // تضعیف در کمین            if (defenderAP <= 0) defenderAP = 1;
             defenderAP = Math.max(1, defenderAP);
 
             // قانون ۵: هیرو آسیب می‌بیند
@@ -483,7 +505,7 @@ public class Mission implements Serializable {
     private void advanceThroughDefenses() {
         Building entry = defend.getDefenseComplex().getPrimaryTargetFor(this.attackType);
         if (entry == null) {
-            System.out.println("No entry point found for advance.");
+            GameLog.info("No entry point found for advance.");
             getReplayLog().add(new EventTextLog("There is no way in for this kind of attack. The army turns back."));
             return;
         }
@@ -647,7 +669,7 @@ public class Mission implements Serializable {
             heroAttackBonus = k.getHero().getAttackBonus();
             heroDefenseBonus = k.getHero().getDefenseBonus();
             k.getHero().markBusy();
-            System.out.println("🦸 قهرمان [" + k.getHero().getName() + "] در نبرد فعال شد! (+" +
+            GameLog.info("🦸 قهرمان [" + k.getHero().getName() + "] در نبرد فعال شد! (+" +
                 heroAttackBonus + " ATK, +" + heroDefenseBonus + " DEF)");
         }
 
@@ -829,12 +851,12 @@ public class Mission implements Serializable {
 
     private void applyInitialBattleEffects() {
         if (defender.getKingdom().getType() == KingdomType.WINTERFELL) {
-            getReplayLog().add(new EventTextLog("Winterfell Bonus: Attacker HP reduced by 10%"));
-            for (SoldierUnit unit : troopsAttacker) if(unit!=null) unit.applyHealthReductionPercentage(10);
+            getReplayLog().add(new EventTextLog("Winterfell Bonus: Attacker HP reduced by " + winterfellHealthPercent() + "%"));
+            for (SoldierUnit unit : troopsAttacker) if(unit!=null) unit.applyHealthReductionPercentage(winterfellHealthPercent());
         }
         if (defender.getKingdom().getType() == KingdomType.EYRIE) {
-            getReplayLog().add(new EventTextLog("Eyrie Bonus: Attacker Power reduced by 15%"));
-            for (SoldierUnit unit : troopsAttacker) if(unit!=null) unit.applyAttackPowerReductionPercentage(15);
+            getReplayLog().add(new EventTextLog("Eyrie Bonus: Attacker Power reduced by " + eyrieAttackPercent() + "%"));
+            for (SoldierUnit unit : troopsAttacker) if(unit!=null) unit.applyAttackPowerReductionPercentage(eyrieAttackPercent());
         }
     }
 
@@ -864,7 +886,7 @@ public class Mission implements Serializable {
         int row = 0;
         for (SoldierUnit u : units) {
             if (u != null && u.getCount() > 0) {
-                power += u.getTotalAttackPower() * Math.pow(SOLDIER_EFFICIENCY, row++);
+                power += u.getTotalAttackPower() * Math.pow(rowEfficiency(), row++);
             }
         }
         return (int) power;
@@ -975,7 +997,7 @@ public class Mission implements Serializable {
     }
 
     private void displayLootSummary() {
-        System.out.println("Loot Summary: W:" + totalWoodLoot + " S:" + totalStoneLoot + " F:" + totalFoodLoot + " C:" + totalCoinLoot);
+        GameLog.info("Loot Summary: W:" + totalWoodLoot + " S:" + totalStoneLoot + " F:" + totalFoodLoot + " C:" + totalCoinLoot);
     }
 
     // Getters

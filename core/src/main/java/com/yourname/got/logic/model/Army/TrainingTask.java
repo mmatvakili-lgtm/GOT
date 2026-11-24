@@ -1,5 +1,7 @@
 package com.yourname.got.logic.model.Army;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.enums.*;
 import com.yourname.got.logic.login.GameFileUtility;
 import com.yourname.got.logic.model.Building.Building;
@@ -24,7 +26,7 @@ public class TrainingTask implements Serializable {
         double realMinutes = type.buildTimeMinutes / gameSpeed;
         this.requiredMillis = (long)(realMinutes * 60 * 1000);
         this.kingdom = kingdom;
-        System.out.println(this);
+        GameLog.info(this);
     }
 
 

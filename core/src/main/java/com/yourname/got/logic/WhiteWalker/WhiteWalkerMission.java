@@ -1,5 +1,7 @@
 package com.yourname.got.logic.WhiteWalker;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.login.BattleLogger;
 import com.yourname.got.logic.login.GameFileUtility;
 import com.yourname.got.logic.login.GameUser;
@@ -32,26 +34,26 @@ public class WhiteWalkerMission extends Mission implements Serializable {
         if (game != null) {
             GameOfThrones.PlayerState state = game.getPlayerState(defUser.getId());
             if (state == null || state.status == GameOfThrones.PlayerStatus.DEFEATED) {
-                System.out.println("❄️ [WWMission] Attack cancelled: " + defUser.getUsername() + " is already defeated.");
+                GameLog.info("❄️ [WWMission] Attack cancelled: " + defUser.getUsername() + " is already defeated.");
                 this.markCompleted();
                 return true;
             }
         }
 
-        System.out.println("\n❄️ [WWMission] White Walker battle starting against " + defUser.getKingdom().getType() + "...");
+        GameLog.info("\n❄️ [WWMission] White Walker battle starting against " + defUser.getKingdom().getType() + "...");
 
         getReplayLog().add(new EventTextLog("The White Walkers attack " + defUser.getKingdom().getType() + "!"));
 
         boolean whiteWalkersWon = this.soldierVsSoldierCombatAdvanced();
 
         if (whiteWalkersWon) {
-            System.out.println("...💀 The armies of " + defUser.getKingdom().getType() + " have fallen. The kingdom is overrun.");
+            GameLog.info("...💀 The armies of " + defUser.getKingdom().getType() + " have fallen. The kingdom is overrun.");
             getReplayLog().add(new EventTextLog("The defenders have fallen!"));
             if (game != null) {
                 game.handlePlayerDefeat(defUser);
             }
         } else {
-            System.out.println("✅ The armies of " + defUser.getKingdom().getType() + " have successfully repelled the White Walkers!");
+            GameLog.info("✅ The armies of " + defUser.getKingdom().getType() + " have successfully repelled the White Walkers!");
             getReplayLog().add(new EventTextLog("VICTORY! The White Walkers were repelled!"));
         }
 
@@ -66,7 +68,7 @@ public class WhiteWalkerMission extends Mission implements Serializable {
             0, 0, 0, 0
         );
 
-        System.out.println("\n> Reconciling defender's army...");
+        GameLog.info("\n> Reconciling defender's army...");
         defUser.getKingdom().getArmyManager().reconcileAllSoldiers();
         defUser.getKingdom().getArmyManager().healAllSoldiers();
 
@@ -80,7 +82,7 @@ public class WhiteWalkerMission extends Mission implements Serializable {
     private void destroyAllKingdomBuildings(Kingdom kingdom) {
         if (kingdom == null || kingdom.getBuildings() == null) return;
 
-        System.out.println("🔥 A great winter falls... All buildings in " + kingdom.getType() + " have been destroyed.");
+        GameLog.info("🔥 A great winter falls... All buildings in " + kingdom.getType() + " have been destroyed.");
         for (Building building : kingdom.getBuildings()) {
             if (building != null && !building.isDestroyed()) {
                 kingdom.processBuildingDestruction(building, null);

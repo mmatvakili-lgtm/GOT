@@ -1,5 +1,7 @@
 package com.yourname.got.logic.model.Building;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.Balance.GameBalance;
 import com.yourname.got.logic.model.Kingdom;
 import com.yourname.got.logic.util.Result;
@@ -24,13 +26,13 @@ public class Castle extends Building implements Serializable {
 
     @Override
     public boolean upgrade(int gameSpeed) {
-        System.out.println("🏰 Castle start to upgrade to level " + level);
+        GameLog.info("🏰 Castle start to upgrade to level " + level);
         startUpgrade(gameSpeed);
         return true;
     }
     @Override
     public boolean repair(int gameSpeed) {
-        System.out.println("🏋️‍♂️ Castle start to repair " );
+        GameLog.info("🏋️‍♂️ Castle start to repair " );
         startRepair(gameSpeed);
         return true;
     }

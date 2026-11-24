@@ -1,5 +1,7 @@
 package com.yourname.got.screens;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Pixmap;
@@ -181,7 +183,7 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
         try {
             return new Texture(Gdx.files.internal(path));
         } catch (Exception e) {
-            System.err.println("Failed to load texture: " + path); // لاگ کردن فایل خراب
+            GameLog.error("Failed to load texture: " + path); // لاگ کردن فایل خراب
             // ساخت یک بافت ساده موقت برای جلوگیری از کرش
             Pixmap p = new Pixmap(64, 64, Pixmap.Format.RGBA8888);
             p.setColor(Color.GRAY);
@@ -1600,6 +1602,22 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
             summary.add(new Label("Formation:", skin)).left().padTop(8).row();
             for (SoldierType s : formationOrder) {
                 summary.add(new Label(s.name(), skin)).left().row();
+            }
+
+            // Strength, travel time and special rules, so the player knows what he is sending before confirming.
+            GameMediator.AttackPreview preview = mediator.getAttackPreview(selectedTarget[0], selectedAttackType[0], selectedSoldieryCounts);
+            if (preview != null) {
+                summary.add(new Label("Estimate:", skin)).left().padTop(8).row();
+                summary.add(new Label("Total soldiers: " + preview.totalSoldiers, skin)).left().row();
+                summary.add(new Label("Total attack power: " + preview.totalAttackPower, skin)).left().row();
+                summary.add(new Label("Total health: " + preview.totalHealth, skin)).left().row();
+                summary.add(new Label("Travel time: " + Time.formatSeconds(preview.etaSeconds), skin)).left().row();
+                summary.add(new Label(preview.heroLeads
+                    ? "Mode: CONQUEST (your hero leads the army, +10% power)"
+                    : "Mode: RAID (no hero: the Castle cannot be attacked)", skin)).left().row();
+                if (preview.targetNote != null) {
+                    summary.add(new Label(preview.targetNote, skin)).left().row();
+                }
             }
 
             wizardContent.add(summary).row();
@@ -4598,7 +4616,7 @@ public void render(float delta) {
     @Override
     public void refreshMap() {
         // This log helps confirm the entire chain is working
-        System.out.println("UI REFRESH TRIGGERED: A building's visual state has changed.");
+        GameLog.info("UI REFRESH TRIGGERED: A building's visual state has changed.");
 
         // This is the method you wanted to call!
         renderTilesAndUpdate();

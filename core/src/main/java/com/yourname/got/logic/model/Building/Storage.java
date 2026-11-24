@@ -1,5 +1,7 @@
 package com.yourname.got.logic.model.Building;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.Balance.GameBalance;
 import com.yourname.got.logic.model.Kingdom;
 
@@ -50,13 +52,13 @@ public class Storage extends Building implements Serializable {
     @Override
     public boolean upgrade(int gameSpeed) {
         startUpgrade(gameSpeed);
-        System.out.println("✅ Storage of " + resourceType + " started to upgrade " + level);
+        GameLog.info("✅ Storage of " + resourceType + " started to upgrade " + level);
         return true;
     }
 
     @Override
     public boolean repair(int gameSpeed) {
-        System.out.println("🏋️‍♂️ STORAGE start to repair " );
+        GameLog.info("🏋️‍♂️ STORAGE start to repair " );
         startRepair(gameSpeed);
         return true;
     }

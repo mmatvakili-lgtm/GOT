@@ -1,5 +1,7 @@
 package com.yourname.got.logic.model.Building;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.Balance.GameBalance;
 import com.yourname.got.logic.enums.Status;
 import com.yourname.got.logic.model.Kingdom;
@@ -71,14 +73,14 @@ public class Mine extends Building implements Serializable {
 
     public Kingdom getKingdom() { return owner; }
     @Override
-    public boolean upgrade(int gameSpeed) {    System.out.println("✅ Mine of " + resourceType + " started to upgrade to level " + level);
+    public boolean upgrade(int gameSpeed) {    GameLog.info("✅ Mine of " + resourceType + " started to upgrade to level " + level);
         startUpgrade(gameSpeed);
         return true;
     }
 
     @Override
     public boolean repair(int gameSpeed) {
-        System.out.println("🏋️‍♂️ MINE start to repair " );
+        GameLog.info("🏋️‍♂️ MINE start to repair " );
         startRepair(gameSpeed);
         return true;
     }

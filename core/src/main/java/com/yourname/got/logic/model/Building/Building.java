@@ -1,5 +1,7 @@
 package com.yourname.got.logic.model.Building;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.model.Kingdom;
 import com.yourname.got.logic.enums.Status;
 import com.yourname.got.logic.model.Position;
@@ -90,7 +92,7 @@ public abstract class Building implements Serializable {
         this.isDestroyed = true;
         this.isBuilt = false;
         this.status = Status.destroyed;
-        System.out.println("Building " + name + " has been destroyed and is now inactive. ");
+        GameLog.info("Building " + name + " has been destroyed and is now inactive. ");
     }
 
     public boolean isDestroyed() {
@@ -98,7 +100,7 @@ public abstract class Building implements Serializable {
     }
     public void startRepair(int gameSpeed) {
         if (!isDestroyed){
-            System.out.println("Building " + name + " is not destroyed. No repair needed. ");
+            GameLog.info("Building " + name + " is not destroyed. No repair needed. ");
             return;
         }
 
@@ -109,7 +111,7 @@ public abstract class Building implements Serializable {
         int adjustedSeconds = adjustTime(getRawRepairTime(), gameSpeed);
         long endTimeMillis = repairStartTime + adjustedSeconds * 1000L;
 
-        System.out.println("Building " + name +
+        GameLog.info("Building " + name +
             " | Start: " + fmt.format(new Date(repairStartTime)) +
             " | End: " + fmt.format(new Date(endTimeMillis)) +
             " | Speed: " + gameSpeed + "x");
@@ -182,7 +184,7 @@ public abstract class Building implements Serializable {
         int adjustedSeconds = adjustTime(getRawBuildTime(), gameSpeed);
         long endTimeMillis = constructionStartTime + adjustedSeconds * 1000L;
 
-        System.out.println("Building " + name +
+        GameLog.info("Building " + name +
             " | Start: " + fmt.format(new Date(constructionStartTime)) +
             " | End: " + fmt.format(new Date(endTimeMillis)) +
             " | Speed: " + gameSpeed + "x");
@@ -200,7 +202,7 @@ public abstract class Building implements Serializable {
         markAsBuilt();
         this.constructionStartTime = -1;
         this.status=Status.stable;
-        System.out.println("✅ " + name + " construction completed.");
+        GameLog.info("✅ " + name + " construction completed.");
     }
 
 
@@ -213,7 +215,7 @@ public abstract class Building implements Serializable {
         int adjustedSeconds = adjustTime(getRawUpgradeTime(), gameSpeed);
         long endTimeMillis = upgradeStartTime + adjustedSeconds * 1000L;
 
-        System.out.println("Building " + name +
+        GameLog.info("Building " + name +
             " | Start: " + fmt.format(new Date(upgradeStartTime)) +
             " | End: " + fmt.format(new Date(endTimeMillis)) +
             " | Speed: " + gameSpeed + "x");
@@ -230,7 +232,7 @@ public abstract class Building implements Serializable {
         this.upgradeStartTime = -1;
         this.status=Status.stable;
         this.strength=level*100;
-        System.out.println("⬆️ " + name + " upgraded to level " + level);
+        GameLog.info("⬆️ " + name + " upgraded to level " + level);
         return new Result(true,name + " upgraded to level " + level);
     }
 

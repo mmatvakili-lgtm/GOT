@@ -1,5 +1,7 @@
 package com.yourname.got.logic.model.Army;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.enums.SoldierType;
 import com.yourname.got.logic.model.Kingdom;
 import com.yourname.got.logic.util.MyLinkedList;
@@ -40,14 +42,14 @@ public class ArmyManager implements Serializable {
         SoldierUnit unitInDefenceManagerDefenders = defenceManager.findOrCreateUnitInDefenders(s.getType());
         unitInDefenceManagerDefenders.addSoldier(s);
 
-        System.out.println("✅ " + s.getType() + " استخدام شد.");
+        GameLog.info("✅ " + s.getType() + " استخدام شد.");
         return true;
     }
 
     public void printDefenders() {
-        System.out.println("Defending Units (ArmyManager):");
+        GameLog.info("Defending Units (ArmyManager):");
         printAllSoldiers();
-        System.out.println("Defending Units (DefenceManager):");
+        GameLog.info("Defending Units (DefenceManager):");
         defenceManager.getDefenders().printAll();
     }
 
@@ -76,7 +78,7 @@ public class ArmyManager implements Serializable {
             return;
         }
 
-        System.out.println("... در حال بازگرداندن بازماندگان حمله به ارتش اصلی ...");
+        GameLog.info("... در حال بازگرداندن بازماندگان حمله به ارتش اصلی ...");
 
         for (SoldierUnit survivorUnit : survivingAttackers) {
             if (survivorUnit != null && survivorUnit.getCount() > 0) {
@@ -86,13 +88,13 @@ public class ArmyManager implements Serializable {
 
                 unitInDefence.addSoldiers(survivorUnit.getSoldiers());
 
-                System.out.println("  + " + survivorUnit.getCount() + " عدد " + survivorUnit.getType() + " به ارتش فعال بازگشتند.");
+                GameLog.info("  + " + survivorUnit.getCount() + " عدد " + survivorUnit.getType() + " به ارتش فعال بازگشتند.");
             }
         }
     }
 
     public void reconcileAllSoldiers() {
-        System.out.println("... همگام‌سازی لیست کل سربازان پادشاهی:   ...");
+        GameLog.info("... همگام‌سازی لیست کل سربازان پادشاهی:   ...");
         MyLinkedList<Soldier> allSurvivingSoldiers = new MyLinkedList<>();
 
         MyLinkedList<SoldierUnit> defendingUnits = this.defenceManager.getDefenders();
@@ -115,7 +117,7 @@ public class ArmyManager implements Serializable {
 
         // همگام سازی ظرفیت با خود کمپ‌ها (چون کمپ ظرفیت را بر اساس trainedSoldiers.getSize می‌سنجد)
         // از آنجا که ما به owner دسترسی مستقیم در اینجا نداریم، منطق را در Camp اصلاح می‌کنیم (پایین).
-        System.out.println("✅ همگام‌سازی کامل شد. تعداد کل سربازان باقی‌مانده: " + this.allSoldiers.getSize());
+        GameLog.info("✅ همگام‌سازی کامل شد. تعداد کل سربازان باقی‌مانده: " + this.allSoldiers.getSize());
     }
 
     public DefenceManager getDefenceManager() {
@@ -219,7 +221,7 @@ public class ArmyManager implements Serializable {
             return;
         }
 
-        System.out.println("... در حال اضافه کردن یگان خریداری شده به ارتش ...");
+        GameLog.info("... در حال اضافه کردن یگان خریداری شده به ارتش ...");
 
         SoldierUnit unitInDefence = defenceManager.findOrCreateUnitInDefenders(purchasedUnit.getType());
 
@@ -229,10 +231,10 @@ public class ArmyManager implements Serializable {
             this.allSoldiers.add(s);
         }
 
-        System.out.println("  + " + purchasedUnit.getCount() + " عدد " + purchasedUnit.getType() + " با موفقیت به ارتش اضافه شد.");
+        GameLog.info("  + " + purchasedUnit.getCount() + " عدد " + purchasedUnit.getType() + " با موفقیت به ارتش اضافه شد.");
     }
 
     public  void printAllSoldiers(){
-        System.out.println("NUMBER SOLDIERS:"+allSoldiers.getSize());
+        GameLog.info("NUMBER SOLDIERS:"+allSoldiers.getSize());
     }
 }

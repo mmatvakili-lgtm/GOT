@@ -1,5 +1,7 @@
 package com.yourname.got.logic.util;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.enums.KingdomType;
 import com.yourname.got.logic.login.GameUser;
 import com.yourname.got.logic.login.Time;
@@ -29,13 +31,13 @@ public class Bazar extends MyLinkedList<Transaction> implements Serializable {
             }
         }
         if (!user.getKingdom().canAffordResources(woodToPay, stoneToPay, coinToPay, foodToPay)) {
-            System.out.println("❌ شما منابع کافی برای پرداخت هزینه این معامله را ندارید.");
+            GameLog.info("❌ شما منابع کافی برای پرداخت هزینه این معامله را ندارید.");
             return false;
         }
         SoldierUnit requiredSoldiers = transaction.getSoldiersToTake();
         if (requiredSoldiers != null && requiredSoldiers.getCount() > 0) {
             if (!user.getKingdom().getArmyManager().hasEnoughSoldiers(requiredSoldiers.getType(), requiredSoldiers.getCount())) {
-                System.out.println("❌ شما " + requiredSoldiers.getCount() + " سرباز از نوع " + requiredSoldiers.getType().name() + " برای این معامله ندارید.");
+                GameLog.info("❌ شما " + requiredSoldiers.getCount() + " سرباز از نوع " + requiredSoldiers.getType().name() + " برای این معامله ندارید.");
                 return false;
             }
         }
@@ -63,7 +65,7 @@ public class Bazar extends MyLinkedList<Transaction> implements Serializable {
             );
         }
         this.add(transaction);
-        System.out.println("✅ محموله شما با موفقیت در بازار برای فروش ثبت شد.");
+        GameLog.info("✅ محموله شما با موفقیت در بازار برای فروش ثبت شد.");
     }
 
     public void checkBazar(int gameSpeed) {
@@ -88,7 +90,7 @@ public class Bazar extends MyLinkedList<Transaction> implements Serializable {
     public void returnTransaction(Transaction transaction) {
         GameUser seller = transaction.getExchanger();
         if (seller != null) {
-            System.out.println("بازگرداندن آیتم‌های فروش نرفته به " + seller.getUsername() + "...");
+            GameLog.info("بازگرداندن آیتم‌های فروش نرفته به " + seller.getUsername() + "...");
             for(ResourceItem item : transaction.getResourcesToGive()) {
                 seller.getKingdom().addResources(item.type.name(), item.amount);
             }
@@ -102,7 +104,7 @@ public class Bazar extends MyLinkedList<Transaction> implements Serializable {
     public void addSystemTransaction(MyLinkedList<ResourceItem> give, MyLinkedList<ResourceItem> take, SoldierUnit soldiersGive, SoldierUnit soldiersTake) {
         Transaction sysTransaction = new Transaction(null, 0, give, soldiersGive, take, soldiersTake , null);
         this.add(sysTransaction);
-        System.out.println("✅ یک محموله سیستمی جدید به بازار اضافه شد.");
+        GameLog.info("✅ یک محموله سیستمی جدید به بازار اضافه شد.");
     }
 
     public int size() {
@@ -127,13 +129,13 @@ public class Bazar extends MyLinkedList<Transaction> implements Serializable {
         seller.getKingdom().detuctResources(woodToSell, stoneToSell, coinToSell, foodToSell);
 
         this.add(transaction);
-        System.out.println("✅ محموله منابع شما با موفقیت در بازار ثبت شد.");
+        GameLog.info("✅ محموله منابع شما با موفقیت در بازار ثبت شد.");
     }
 
 
     public void sellForSoldier(Transaction transaction) {
         this.add(transaction);
-        System.out.println("✅ یگان سرباز شما با موفقیت در بازار برای فروش ثبت شد.");
+        GameLog.info("✅ یگان سرباز شما با موفقیت در بازار برای فروش ثبت شد.");
     }
     public boolean isEmpty() { return getHead() == null; }
 
@@ -151,15 +153,15 @@ public class Bazar extends MyLinkedList<Transaction> implements Serializable {
 
     public int displayTransactions() {
         if (isEmpty()) {
-            System.out.println("❗ در حال حاضر هیچ محموله‌ای در بازار وجود ندارد.");
+            GameLog.info("❗ در حال حاضر هیچ محموله‌ای در بازار وجود ندارد.");
             return 0;
         }
-        System.out.println("\n📦 محموله‌های موجود در بازار:");
+        GameLog.info("\n📦 محموله‌های موجود در بازار:");
         int listSize = size();
         for (int i = 0; i < listSize; i++) {
             Transaction transaction = get(i);
             if (transaction != null) {
-                System.out.println(i + ". " + transaction.toString());
+                GameLog.info(i + ". " + transaction.toString());
             }
         }
         return listSize;
@@ -228,7 +230,7 @@ public class Bazar extends MyLinkedList<Transaction> implements Serializable {
         boolean due = (today - lastSpawnDayGeneric) >= genericCadence.days;
 
         if (due) {
-            System.out.println("... زمان افزودن بسته‌های مزدور عمومی فرا رسیده است ...");
+            GameLog.info("... زمان افزودن بسته‌های مزدور عمومی فرا رسیده است ...");
             GenericMercenaryMarket.ensureOffers(this);
             lastSpawnDayGeneric = today;
         }

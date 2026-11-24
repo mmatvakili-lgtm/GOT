@@ -1,0 +1,8 @@
+-proc:none
+-Xmaxerrs
+100000
+-d
+/tmp/llcheck/full2
+-cp
+
+@/tmp/s.txt

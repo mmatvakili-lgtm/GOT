@@ -1,13 +1,13 @@
 package com.yourname.got.logic.model;
 
+
+import com.yourname.got.logic.util.GameLog;
 import java.io.*;
 import com.yourname.got.logic.Config.GameConfig;
 import com.yourname.got.logic.enums.Status;
 import com.yourname.got.logic.login.*;
 import java.util.Properties;
 import java.util.Random;
-import java.util.Scanner;
-// import java.util.Scanner; // <--- حذف کامل وابستگی به Scanner
 import com.yourname.got.logic.enums.AttackType;
 import com.yourname.got.logic.enums.KingdomType;
 import com.yourname.got.logic.enums.TerrainType;
@@ -77,7 +77,7 @@ public class GameOfThrones implements Serializable {
         if (this.isFinished) return;
         this.isFinished = true;
 
-        System.out.println("GAME OVER: Reason: " + reason);
+        GameLog.info("GAME OVER: Reason: " + reason);
 
         // ۱. ساخت رکورد نهایی بازی
         String duration = this.gameTime.getFormattedElapsedTime();
@@ -217,7 +217,7 @@ public class GameOfThrones implements Serializable {
             return;
         }
 
-        System.out.println("⚔️ بازیکن " + defeatedUser.getUsername() + " شکست خورد.");
+        GameLog.info("⚔️ بازیکن " + defeatedUser.getUsername() + " شکست خورد.");
 
         // --- START OF THE DEFINITIVE FIX ---
         // ۱. وضعیت بازیکن را به طور قطعی به DEFEATED تغییر بده
@@ -281,7 +281,7 @@ public class GameOfThrones implements Serializable {
             mediatorUser.setGame(null);
             mediatorUser.setInFight(false);
         }
-        System.out.println("State for user " + user.getUsername() + " has been successfully cleaned and reset.");
+        GameLog.info("State for user " + user.getUsername() + " has been successfully cleaned and reset.");
     }
     public void checkAllPlayersStatus() {
         for (GameUser user : this.User) {
@@ -296,51 +296,6 @@ public class GameOfThrones implements Serializable {
                 }
             }
         }
-    }
-    public void displayBattleReportsForUser(GameUser user) {
-        if (user == null) return;
-
-        if (BATTLE_LOG_FILE == null || BATTLE_LOG_FILE.isEmpty()) {
-            System.out.println("❌ مسیر فایل گزارش نبردها تعریف نشده است.");
-            System.out.println("   (این مشکل ممکن است برای بازی‌های قدیمی که قبل از این آپدیت ذخیره شده‌اند رخ دهد.)");
-            return;
-        }
-
-        String currentUsername = user.getUsername();
-        System.out.println("===== گزارش نبردها برای کاربر: " + currentUsername + " =====");
-
-        try (BufferedReader br = new BufferedReader(new FileReader(BATTLE_LOG_FILE))) {
-            String line;
-            boolean found = false;
-            while ((line = br.readLine()) != null) {
-                String[] parts = line.split(";");
-                if (parts.length < 5) continue;
-
-                String attackerName = parts[0];
-                String defenderName = parts[1];
-
-                if (attackerName.equals(currentUsername)) {
-                    found = true;
-                    System.out.println("\n-- وضعیت: هجوم --");
-                    System.out.println("  > حریف: " + defenderName);
-                    System.out.println("  > نتیجه: " + parts[2] + " ستاره");
-                    System.out.println("  > ترکیب ارتش: " + parts[3]);
-                    System.out.println("  > زمان: " + parts[4]);
-                } else if (defenderName.equals(currentUsername)) {
-                    found = true;
-                    System.out.println("\n-- وضعیت: دفاع --");
-                    System.out.println("  > حریف: " + attackerName);
-                    System.out.println("  > نتیجه: شکست با " + parts[2] + " ستاره از دست رفته");
-                    System.out.println("  > زمان: " + parts[4]);
-                }
-            }
-            if (!found) {
-                System.out.println("هیچ نبردی برای این کاربر ثبت نشده است.");
-            }
-        } catch (IOException e) {
-            System.out.println("فایل گزارش نبردها در مسیر '" + BATTLE_LOG_FILE + "' یافت نشد!");
-        }
-        System.out.println("==========================================");
     }
 
     public void handleSpoilsOfWar(Mission mission, int stars) {
@@ -434,7 +389,7 @@ public class GameOfThrones implements Serializable {
             String raw = GameConfig.getGameProperty(id, "game.speed");
             return (int) Double.parseDouble(raw); // تبدیل اعشاری به صحیح
         } catch (Exception e) {
-            System.err.println("⚠️ مقدار سرعت نامعتبر است. استفاده از مقدار پیش‌فرض 1.");
+            GameLog.error("⚠️ مقدار سرعت نامعتبر است. استفاده از مقدار پیش‌فرض 1.");
             return 1;
         }
     }
@@ -523,7 +478,7 @@ public class GameOfThrones implements Serializable {
         GameFileUtility.saveFullGameState(this);
         GameFileUtility.removeGameFromLobbyList(this);
 
-        System.out.println("🎮 بازی با موفقیت آغاز شد. دیوار ساخته شد و بازی در وضعیت آماده قرار گرفت.");
+        GameLog.info("🎮 بازی با موفقیت آغاز شد. دیوار ساخته شد و بازی در وضعیت آماده قرار گرفت.");
 
     }
 
@@ -584,7 +539,7 @@ public class GameOfThrones implements Serializable {
                 activePlayerCount++;
             }
             else {
-                System.out.println("کاربر " + currentUser.getUsername() + " (مالک قلعه: " + currentUser.getKingdom().getType() + ") به علت عدم فعالیت طولانی‌مدت از بازی حذف شد.");
+                GameLog.info("کاربر " + currentUser.getUsername() + " (مالک قلعه: " + currentUser.getKingdom().getType() + ") به علت عدم فعالیت طولانی‌مدت از بازی حذف شد.");
 
                 currentUser.setKingdom(null);
                 currentUser.setInGame(false);
@@ -622,91 +577,9 @@ public class GameOfThrones implements Serializable {
     public Map getMap() {
         return map;
     }
-    public GameUser selectTarget(GameUser attacker, AttackType attackType) {
-        Scanner input = new Scanner(System.in);
-
-        // مرحله ۱: ساخت یک آرایه موقت فقط از اهداف معتبر
-        // ابتدا تعداد اهداف معتبر را می‌شماریم
-        int targetCount = 0;
-        // فرض می‌کنیم آرایه اصلی شما allUsers نام دارد
-        for (GameUser user : this.User) {
-            if (user != null &&  !(user.getId()==attacker.getId())&&!user.isInFight()) {
-                if ((attackType==AttackType.GROUND&&user.getKingdom().getType()==KingdomType.IRON_ISLANDS))
-                    continue;
-
-
-                targetCount++;
-            }
-        }
-
-        if (targetCount == 0) {
-            System.out.println("هیچ هدف معتبری برای حمله یافت نشد.");
-            return null;
-        }
-
-        // حالا آرایه‌ای با اندازه دقیق می‌سازیم
-        GameUser[] validTargets = new GameUser[targetCount];
-        int index = 0;
-        for (GameUser user : this.User) {
-            if (user != null && !(user.getId()==attacker.getId())&&!user.isInFight()) {
-                if ((attackType==AttackType.GROUND&&user.getKingdom().getType()==KingdomType.IRON_ISLANDS))
-                    continue;
-                validTargets[index] = user;
-                index++;
-            }
-        }
-        int distance;
-        Double speedMov=1.0;
-        if(attackType==AttackType.SEA)
-            speedMov=attacker.getKingdom().getBattleShip().Speed;
-        else attacker.getKingdom().getArmyManager().getSoldierSpeed();
-        // مرحله ۲: نمایش لیست شماره‌بندی شده و دریافت انتخاب عددی کاربر
-        while (true) {
-            System.out.println("--- لطفاً هدف خود را با وارد کردن شماره آن انتخاب کنید ---");
-            for (int i = 0; i < validTargets.length; i++) {
-                if(attackType==AttackType.SEA)
-                    distance=seaDistance(attacker,validTargets[i]);
-                else distance=GroundDistance(attacker,validTargets[i]);
-                System.out.println((i + 1)+"کینگدوم:"+validTargets[i].getKingdom().getType()+"فاصله:"+distance+"زمان بر حسب فاصله:"+this.getGameTime().getTimeForDistance(distance,speedMov));
-
-            }
-
-            System.out.print("شماره هدف (یا 'exit' برای بازگشت): ");
-            String choiceStr = input.next();
-
-            if (choiceStr.equalsIgnoreCase("exit")) {
-                return null;
-            }
-
-            try {
-                int choice = Integer.parseInt(choiceStr);
-                if (choice > 0 && choice <= validTargets.length) {
-                    return validTargets[choice - 1]; // بازگرداندن کاربر انتخاب شده
-                } else {
-                    System.out.println("❌ شماره وارد شده خارج از محدوده است.");
-                }
-            } catch (NumberFormatException e) {
-                System.out.println("❌ ورودی نامعتبر. لطفاً یک عدد وارد کنید.");
-            }
-        }
-    }
     // این متد را به انتهای کلاس GameOfThrones.java اضافه کنید
     public String getReplaysFolderPath() {
         return REPLAYS_FOLDER_PATH;
-    }
-    public void printSpyReport(GameUser defndar,AttackType attackType){
-        defndar.getKingdom().getUserMap().printUserMap();
-        defndar.getKingdom().getArmyManager().printDefenders();
-        System.out.println("مقاومت دفاعی:"+defndar.getKingdom().getArmyManager().getDefenceManager().DefenseComplex.getTotalHealth(attackType));
-
-    }
-    public void printMission(GameUser attacker){
-        int counter=0     ;
-        for(Mission mission:missions){
-            if(mission.getAttacker().getId()==attacker.getId())
-                System.out.println((++counter)+""+attacker.getKingdom()+"attack to---->"+mission.getDefender());
-
-        }
     }
     public void addKingdomsRood(){
         for(int i=14 ; i<58 ;i++){
@@ -759,7 +632,7 @@ public class GameOfThrones implements Serializable {
             return; // اگر مأموریتی نیست، خارج شو
         }
 
-        System.out.println("\n--- Checking " + missions.getSize() + " missions at " + java.time.LocalTime.now() + " ---");
+        GameLog.info("\n--- Checking " + missions.getSize() + " missions at " + java.time.LocalTime.now() + " ---");
 
         MyLinkedList<Mission> completedMissions = new MyLinkedList<>();
         Node<Mission> missionNode = missions.getHead();
@@ -770,12 +643,12 @@ public class GameOfThrones implements Serializable {
             // --- بخش دیباگ ---
             boolean isReady = mission.isReadyToAttack();
             long remaining = mission.getDurationSeconds() - mission.getElapsedTime();
-            System.out.println("  > Mission to " + mission.getDefender().getUsername() +
+            GameLog.info("  > Mission to " + mission.getDefender().getUsername() +
                 ": isReady? " + isReady + " (Remaining: " + remaining + "s)");
             // --- پایان بخش دیباگ ---
 
             if (isReady) {
-                System.out.println("    ✅ Mission is ready! Starting attack...");
+                GameLog.info("    ✅ Mission is ready! Starting attack...");
                 if (mission.startAttack()) {
                     completedMissions.add(mission);
                 }
@@ -784,7 +657,7 @@ public class GameOfThrones implements Serializable {
         }
 
         if (!completedMissions.isEmpty()) {
-            System.out.println("    🧹 Clearing " + completedMissions.getSize() + " completed missions.");
+            GameLog.info("    🧹 Clearing " + completedMissions.getSize() + " completed missions.");
             Node<Mission> completedNode = completedMissions.getHead();
             while (completedNode != null) {
                 Mission mission = completedNode.data;
@@ -796,7 +669,7 @@ public class GameOfThrones implements Serializable {
             }
             GameFileUtility.saveFullGameState(this);
         }
-        System.out.println("--- Finished checking missions ---");
+        GameLog.info("--- Finished checking missions ---");
     }
     public  void setAlert() {
         long now = System.currentTimeMillis();
@@ -808,14 +681,6 @@ public class GameOfThrones implements Serializable {
         alert = ( 24*60 * 60 - secondsInCurrentDay) <= 3600;
     }
 
-    public  void printUserList(GameUser userRequest){
-        for (int i=0;i<7;i++){
-            if(User[i]!=null&&User[i].getId()!=userRequest.getId()&&User[i].isActive()&&!User[i].isInFight()){
-                int distance=Math.round(userRequest.getKingdom().getEntryPoint().distance(User[i].getKingdom().getEntryPoint()));
-                System.out.println(i+"کینگدوم:"+User[i].getKingdom().getType()+"ایدی یوزر:"+User[i].getId()+"فاصله:"+distance+"زمان بر حسب فاصله:"+Time.getTimeForDistance(distance));
-            }
-        }
-    }
     public  int getDistanceTime(GameUser request,GameUser recever){
         int distance=Math.round(request.getKingdom().getEntryPoint().distance(recever.getKingdom().getEntryPoint()));
         return Time.getTimeForDistance(distance);
@@ -854,11 +719,11 @@ public class GameOfThrones implements Serializable {
 
         user.getKingdom().incrementUnreadNotifications();
 
-        System.out.println("یک اعلان برای " + user.getUsername() + " ارسال شد.");
+        GameLog.info("یک اعلان برای " + user.getUsername() + " ارسال شد.");
     }
 
     public void sendSystemNotificationToAll(String title, String body) {
-        System.out.println("ارسال اعلان عمومی برای تمام بازیکنان...");
+        GameLog.info("ارسال اعلان عمومی برای تمام بازیکنان...");
 
         Notice publicNotification = new Notice(0, null, null, title, body);
 
@@ -869,62 +734,9 @@ public class GameOfThrones implements Serializable {
                 user.getKingdom().incrementUnreadNotifications();
             }
         }
-        System.out.println("اعلان عمومی با موفقیت ارسال شد.");
+        GameLog.info("اعلان عمومی با موفقیت ارسال شد.");
     }
 
-    public int userPostList(GameUser userReq) {
-        System.out.println("\n--- شروع بررسی بازیکنان برای ارسال پیام ---");
-        System.out.println("کاربر درخواست دهنده: " + userReq.getUsername() + " (ID: " + userReq.getId() + ")");
-        System.out.println("\n👥 بازیکنان قابل ارسال پیام (با برج کلاغ):");
-        int foundCount = 0;
-        int displayIndex = 1;
-
-        if (User == null) {
-            System.out.println("DEBUG: آرایه کاربران (User[]) نال است!");
-            return 0;
-        }
-        System.out.println("DEBUG: تعداد کل اسلات های کاربران: " + User.length);
-
-        for (int i = 0; i < User.length; i++) {
-            GameUser u = User[i];
-            System.out.println("\nDEBUG: در حال بررسی کاربر در ایندکس " + i);
-
-            if (u == null) {
-                System.out.println("DEBUG: کاربر در ایندکس " + i + " نال است. رد شد.");
-                continue;
-            }
-
-            System.out.println("DEBUG: کاربر: " + u.getUsername() + " (ID: " + u.getId() + ")");
-            System.out.println("DEBUG: فعال بودن: " + u.isActive() + ", در نبرد: " + u.isInFight());
-
-            if (u.getId() == userReq.getId()) {
-                System.out.println("DEBUG: این کاربر، درخواست دهنده است. رد شد.");
-                continue;
-            }
-
-            if (u.getKingdom() == null) {
-                System.out.println("DEBUG: پادشاهی کاربر " + u.getUsername() + " نال است. رد شد.");
-                continue;
-            }
-            System.out.println("DEBUG: پادشاهی کاربر " + u.getUsername() + ": " + u.getKingdom().getType());
-            System.out.println("DEBUG: آیا برج کلاغ دارد؟ " + u.getKingdom().hasCrowTower());
-
-            if (u.isActive() && !u.isInFight() && u.getKingdom().hasCrowTower()) {
-                foundCount++;
-                System.out.println("DEBUG: کاربر " + u.getUsername() + " شرایط را دارد.");
-                System.out.println(displayIndex + ". نام کاربری: " + u.getUsername() + ", شناسه: " + u.getId() + ", پادشاهی: " + u.getKingdom().getType());
-                displayIndex++;
-            } else {
-                System.out.println("DEBUG: کاربر " + u.getUsername() + " شرایط را ندارد. (یک یا چند شرط نقض شد)");
-            }
-        }
-
-        if (foundCount == 0) {
-            System.out.println("❗ هیچ بازیکنی برای ارسال پیام در دسترس نیست یا فاقد برج کلاغ هستند.");
-        }
-        System.out.println("--- پایان بررسی بازیکنان برای ارسال پیام. تعداد یافته شده: " + foundCount + " ---");
-        return foundCount;
-    }
 // In file: GameOfThrones.java
 
     public Result removePlayer(GameUser userToRemove) {
@@ -964,7 +776,7 @@ public class GameOfThrones implements Serializable {
                 return u;
             }
         }
-        System.out.println("❌ بازیکن با شناسه فوق یافت نشد، قادر به دریافت پیام نیست یا فاقد برج کلاغ است."); //
+        GameLog.info("❌ بازیکن با شناسه فوق یافت نشد، قادر به دریافت پیام نیست یا فاقد برج کلاغ است."); //
         return null;
     }
 
@@ -1015,35 +827,6 @@ public class GameOfThrones implements Serializable {
         return new Result(true, successMessage.toString());
     }
 
-    public void printTopContributors() {
-        System.out.println("🔍 تعداد کمک‌ها: " + (wall.getContributions() == null ? "null" : wall.getContributions().size()));
-        if (wall.getContributions() == null || wall.getContributions().isEmpty()) {
-            System.out.println("ℹ️ هنوز هیچ کمکی به دیوار ثبت نشده.");
-            return;
-        }
-
-
-        System.out.println("\n🏆 مشارکت‌کنندگان برتر دیوار:");
-
-        Wall.ContributionRecord[] array = new Wall.ContributionRecord[wall.getContributions().size()];
-        wall.getContributions().fillArray(array);
-
-        for (int i = 0; i < array.length - 1; i++) {
-            for (int j = i + 1; j < array.length; j++) {
-                if (array[j].getAmount() > array[i].getAmount()) {
-                    Wall.ContributionRecord temp = array[i];
-                    array[i] = array[j];
-                    array[j] = temp;
-                }
-            }
-        }
-
-        for (int i = 0; i < Math.min(array.length, 5); i++) {
-            KingdomType name = array[i].getKingdom().getType();
-            int amount = (int) array[i].getAmount();
-            System.out.println((i + 1) + ". " + name + " → " + amount + " واحد کمک");
-        }
-    }
 
     public int getNumberOfPlayers() {
         return numberOfPlayer;
@@ -1091,18 +874,11 @@ public class GameOfThrones implements Serializable {
         return total;
     }
 
-    public void printDragonGlassReport() {
-        System.out.println("\n🔮 وضعیت DragonGlass در اقلیم‌ها:");
-        for (GameUser u : getActiveUsers()) {
-            Kingdom k = u.getKingdom();
-            System.out.println("- " + k.getType() + ": " + k.getDragonGlass() + " شیشه | " + k.getEquippedSoldierCount() + " سرباز مجهز");
-        }
-    }
 
 
     public void postLoadUpdate() {
         if (this.gameTime != null && this.gameTime.gameSpeed <= 0) {
-            System.out.println("LOG: سرعت بازی نامعتبر پس از بارگذاری شناسایی شد. در حال اصلاح...");
+            GameLog.info("LOG: سرعت بازی نامعتبر پس از بارگذاری شناسایی شد. در حال اصلاح...");
             this.gameTime.setGameSpeed(this.getSpeed());
         }
     }

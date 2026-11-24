@@ -1,5 +1,7 @@
 package com.yourname.got.logic.Config;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.util.MyLinkedList;
 
 import java.io.*;
@@ -223,7 +225,7 @@ public class GameConfig {
             Properties props = cachedGameConfig(gameId);
             return props.getProperty(key);
         } catch (Exception e) {
-            System.out.println("❌ خطا در خواندن فایل تنظیمات بازی: " + e.getMessage());
+            GameLog.info("❌ خطا در خواندن فایل تنظیمات بازی: " + e.getMessage());
             return null;
         }
     }
@@ -232,7 +234,7 @@ public class GameConfig {
             Properties globalProps = loadGlobalConfig();
             return globalProps.getProperty(key);
         } catch (Exception e) {
-            System.out.println("❌ خطا در خواندن GlobalConfig: " + e.getMessage());
+            GameLog.info("❌ خطا در خواندن GlobalConfig: " + e.getMessage());
             return null;
         }
     }

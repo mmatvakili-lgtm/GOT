@@ -1,5 +1,7 @@
 package com.yourname.got.logic.login;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.enums.Seasons;
 import java.io.Serializable;
 
@@ -38,7 +40,7 @@ public class Time implements Serializable {
             season = Seasons.fromInt(seasonIndex);
             // >> END: کد اصلاح شده <<
         } catch (Exception e) {
-            System.out.println("Game is out of date");
+            GameLog.info("Game is out of date");
         }
     }
 
@@ -78,7 +80,7 @@ public class Time implements Serializable {
     }
     public void showGameTime(){
         updateTime();
-        System.out.println("season:"+season+"\nday"+day);
+        GameLog.info("season:"+season+"\nday"+day);
     }
     public String getCalendarString() {
         int year = (day - 1) / 100 + 1;

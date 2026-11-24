@@ -1,5 +1,7 @@
 package com.yourname.got.logic.model;
 
+
+import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.enums.TerrainType;
 import com.yourname.got.logic.model.Tile;
 import com.yourname.got.logic.util.Result;
@@ -50,7 +52,7 @@ public class Map implements Serializable {
 
     public void printMap() {
         for (int i = 0; i < mainMap.length; i++) {
-            System.out.println("Row " + i + ":");
+            GameLog.info("Row " + i + ":");
             for (int j = 0; j < mainMap[0].length; j++) {
                 System.out.print("|" + mainMap[i][j]);
             }
