@@ -122,7 +122,7 @@ public class GameOfThrones implements Serializable {
         }
 
         for (GameUser u : this.User) {
-            if (u == null) continue;
+            if (u == null || BotUser.isBot(u)) continue; // bots are not stored in users/
             UserSystem.saveGameRecord(u, finalRecord);
 
             // اصلاح مهم: از آنجایی که بازی تمام شده، وضعیت IN GAME بازیکن را فالس می‌کنیم
@@ -155,13 +155,17 @@ public class GameOfThrones implements Serializable {
         checkAllPlayersStatus();
 
         int activePlayers = 0;
+        int activeHumans = 0;
+        boolean hasBots = false;
         GameUser lastAlive = null;
 
         for (GameUser u : this.User) {
             if (u == null) continue;
+            if (BotUser.isBot(u)) hasBots = true;
             PlayerState st = getPlayerState(u.getId());
             if (st != null && st.status == PlayerStatus.ACTIVE) {
                 activePlayers++;
+                if (!BotUser.isBot(u)) activeHumans++;
                 lastAlive = u;
             }
         }
@@ -169,6 +173,13 @@ public class GameOfThrones implements Serializable {
         // شرط ۱: وایت واکرها همه را کشتند
         if (activePlayers == 0) {
             endGame(GameRecord.GameResult.WHITE_WALKERS_WON);
+            return;
+        }
+
+        // Every human has fallen but bots are still alive: nobody is left to play, so the game ends here
+        // (otherwise bots would keep an empty game running until day 100).
+        if (hasBots && activeHumans == 0) {
+            endGame(GameRecord.GameResult.LAST_PLAYER_STANDING);
             return;
         }
 
@@ -459,11 +470,16 @@ public class GameOfThrones implements Serializable {
         this.bazar = new Bazar();
         this.postOffice = new Post();
 
+        fillWithBots();
         assignRandomKingdomsToUsers();
         for (GameUser user : this.User) {
             if (user != null) {
                 playerStates.add(new PlayerState(user.getId()));
             }
+        }
+        int garrison = configuredBotGarrison();
+        for (GameUser user : this.User) {
+            if (user instanceof BotUser bot) bot.equipGarrison(garrison);
         }
 
         Admin.checkInfoFile();
@@ -510,11 +526,42 @@ public class GameOfThrones implements Serializable {
 
                 User[i].setKingdom(kingdoms[index]);
 
-                UserSystem.updateUser(User[i]);
+                if (!BotUser.isBot(User[i])) UserSystem.updateUser(User[i]);
                 used[index] = true;
                 GameFileUtility.updateGame(this);
             }
         }
+    }
+
+    /** How many bots a new game gets (balance.properties: bots.count, default 0 = none). */
+    public static int configuredBots() {
+        return com.yourname.got.logic.Balance.BalanceConfig.integer("bots.count", 0, 0, maxPlayer - 1);
+    }
+
+    /** Soldiers in a bot's home guard (balance.properties: bots.garrison, default 30). */
+    public static int configuredBotGarrison() {
+        return com.yourname.got.logic.Balance.BalanceConfig.integer("bots.garrison", 30, 0, 500);
+    }
+
+    public int getBotCount() {
+        int n = 0;
+        for (GameUser u : this.User) if (BotUser.isBot(u)) n++;
+        return n;
+    }
+
+    /** Adds the configured number of bots into the free player slots (never more than there are kingdoms). */
+    private void fillWithBots() {
+        if (getBotCount() > 0) return; // already filled (the game was started before)
+        int wanted = configuredBots();
+        int added = 0;
+        while (added < wanted && numberOfPlayer < maxPlayer) {
+            BotUser bot = new BotUser(-(added + 1));
+            bot.setGame(this);
+            bot.isInGame = true;
+            this.User[numberOfPlayer++] = bot;
+            added++;
+        }
+        if (added > 0) GameLog.info("INFO: " + added + " bot(s) joined the game.");
     }
 
     public void checkUserActivity() {
@@ -528,6 +575,11 @@ public class GameOfThrones implements Serializable {
             GameUser currentUser = this.User[i];
 
             if (currentUser == null) {
+                continue;
+            }
+            if (BotUser.isBot(currentUser)) { // a bot is always "online"
+                this.User[activePlayerCount] = currentUser;
+                activePlayerCount++;
                 continue;
             }
 
@@ -772,7 +824,7 @@ public class GameOfThrones implements Serializable {
     public GameUser userPostAvailable(int id, GameUser user) {
         for (int i = 0; i < User.length; i++) {
             GameUser u = User[i];
-            if (u != null && u.getId() == id && u.getId() != user.getId() && u.isActive() && !u.isInFight() && u.getKingdom().hasCrowTower() ) {
+            if (u != null && u.getId() == id && u.getId() != user.getId() && !BotUser.isBot(u) && u.isActive() && !u.isInFight() && u.getKingdom().hasCrowTower() ) {
                 return u;
             }
         }

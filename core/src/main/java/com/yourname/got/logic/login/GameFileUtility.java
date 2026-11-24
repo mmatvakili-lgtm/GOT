@@ -294,7 +294,7 @@ public class GameFileUtility {
         }
 
         for (int i = 0; i < game.getNumberOfPlayers(); i++) {
-            if(game.getUsers()[i] != null){
+            if(game.getUsers()[i] != null && !BotUser.isBot(game.getUsers()[i])){
                 game.getUsers()[i].setGame(null);
                 game.getUsers()[i].setInGame(false);
                 game.getOwner().isInGame = false;
@@ -525,7 +525,7 @@ public class GameFileUtility {
             return;
         }
         for (GameUser user : players) {
-            if (user != null) {
+            if (user != null && !BotUser.isBot(user)) { // bots live only in the game file
                 UserSystem.updateUser(user);
             }
         }

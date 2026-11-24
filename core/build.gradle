@@ -29,6 +29,13 @@ test {
         exceptionFormat "full"
         showStandardStreams = false
     }
+    // Always name the failing test and its message in the build output (CI logs do not show the HTML report).
+    afterTest { desc, result ->
+        if (result.resultType == TestResult.ResultType.FAILURE) {
+            logger.quiet("TEST FAILED: ${desc.className} > ${desc.name}")
+            result.exceptions.each { logger.quiet("    " + it.toString()) }
+        }
+    }
 }
 repositories {
     mavenCentral()

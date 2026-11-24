@@ -30,6 +30,9 @@ public class UserSystem {
         if (username == null || username.isBlank() || username.contains(",") || username.contains("\n") || username.contains("\r")) {
             return new Result(false, "Username cannot be empty or contain commas or line breaks");
         }
+        if (username.trim().toUpperCase().startsWith(BotUser.NAME_PREFIX)) {
+            return new Result(false, "This name is reserved for computer players");
+        }
         if (password == null || !password.matches("\\d{4}")) {
             return new Result(false, "Password must be exactly 4 digits");
         }
