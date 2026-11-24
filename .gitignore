@@ -53,3 +53,5 @@ logs/
 javac.*.args
 leaderboard.txt
 leaderboard.txt.tmp
+settings.properties
+settings.properties.tmp
