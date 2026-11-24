@@ -192,26 +192,4 @@ class BotPlayersTest {
         }
         Check.assertAll();
     }
-
-    @Test
-    void botsGrowOncePerDayUpToTheCap() throws Exception {
-        TestWorld.reset(true);
-        configure("bots.count=1\nbots.garrison=10\nbots.growth.perDay=5\nbots.garrison.max=18\n");
-        try {
-            GameUser u1 = new GameUser("alice", "1234", 1);
-            GameOfThrones g = new GameOfThrones("grow", 1, u1);
-            g.startGame();
-            BotUser bot = null;
-            for (GameUser u : g.getUsers()) if (BotUser.isBot(u)) bot = (BotUser) u;
-            Check.that(bot != null, "a bot joined");
-            int start = bot.getKingdom().getOwnedSoldierCount();
-            Check.that(bot.reinforce(1) == 5, "day 1: +5 soldiers");
-            Check.that(bot.reinforce(1) == 0, "the same day never grows twice");
-            Check.that(bot.reinforce(2) == 3, "day 2 stops at the cap of 18 (start " + start + ")");
-            Check.that(bot.reinforce(3) == 0, "no growth at the cap");
-            Check.assertAll();
-        } finally {
-            remove();
-        }
-    }
 }

@@ -16,35 +16,6 @@ import com.yourname.got.logic.model.Kingdom;
 public class BotUser extends GameUser {
     private static final long serialVersionUID = 4721905561820001L;
 
-    /** Last game day this bot reinforced its guard (never twice for the same day). */
-    private int lastGrowthDay = 0;
-
-    /** Soldiers added per game day (balance.properties: bots.growth.perDay, default 0 = bots never grow). */
-    public static int growthPerDay() {
-        return com.yourname.got.logic.Balance.BalanceConfig.integer("bots.growth.perDay", 0, 0, 50);
-    }
-
-    /** Largest guard a bot builds up to (bots.garrison.max, default 200). */
-    public static int garrisonMax() {
-        return com.yourname.got.logic.Balance.BalanceConfig.integer("bots.garrison.max", 200, 0, 2000);
-    }
-
-    /**
-     * Once per game day the bot recruits growthPerDay soldiers, never beyond garrisonMax().
-     * Returns how many were added. Days that were skipped are not made up for.
-     */
-    public int reinforce(int day) {
-        Kingdom k = getKingdom();
-        if (k == null || day <= lastGrowthDay) return 0;
-        lastGrowthDay = day;
-        if (k.getCastle() == null || k.getCastle().isDestroyed()) return 0;
-        int room = garrisonMax() - k.getOwnedSoldierCount();
-        int add = Math.min(growthPerDay(), room);
-        if (add <= 0) return 0;
-        equipGarrison(add);
-        return add;
-    }
-
     /** Registered users may not start their name with this (checked case-insensitively). */
     public static final String NAME_PREFIX = "[BOT]";
 
