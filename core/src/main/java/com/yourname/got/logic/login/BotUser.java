@@ -33,6 +33,16 @@ public class BotUser extends GameUser {
      * Once per game day the bot recruits growthPerDay soldiers, never beyond garrisonMax().
      * Returns how many were added. Days that were skipped are not made up for.
      */
+    private int lastBuildDay = 0;
+
+    /** Once per game day: one storage/mine if bots.build.enabled=1 (see BotBuilder). Returns what was started or null. */
+    public String develop(int day) {
+        if (day <= lastBuildDay) return null;
+        lastBuildDay = day;
+        if (!com.yourname.got.logic.system.BotBuilder.enabled()) return null;
+        return com.yourname.got.logic.system.BotBuilder.buildOne(getGame(), this);
+    }
+
     public int reinforce(int day) {
         Kingdom k = getKingdom();
         if (k == null || day <= lastGrowthDay) return 0;

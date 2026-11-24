@@ -214,4 +214,45 @@ class BotPlayersTest {
             remove();
         }
     }
+
+    @Test
+    void botsBuildOneFreeBuildingPerDayWhenEnabled() throws Exception {
+        TestWorld.reset(true);
+        configure("bots.count=1\nbots.build.enabled=1\n");
+        try {
+            GameUser u1 = new GameUser("alice", "1234", 1);
+            GameOfThrones g = new GameOfThrones("builder", 1, u1);
+            g.startGame();
+            BotUser bot = null;
+            for (GameUser u : g.getUsers()) if (BotUser.isBot(u)) bot = (BotUser) u;
+            Check.that(bot != null, "a bot joined");
+            int before = bot.getKingdom().getBuildings().size();
+            String first = bot.develop(1);
+            Check.that(first != null, "day 1: the bot started a building (" + first + ")");
+            Check.that(bot.getKingdom().getBuildings().size() == before + 1, "exactly one building was added");
+            Check.that(bot.develop(1) == null, "the same day never builds twice");
+            Check.assertAll();
+        } finally {
+            remove();
+        }
+    }
+
+    @Test
+    void botsDoNotBuildByDefault() throws Exception {
+        TestWorld.reset(true);
+        configure("bots.count=1\n");
+        try {
+            GameUser u1 = new GameUser("alice", "1234", 1);
+            GameOfThrones g = new GameOfThrones("nobuild", 1, u1);
+            g.startGame();
+            BotUser bot = null;
+            for (GameUser u : g.getUsers()) if (BotUser.isBot(u)) bot = (BotUser) u;
+            int before = bot.getKingdom().getBuildings().size();
+            Check.that(bot.develop(1) == null, "disabled: nothing is built");
+            Check.that(bot.getKingdom().getBuildings().size() == before, "building count unchanged");
+            Check.assertAll();
+        } finally {
+            remove();
+        }
+    }
 }
