@@ -50,3 +50,4 @@ assets/images/background.psd
 logs/
 *.ser.bak
 *.ser.tmp
+javac.*.args

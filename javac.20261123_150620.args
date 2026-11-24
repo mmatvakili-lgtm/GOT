@@ -1,8 +1,0 @@
--proc:none
--Xmaxerrs
-100000
--d
-/tmp/llcheck/full
--cp
-
-@/tmp/srcs.txt
