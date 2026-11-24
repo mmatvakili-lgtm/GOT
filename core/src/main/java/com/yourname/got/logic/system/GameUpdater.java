@@ -55,6 +55,11 @@ public class GameUpdater implements Serializable {
             game.getGameTime().updateTime();
             int currentDay = game.getGameTime().getDay();
             game.getWhiteWalkerManager().onDayAdvanced(currentDay);
+            try {
+                SeasonalEvents.onDayAdvanced(game, currentDay);
+            } catch (RuntimeException e) {
+                GameLog.error("Seasonal event failed (the game goes on): " + e);
+            }
             game.checkMissions();
             game.checkGameOver();
         } catch (Exception e) {
