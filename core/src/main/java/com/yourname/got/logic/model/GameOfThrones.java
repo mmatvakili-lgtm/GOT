@@ -131,6 +131,20 @@ public class GameOfThrones implements Serializable {
                 PlayerResult.PlayerStatus.DEFEATED, rank++));
         }
 
+        try {
+            for (GameUser u : this.User) {
+                if (u == null || BotUser.isBot(u)) continue;
+                PlayerState st = getPlayerState(u.getId());
+                boolean won = reason == GameRecord.GameResult.LAST_PLAYER_STANDING
+                    && !survivors.isEmpty() && survivors.get(0) == u;
+                int score = survivorScores.containsKey(u.getId())
+                    ? survivorScores.get(u.getId()) : (st == null ? 0 : st.finalScore);
+                com.yourname.got.logic.system.Leaderboard.record(u.getUsername(), score, won);
+            }
+        } catch (RuntimeException e) {
+            GameLog.error("Leaderboard update failed (the game still ends): " + e);
+        }
+
         for (GameUser u : this.User) {
             if (u == null || BotUser.isBot(u)) continue; // bots are not stored in users/
             UserSystem.saveGameRecord(u, finalRecord);
