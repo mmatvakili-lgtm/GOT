@@ -51,3 +51,5 @@ logs/
 *.ser.bak
 *.ser.tmp
 javac.*.args
+leaderboard.txt
+leaderboard.txt.tmp
