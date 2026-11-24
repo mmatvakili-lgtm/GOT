@@ -43,6 +43,8 @@ public class GameOfThrones implements Serializable {
     public   String BATTLE_LOG_FILE ;
     private Properties config;
     private boolean isFinished = false;
+    /** The last game day a seasonal event was rolled for (see SeasonalEvents). Old saves start at 0. */
+    private int lastEventDay = 0;
     MyLinkedList<PlayerState> playerStates;
     public String REPLAYS_FOLDER_PATH;
 
@@ -72,6 +74,14 @@ public class GameOfThrones implements Serializable {
 
     public boolean isFinished() {
         return isFinished;
+    }
+
+    public int getLastEventDay() {
+        return lastEventDay;
+    }
+
+    public void setLastEventDay(int day) {
+        this.lastEventDay = day;
     }
     public void endGame(GameRecord.GameResult reason) {
         if (this.isFinished) return;
