@@ -689,7 +689,8 @@ public class GameMediator {
             if (gameInstance.isGameReady()) {
                 return new Result(false, "This game has already started.");
             }
-            if (gameInstance.getNumberOfPlayers() < 2) { // Example rule: Minimum 2 players
+            // Bots count as opponents: a lone player can start when bots are configured.
+            if (gameInstance.getNumberOfPlayers() + GameOfThrones.configuredBots() < 2) { // Minimum 2 players
                 return new Result(false, "At least 2 players are required to start.");
             }
 // در فایل GameMediator.java و متد startGameFromUI
@@ -2424,7 +2425,7 @@ public void initiateGameSession(GameOfThrones game) {
         if (isGameStateInvalid()) return recipients;
 
         for (GameUser user : currentGame.getUsers()) {
-            if (user != null && user.getId() != currentUser.getId() &&
+            if (user != null && !BotUser.isBot(user) && user.getId() != currentUser.getId() &&
                 user.isActive() && !user.isInFight() &&
                 user.getKingdom() != null) {
 
