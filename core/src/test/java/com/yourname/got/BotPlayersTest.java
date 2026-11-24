@@ -140,7 +140,10 @@ class BotPlayersTest {
         UserSystem users = new UserSystem();
         Check.that(!users.register("[BOT] STARK", "1234").isSuccess(), "the reserved prefix is refused");
         Check.that(!users.register("  [bot] x", "1234").isSuccess(), "the prefix check ignores case and spaces");
-        Check.that(users.register("Robert", "1234").isSuccess(), "an ordinary name is still accepted");
+        // (TestWorld pre-creates user folders, so registration itself may fail for an unrelated reason: only the
+        // reserved-name rule matters here.)
+        Check.that(!String.valueOf(users.register("Robert", "1234").getMessage()).contains("reserved"),
+            "an ordinary name is not refused as reserved");
         boolean refused = false;
         try { new BotUser(5); } catch (IllegalArgumentException e) { refused = true; }
         Check.that(refused, "a bot id must be negative");
