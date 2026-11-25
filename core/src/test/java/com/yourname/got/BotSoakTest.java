@@ -38,7 +38,7 @@ class BotSoakTest {
                         b.develop(day);
                         b.train(day);
                     }
-                    KingdomUpdater.updateKingdom(u.getKingdom());
+                    KingdomUpdater.updateKingdom(u.getKingdom(), g.getSpeed());
                 }
                 SeasonalEvents.onDayAdvanced(g, day);
             }
