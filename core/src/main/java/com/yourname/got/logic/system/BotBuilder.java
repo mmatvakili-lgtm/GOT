@@ -3,7 +3,9 @@ package com.yourname.got.logic.system;
 import com.yourname.got.logic.Balance.BalanceConfig;
 import com.yourname.got.logic.Balance.BuildingManager;
 import com.yourname.got.logic.login.BotUser;
+import com.yourname.got.logic.model.Building.Barrack;
 import com.yourname.got.logic.model.Building.Building;
+import com.yourname.got.logic.model.Building.Camp;
 import com.yourname.got.logic.model.Building.Mine;
 import com.yourname.got.logic.model.Building.Storage;
 import com.yourname.got.logic.model.GameOfThrones;
@@ -17,7 +19,11 @@ import com.yourname.got.logic.util.Result;
  * Once per game day a bot tries to build ONE storage or mine, through exactly the same rules and costs a player
  * has (BuildingManager.construct and GameRulesManager). The first mine and storage of each resource are free in
  * this game, so a bot can bootstrap itself the same way a player does; later ones are only built when affordable.
- * Order: storage before its mine, wood, stone, food, coin; then the same list again for the next ones.
+ * Order of preference (the first thing that is allowed and affordable is done, one per day):
+ *   1. the free first storage and mine of every resource (storage before its mine, wood, stone, food, coin)
+ *   2. upgrade the castle (camps and the barrack need castle level 3)
+ *   3. a camp, then the barrack, when the rules allow them
+ *   4. further storages and mines
  */
 public final class BotBuilder {
     private static final String[] RESOURCES = {"WOOD", "STONE", "FOOD", "COIN"};
@@ -35,23 +41,47 @@ public final class BotBuilder {
                 || kingdom.getOwner() == null || kingdom.getOwner().getGame() == null) return null;
 
         GameRulesManager rules = new GameRulesManager(game);
+        try {
+            // 1. the free first ones
+            String r = economy(kingdom, rules, bot, true);
+            if (r != null) return r;
+            // 2. castle
+            if (upgradeCastle(kingdom, rules, bot, game)) return "Castle upgrade";
+            // 3. military buildings
+            if (rules.canBuild(bot, "Camp", kingdom.countBuildingsOfType("Camp"))
+                    && tryBuild(kingdom, new Camp(kingdom), null, kingdom.countBuildingsOfType("Camp"))) return "Camp";
+            if (rules.canBuild(bot, "Barrack", kingdom.countBuildingsOfType("Barrack"))
+                    && tryBuild(kingdom, new Barrack(kingdom), null, kingdom.countBuildingsOfType("Barrack"))) return "Barrack";
+            // 4. more economy
+            return economy(kingdom, rules, bot, false);
+        } catch (RuntimeException e) {
+            GameLog.error("Bot build failed: " + e);
+            return null;
+        }
+    }
+
+    private static String economy(Kingdom kingdom, GameRulesManager rules, BotUser bot, boolean onlyFirst) {
         for (String res : RESOURCES) {
             for (String type : new String[]{"Storage", "Mine"}) {
-                try {
-                    if (!rules.canBuildSpecificType(bot, type, res)) continue;
-                    if (tryBuild(kingdom, type, res)) return type + " (" + res + ")";
-                } catch (RuntimeException e) {
-                    GameLog.error("Bot build check failed for " + type + " " + res + ": " + e);
-                }
+                boolean mine = "Mine".equals(type);
+                int existing = mine ? kingdom.countMinesOfType(res) : kingdom.countStoragesOfType(res);
+                if (onlyFirst && existing > 0) continue;
+                if (!rules.canBuildSpecificType(bot, type, res)) continue;
+                Building b = mine ? new Mine(res, kingdom) : new Storage(res, kingdom);
+                if (tryBuild(kingdom, b, res, existing)) return type + " (" + res + ")";
             }
         }
         return null;
     }
 
-    private static boolean tryBuild(Kingdom kingdom, String type, String res) {
-        boolean mine = "Mine".equals(type);
-        int existing = mine ? kingdom.countMinesOfType(res) : kingdom.countStoragesOfType(res);
-        Building b = mine ? new Mine(res, kingdom) : new Storage(res, kingdom);
+    private static boolean upgradeCastle(Kingdom kingdom, GameRulesManager rules, BotUser bot, GameOfThrones game) {
+        Building castle = kingdom.getCastle();
+        if (castle == null || !castle.isBuilt() || !rules.canUpgradeBuilding(bot, castle).isSuccess()) return false;
+        Result r = BuildingManager.upgrade(kingdom, castle, null, kingdom.countBuildingsOfType("Castle"), game.getSpeed());
+        return r.isSuccess();
+    }
+
+    private static boolean tryBuild(Kingdom kingdom, Building b, String res, int existing) {
 
         // Do not place anything unless it can be paid: placing and rolling back would only add noise.
         int w = BuildingManager.getConstructionCost(res, 1, existing, "WOOD", b);
