@@ -226,12 +226,14 @@ public class LoginScreen extends ScreenAdapter implements GameMessageListener {
         TextButton addNoticeBtn = new TextButton("Add New Notice", skin);
         TextButton deleteNoticeBtn = new TextButton("Delete Notice", skin);
         TextButton configBtn = new TextButton("Manage Global Config", skin);
+        TextButton featuresBtn = new TextButton("Bots & Events", skin);
         TextButton backBtn = new TextButton("Back", skin); // Back button for the main panel
 
         // --- Set Text Color to Black ---
         addNoticeBtn.getLabel().setColor(Color.BLACK);
         deleteNoticeBtn.getLabel().setColor(Color.BLACK);
         configBtn.getLabel().setColor(Color.BLACK);
+        featuresBtn.getLabel().setColor(Color.BLACK);
         backBtn.getLabel().setColor(Color.BLACK);
 
         // --- Add Listeners ---
@@ -253,6 +255,12 @@ public class LoginScreen extends ScreenAdapter implements GameMessageListener {
                 openGlobalConfigWindow();
             }
         });
+        featuresBtn.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                openFeaturesWindow();
+            }
+        });
         backBtn.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
@@ -263,6 +271,7 @@ public class LoginScreen extends ScreenAdapter implements GameMessageListener {
         content.add(addNoticeBtn).width(400).pad(10).row();
         content.add(deleteNoticeBtn).width(400).pad(10).row();
         content.add(configBtn).width(400).pad(10).row();
+        content.add(featuresBtn).width(400).pad(10).row();
         content.add(backBtn).width(200).padTop(20).row();
 
         activeAdminWindow = new Window("Admin Panel", skin);
@@ -399,6 +408,74 @@ public class LoginScreen extends ScreenAdapter implements GameMessageListener {
         activeAdminWindow.add(content);
         activeAdminWindow.pack();
         activeAdminWindow.setPosition( (stage.getWidth() - activeAdminWindow.getWidth()) / 2, (stage.getHeight() - activeAdminWindow.getHeight()) / 2 );
+        stage.addActor(activeAdminWindow);
+    }
+
+    /** Admin only (behind the admin password): switches and numbers of the bots and the seasonal events. */
+    private void openFeaturesWindow() {
+        if (activeAdminWindow != null) activeAdminWindow.remove();
+
+        final java.util.Map<String, TextField> fields = new java.util.LinkedHashMap<>();
+        Table settingsTable = new Table(skin);
+        for (com.yourname.got.logic.system.FeatureSettings.Spec spec : com.yourname.got.logic.system.FeatureSettings.SPEC) {
+            Label label = new Label(spec.label + " [" + spec.min + ".." + spec.max + "]:", skin);
+            label.setColor(Color.BLACK);
+            TextField field = new TextField(String.valueOf(mediator.adminGetFeature(spec.key)), skin);
+            field.getStyle().fontColor = Color.BLACK;
+            fields.put(spec.key, field);
+            settingsTable.add(label).left().pad(5);
+            settingsTable.add(field).width(120).left().pad(5).row();
+        }
+        ScrollPane scrollPane = new ScrollPane(settingsTable, skin);
+        scrollPane.setFadeScrollBars(false);
+        scrollPane.setScrollingDisabled(true, false);
+
+        final Label status = new Label("Bots join when a game starts; everything else applies at once.", skin);
+        status.setColor(Color.BLACK);
+
+        TextButton saveButton = new TextButton("Save", skin);
+        TextButton backButton = new TextButton("Back", skin);
+        saveButton.getLabel().setColor(Color.BLACK);
+        backButton.getLabel().setColor(Color.BLACK);
+        saveButton.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                for (java.util.Map.Entry<String, TextField> e : fields.entrySet()) {
+                    String current = String.valueOf(mediator.adminGetFeature(e.getKey()));
+                    String typed = e.getValue().getText().trim();
+                    if (current.equals(typed)) continue;
+                    Result r = mediator.adminSetFeature(e.getKey(), typed);
+                    if (!r.isSuccess()) {
+                        status.setText(r.getMessage());
+                        return;
+                    }
+                }
+                openFeaturesWindow(); // reload to show the saved values
+            }
+        });
+        backButton.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                openAdminPanel();
+            }
+        });
+
+        Table content = new Table(skin);
+        content.pad(10);
+        content.add(new Label("Bots & Seasonal Events", skin, "title")).row();
+        content.add(scrollPane).width(600).height(350).pad(10).row();
+        content.add(status).width(600).row();
+        Table buttons = new Table();
+        buttons.add(saveButton).pad(10);
+        buttons.add(backButton).pad(10);
+        content.add(buttons).padTop(10);
+
+        activeAdminWindow = new Window("Bots & Events", skin);
+        activeAdminWindow.setModal(true);
+        activeAdminWindow.add(content);
+        activeAdminWindow.pack();
+        activeAdminWindow.setPosition((stage.getWidth() - activeAdminWindow.getWidth()) / 2,
+            (stage.getHeight() - activeAdminWindow.getHeight()) / 2);
         stage.addActor(activeAdminWindow);
     }
 
