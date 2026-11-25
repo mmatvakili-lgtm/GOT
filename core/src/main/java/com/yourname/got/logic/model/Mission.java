@@ -229,6 +229,8 @@ public class Mission implements Serializable {
             // ---------------------------------------
             // 2. Apply Environment Effects
             applyInitialBattleEffects();
+            addBattleSetupEvent();
+            addArmyState("Battle start", null, 0);
 
             // 3. Execute Battle Scenario
             if (this.ambush) {
@@ -447,6 +449,11 @@ public class Mission implements Serializable {
             if (wallArchersAP > 0) {
                 applyDamageToUnits(troopsAttacker, wallArchersAP);
             }
+
+            addStrike(true, "MELEE", attackerMeleeAP, null);
+            addStrike(true, "ARCHER", attackerArchersAP, null);
+            addStrike(false, "WALL_ARCHERS", wallArchersAP, null);
+            addArmyState("Gate assault, round " + round, "Gate / walls", complex.getTotalHealth(this.attackType));
         }
 
         return complex.getTotalHealth(this.attackType) <= 0 && (wallArcherUnit == null || wallArcherUnit.getCount() <= 0);
@@ -493,6 +500,9 @@ public class Mission implements Serializable {
             applyDamageToUnits(defenderUnits, attackerAP);
             applyDamageToUnits(troopsAttacker, defenderAP);
 
+            addStrike(true, "ARMY", attackerAP, null);
+            addStrike(false, "GARRISON", defenderAP, null);
+            addArmyState("Garrison fight, round " + round, null, 0);
             // آپدیت نوار سلامتی در ریپلای
             getReplayLog().add(new EventRoundUpdate("Troop Clash", getOverallHealth(troopsAttacker), getOverallHealth(defenderUnits)));
         }
@@ -510,7 +520,7 @@ public class Mission implements Serializable {
             return;
         }
 
-        addBattleSetupEvent();
+        moveArmyTo(entry, "Through the gate");
 
         Position currentPos = entry.getPosition();
         java.util.Set<Building> abandoned = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
@@ -536,6 +546,7 @@ public class Mission implements Serializable {
 
             getReplayLog().add(new EventTextLog("Advancing to " + target.getName()));
             addFocusEvent(target);
+            moveArmyTo(target, "Advancing to " + target.getName());
 
             if (target instanceof Castle) {
                 if (!isConquest) {
@@ -589,6 +600,10 @@ public class Mission implements Serializable {
             if (towerDamage > 0) {
                 applyDamageToUnits(troopsAttacker, towerDamage);
             }
+
+            addStrike(true, "MELEE", damage, targetBuilding);
+            addStrike(false, "TOWER", towerDamage, null);
+            addArmyState("Attacking " + targetBuilding.getName(), targetBuilding.getName(), targetBuilding.getHealth());
         }
 
         if (targetBuilding.getHealth() <= 0 && !targetBuilding.isDestroyed()) {
@@ -817,6 +832,68 @@ public class Mission implements Serializable {
             setup.pieces.add(new com.yourname.got.logic.util.EventBattleSetup.Piece(b.getName(), b.getLevel(), at[0], at[1]));
         }
         getReplayLog().add(setup);
+    }
+
+    // ---- Extra replay detail: armies, soldiers, movement, blows. None of it may ever break a battle. ----
+    private int[] armyTile = null; // where the attacking army stands in the defender's kingdom (local x, y)
+
+    private void addArmyState(String label, String structureName, long structureHealth) {
+        try {
+            com.yourname.got.logic.util.EventArmyState st = new com.yourname.got.logic.util.EventArmyState(label);
+            if (troopsAttacker != null) {
+                for (SoldierUnit u : troopsAttacker) {
+                    if (u != null && u.getCount() > 0) {
+                        st.attackers.add(new com.yourname.got.logic.util.EventArmyState.Unit(u.getType().name(), u.getCount(), u.getTotalHealth()));
+                    }
+                }
+            }
+            if (defend != null && defend.getDefenders() != null) {
+                for (SoldierUnit u : defend.getDefenders()) {
+                    if (u != null && u.getCount() > 0) {
+                        st.defenders.add(new com.yourname.got.logic.util.EventArmyState.Unit(u.getType().name(), u.getCount(), u.getTotalHealth()));
+                    }
+                }
+            }
+            if (defend != null && defend.getDefenseComplex() != null) {
+                SoldierUnit wall = defend.getDefenseComplex().getDefensiveArchers();
+                if (wall != null && wall.getCount() > 0) {
+                    st.defenders.add(new com.yourname.got.logic.util.EventArmyState.Unit("WALL ARCHERS", wall.getCount(), wall.getTotalHealth()));
+                }
+            }
+            if (attacker != null && isConquest && heroParticipated && attacker.getKingdom().getHero() != null) {
+                st.heroName = attacker.getKingdom().getHero().getName();
+                st.heroHealth = attacker.getKingdom().getHero().getHealth();
+            }
+            st.structureName = structureName;
+            st.structureHealth = Math.max(0, structureHealth);
+            getReplayLog().add(st);
+        } catch (RuntimeException e) {
+            GameLog.error("Replay detail (army state) skipped: " + e);
+        }
+    }
+
+    private void addStrike(boolean byAttacker, String kind, long amount, Building target) {
+        try {
+            if (amount <= 0) return;
+            int[] at = (target == null) ? null : localTile(target);
+            getReplayLog().add(new com.yourname.got.logic.util.EventStrike(byAttacker, kind, amount,
+                at == null ? -1 : at[0], at == null ? -1 : at[1]));
+        } catch (RuntimeException e) {
+            GameLog.error("Replay detail (strike) skipped: " + e);
+        }
+    }
+
+    private void moveArmyTo(Building target, String note) {
+        try {
+            int[] to = localTile(target);
+            if (to == null) return;
+            int fx = armyTile == null ? -1 : armyTile[0];
+            int fy = armyTile == null ? -1 : armyTile[1];
+            getReplayLog().add(new com.yourname.got.logic.util.EventArmyMove(fx, fy, to[0], to[1], note));
+            armyTile = to;
+        } catch (RuntimeException e) {
+            GameLog.error("Replay detail (movement) skipped: " + e);
+        }
     }
 
     private void addFocusEvent(Building b) {
