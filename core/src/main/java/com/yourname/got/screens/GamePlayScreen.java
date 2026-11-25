@@ -3602,12 +3602,14 @@ private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyI
     final float baseDelay = 0.8f;
     final int[] currentIndex = {0};
     final float[] timeToNextEvent = {0.5f};
+    final boolean[] stepPending = {false}; // "Step" while paused: play until the next text event is shown
 
     Action replayDriver = new Action() {
         @Override
         public boolean act(float delta) {
-            if (isPaused[0]) return false;
+            if (isPaused[0] && !stepPending[0]) return false;
 
+            if (stepPending[0]) timeToNextEvent[0] = 0f;
             timeToNextEvent[0] -= delta * playSpeed[0];
             if (timeToNextEvent[0] <= 0f) {
                 if (currentIndex[0] >= events.size()) {
@@ -3619,6 +3621,7 @@ private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyI
                     endLabel.setFontScale(1.2f);
                     endRow.add(endLabel).pad(15);
 
+                    stepPending[0] = false;
                     logTable.add(endRow).growX().padTop(20).row();
                     logScroll.layout();
                     logScroll.setScrollPercentY(1.0f);
@@ -3635,6 +3638,7 @@ private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyI
                     return false;
                 }
                 addEventToLogTable(logTable, event, skin, attackerHealthBar, defenderHealthBar);
+                stepPending[0] = false;
 
                 logScroll.layout();
                 logScroll.setScrollPercentY(1.0f);
@@ -3658,12 +3662,30 @@ private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyI
         @Override public void changed(ChangeEvent e, Actor a) {
             if(playSpeed[0] == 1f) { playSpeed[0]=2f; btnSpeed.setText("Speed: 2x"); }
             else if(playSpeed[0] == 2f) { playSpeed[0]=4f; btnSpeed.setText("Speed: 4x"); }
+            else if(playSpeed[0] == 4f) { playSpeed[0]=8f; btnSpeed.setText("Speed: 8x"); }
             else { playSpeed[0]=1f; btnSpeed.setText("Speed: 1x"); }
         }
     });
 
-    controls.add(btnPause).width(150).height(50).pad(10);
-    controls.add(btnSpeed).width(150).height(50).pad(10);
+    TextButton btnStep = new TextButton("Step", skin);
+    btnStep.addListener(new ChangeListener() { @Override public void changed(ChangeEvent e, Actor a) {
+        // Step works while paused (it pauses first, so one click = one event).
+        if (!isPaused[0]) { isPaused[0] = true; btnPause.setText("Resume"); }
+        stepPending[0] = true;
+    }});
+
+    TextButton btnSkip = new TextButton("Skip to end", skin);
+    btnSkip.addListener(new ChangeListener() { @Override public void changed(ChangeEvent e, Actor a) {
+        isPaused[0] = false;
+        btnPause.setText("Pause");
+        playSpeed[0] = 1000f; // one event per frame, i.e. practically instant
+        btnSpeed.setText("Speed: max");
+    }});
+
+    controls.add(btnPause).width(130).height(50).pad(8);
+    controls.add(btnStep).width(100).height(50).pad(8);
+    controls.add(btnSpeed).width(150).height(50).pad(8);
+    controls.add(btnSkip).width(150).height(50).pad(8);
 
     panel.getButtonTable().add(controls).row();
     TextButton closeBtn = new TextButton("Close", skin);
