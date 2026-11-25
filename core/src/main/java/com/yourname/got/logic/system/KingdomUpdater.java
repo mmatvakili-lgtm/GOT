@@ -29,6 +29,7 @@ public class KingdomUpdater implements Serializable {
 
         messages.addAll(updateMines(kingdom, gameSpeed));
         messages.addAll(updateBarracks(kingdom));
+        for (String m : com.yourname.got.logic.research.Research.update(kingdom)) messages.add(m);
 
         // The hero is unlocked as soon as the castle has the required level, whatever way it got there
         // (it used to be checked only at the very moment of the "== 5" upgrade, so it could be missed).

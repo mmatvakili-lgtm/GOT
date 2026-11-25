@@ -1568,6 +1568,22 @@ public void initiateGameSession(GameOfThrones game) {
         return GameConfig.getGlobalProps();
     }
 
+    /** Research tree: queues the next level of a technology for the current player (saved at once). */
+    public Result researchStart(com.yourname.got.logic.research.Tech tech) {
+        if (currentUser == null || currentUser.getKingdom() == null) return new Result(false, "No kingdom.");
+        Result r = com.yourname.got.logic.research.Research.enqueue(currentUser.getKingdom(), tech);
+        if (r.isSuccess() && currentGame != null) GameFileUtility.saveFullGameState(currentGame);
+        return r;
+    }
+
+    /** Research tree: cancels the queue entry at index (and later levels of the same technology). */
+    public Result researchCancel(int index) {
+        if (currentUser == null || currentUser.getKingdom() == null) return new Result(false, "No kingdom.");
+        Result r = com.yourname.got.logic.research.Research.cancel(currentUser.getKingdom(), index);
+        if (r.isSuccess() && currentGame != null) GameFileUtility.saveFullGameState(currentGame);
+        return r;
+    }
+
     /** Admin panel: value of a bot/event setting. */
     public int adminGetFeature(String key) {
         return com.yourname.got.logic.system.FeatureSettings.get(key);
@@ -1764,7 +1780,7 @@ public void initiateGameSession(GameOfThrones game) {
 
                 Double speedMov = (attackType == AttackType.SEA && attacker.getKingdom().getBattleShip() != null) ?
                     attacker.getKingdom().getBattleShip().Speed :
-                    attacker.getKingdom().getArmyManager().getSoldierSpeed();
+                    attacker.getKingdom().getMarchSpeed();
 
                 int durationSeconds = currentGame.getGameTime().getTimeForDistance(distance, speedMov);
 
@@ -1891,7 +1907,7 @@ public void initiateGameSession(GameOfThrones game) {
             speedMov = (kingdom.getBattleShip() != null) ? kingdom.getBattleShip().Speed : 1.0;
         } else {
             distance = currentGame.GroundDistance(attacker, target);
-            speedMov = kingdom.getArmyManager().getSoldierSpeed();
+            speedMov = kingdom.getMarchSpeed();
         }
         int durationSeconds = currentGame.getGameTime().getTimeForDistance(distance, speedMov);
 
@@ -1963,7 +1979,7 @@ public void initiateGameSession(GameOfThrones game) {
             speedMov = (kingdom.getBattleShip() != null) ? kingdom.getBattleShip().Speed : 1.0;
         } else {
             distance = currentGame.GroundDistance(attacker, target);
-            speedMov = kingdom.getArmyManager().getSoldierSpeed();
+            speedMov = kingdom.getMarchSpeed();
         }
         int eta = currentGame.getGameTime().getTimeForDistance(distance, speedMov);
 

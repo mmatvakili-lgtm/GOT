@@ -52,7 +52,8 @@ public class Mine extends Building implements Serializable {
         }
         int baseProduction = GameBalance.getProductionPerMinute(resourceType, level);
         double multiplier = GameBalance.getKingdomProductionMultiplier(owner.getType(), resourceType);
-        int producedPerMinute = (int) Math.round(baseProduction * multiplier * difficultyMultiplier) ;
+        double researchBonus = com.yourname.got.logic.research.Research.multiplier(owner, com.yourname.got.logic.research.Effect.PRODUCTION);
+        int producedPerMinute = (int) Math.round(baseProduction * multiplier * difficultyMultiplier * researchBonus) ;
         // Keep the fractional part: with a short tick (5 s) and slow speed, (int) alone threw away
         // everything below 1 unit and the mine could produce nothing at all.
         double exact = (producedPerMinute / 60.0) * secondsPassed * gameSpeed + fractionalProduction;

@@ -3824,7 +3824,24 @@ private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyI
         Texture t = new Texture(p); p.dispose(); return t;
     }
 
-    private void openExtraPanel(){ openCenteredWindow("Extra", new Label("Not implemented", skin)); }
+    private void openExtraPanel() {
+        Table content = new Table(skin);
+        content.pad(20).defaults().width(300).height(50).space(15);
+        TextButton researchBtn = new TextButton("Research Tree", skin);
+        researchBtn.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                openResearchPanel();
+            }
+        });
+        content.add(researchBtn).row();
+        openWindow("Extra", content);
+    }
+
+    private void openResearchPanel() {
+        ResearchPanel panel = new ResearchPanel(skin, mediator);
+        openWindow("Research Tree", panel);
+    }
 
     private void openCenteredWindowWithFixedHeight(String title, Actor content, int height) {
         // reuse openCenteredWindow behavior but set fixed height

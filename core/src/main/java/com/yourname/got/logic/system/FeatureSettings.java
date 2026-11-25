@@ -37,7 +37,10 @@ public final class FeatureSettings {
         new Spec("bots.train.perDay", "Bot training per day", 0, 50, 0),
         new Spec("events.enabled", "Seasonal events (0/1)", 0, 1, 0),
         new Spec("events.chance.percent", "Event chance per day (%)", 0, 100, 15),
-        new Spec("events.effect.percent", "Event effect (%)", 1, 50, 10));
+        new Spec("events.effect.percent", "Event effect (%)", 1, 50, 10),
+        new Spec("research.enabled", "Research tree (0/1)", 0, 1, 0),
+        new Spec("research.cost.percent", "Research cost (%)", 10, 500, 100),
+        new Spec("research.time.percent", "Research time (%)", 10, 1000, 100));
 
     private FeatureSettings() {}
 
