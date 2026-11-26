@@ -438,11 +438,14 @@ public class Mission implements Serializable {
             getReplayLog().add(new EventRoundUpdate("Gate Assault Round " + round, getOverallHealth(troopsAttacker), complex.getTotalHealth(this.attackType)));
 
             // اعمال آسیب به دیوار/دروازه
+            double sturdiness = researchOf(defender, com.yourname.got.logic.research.Effect.STRUCTURE);
+            int meleeVsWall = sturdiness > 1.0 ? (int) Math.ceil(attackerMeleeAP / sturdiness) : attackerMeleeAP;
+            int allVsWall = sturdiness > 1.0 ? (int) Math.ceil((attackerMeleeAP + attackerArchersAP) / sturdiness) : attackerMeleeAP + attackerArchersAP;
             if (wallArcherUnit != null && wallArcherUnit.getCount() > 0) {
                 if (attackerArchersAP > 0) wallArcherUnit.getTotalDamage(attackerArchersAP);
-                if (attackerMeleeAP > 0) complex.applyDamage(this.attackType, attackerMeleeAP);
+                if (attackerMeleeAP > 0) complex.applyDamage(this.attackType, meleeVsWall);
             } else {
-                complex.applyDamage(this.attackType, attackerMeleeAP + attackerArchersAP);
+                complex.applyDamage(this.attackType, allVsWall);
             }
 
             // آسیب مدافعان دیوار به مهاجم
@@ -593,7 +596,9 @@ public class Mission implements Serializable {
                 for(SoldierUnit u : troopsAttacker) if(u!=null) u.applyHealthReductionPercentage(effect.getHealthReductionPercentage());
             }
 
-            targetBuilding.takeDamage(damage);
+            // "Masonry" / "Iron Gates": the defender's buildings take less damage.
+            double sturdiness = researchOf(defender, com.yourname.got.logic.research.Effect.STRUCTURE);
+            targetBuilding.takeDamage(sturdiness > 1.0 ? Math.max(1, (int) Math.ceil(damage / sturdiness)) : damage);
 
             // آسیب برج‌های دفاعی
             int towerDamage = calculateTowerDamage(attackerPosition);
@@ -958,6 +963,12 @@ public class Mission implements Serializable {
         if (defender != null) defender.setInFight(false);
     }
 
+    /** Research multiplier of a player's kingdom (1.0 for White Walkers, who have no kingdom). */
+    private static double researchOf(GameUser user, com.yourname.got.logic.research.Effect effect) {
+        if (user == null || user.getKingdom() == null) return 1.0;
+        return com.yourname.got.logic.research.Research.multiplier(user.getKingdom(), effect);
+    }
+
     private int calculateRowBasedAttackPower(SoldierUnit[] units) {
         double power = 0;
         int row = 0;
@@ -966,7 +977,7 @@ public class Mission implements Serializable {
                 power += u.getTotalAttackPower() * Math.pow(rowEfficiency(), row++);
             }
         }
-        return (int) power;
+        return (int) (power * researchOf(attacker, com.yourname.got.logic.research.Effect.ATTACK));
     }
 
     private int calculateTotalAttackPower(MyLinkedList<SoldierUnit> units) {
@@ -976,7 +987,7 @@ public class Mission implements Serializable {
         for (SoldierUnit u : arr) {
             if (u != null && u.getCount() > 0) power += u.getTotalAttackPower();
         }
-        return power;
+        return (int) (power * researchOf(defender, com.yourname.got.logic.research.Effect.ATTACK));
     }
 
     private int calculateTowerDamage(Position pos) {
@@ -989,11 +1000,14 @@ public class Mission implements Serializable {
                 }
             }
         }
-        return damage;
+        return (int) (damage * researchOf(defender, com.yourname.got.logic.research.Effect.TOWER));
     }
 
     private void applyDamageToUnits(SoldierUnit[] units, int damage) {
         if (units == null || damage <= 0) return;
+        // "Forge" / "Bulwark": tougher soldiers take less damage (the attackers' own bonus when they are the ones hit).
+        double toughness = researchOf(units == troopsAttacker ? attacker : defender, com.yourname.got.logic.research.Effect.HEALTH);
+        if (toughness > 1.0 && damage < 9_000_000) damage = (int) Math.ceil(damage / toughness);
         for (SoldierUnit u : units) {
             if (damage <= 0) break;
             if (u != null && u.getCount() > 0) {
@@ -1004,6 +1018,8 @@ public class Mission implements Serializable {
 
     private void applyDamageToUnits(MyLinkedList<SoldierUnit> units, int damage) {
         if (units == null || damage <= 0) return;
+        double toughness = researchOf(defender, com.yourname.got.logic.research.Effect.HEALTH);
+        if (toughness > 1.0 && damage < 9_000_000) damage = (int) Math.ceil(damage / toughness);
         Node<SoldierUnit> node = units.getHead();
         while (node != null && damage > 0) {
             SoldierUnit u = node.data;

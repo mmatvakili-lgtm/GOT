@@ -23,7 +23,8 @@ public class TrainingTask implements Serializable {
     public TrainingTask(SoldierType type, Kingdom kingdom , long startMillis ,int gameSpeed) {
         this.type = type;
         this.startMillis = startMillis;
-        double realMinutes = type.buildTimeMinutes / gameSpeed;
+        double realMinutes = type.buildTimeMinutes / gameSpeed
+            / com.yourname.got.logic.research.Research.multiplier(kingdom, com.yourname.got.logic.research.Effect.TRAIN_SPEED);
         this.requiredMillis = (long)(realMinutes * 60 * 1000);
         this.kingdom = kingdom;
         GameLog.info(this);
