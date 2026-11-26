@@ -3514,8 +3514,8 @@ private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyI
     final Dialog panel = new Dialog("Battle Replay", skin, "default");
     panel.setModal(true);
     // --- تغییر ۱: افزایش سایز کلی پنل ---
-    panel.setSize(950, 750);
-    panel.setPosition((stage.getWidth() - 950) / 2f, (stage.getHeight() - 750) / 2f);
+    panel.setSize(1000, 820);
+    panel.setPosition((stage.getWidth() - 1000) / 2f, (stage.getHeight() - 820) / 2f);
 
     // --- بخش ۱: هدر و نوارهای سلامتی ---
     Table topTable = new Table();
@@ -3591,8 +3591,22 @@ private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyI
     battlefieldBox.add(battlefieldTitle).padTop(6f).row();
     battlefieldBox.add(battlefield).size(battlefield.getWidth(), battlefield.getHeight()).pad(8f).row();
 
+    // Both armies, unit by unit (soldiers left, losses, health) - fed by the army-state events of newer replays.
+    final ArmyStatusPanel armyPanel = new ArmyStatusPanel(skin);
+    armyPanel.add(new Label("Armies appear when the fighting starts.", skin)).left();
+    ScrollPane armyScroll = new ScrollPane(armyPanel, skin);
+    armyScroll.setFadeScrollBars(false);
+    armyScroll.setScrollingDisabled(true, false);
+    Table armyBox = new Table(skin);
+    armyBox.setBackground(skin.newDrawable("white", new Color(0f, 0f, 0f, 0.6f)));
+    armyBox.add(armyScroll).width(battlefield.getWidth() + 16f).height(230f).pad(6f);
+
+    Table leftColumn = new Table();
+    leftColumn.add(battlefieldBox).row();
+    leftColumn.add(armyBox).padTop(8f).row();
+
     Table replayBody = new Table();
-    replayBody.add(battlefieldBox).top().padRight(10f);
+    replayBody.add(leftColumn).top().padRight(10f);
     replayBody.add(logContainer).expand().fill();
     panel.getContentTable().add(replayBody).expand().fill().row();
 
@@ -3629,7 +3643,17 @@ private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyI
                 }
 
                 BattleEvent event = events.get(currentIndex[0]++);
+                battlefield.setPlaybackSpeed(playSpeed[0]);
                 battlefield.handle(event);
+                if (event instanceof com.yourname.got.logic.util.EventArmyState armyState) {
+                    armyPanel.show(armyState);
+                }
+                if (event instanceof com.yourname.got.logic.util.VisualEvent visual) {
+                    // Pictures only (army state / walking / blows): they have no text line; some wait a moment.
+                    timeToNextEvent[0] = visual.pauseSeconds();
+                    if (visual.pauseSeconds() > 0f) stepPending[0] = false;
+                    return false;
+                }
                 if (event instanceof com.yourname.got.logic.util.EventBattleSetup
                         || event instanceof com.yourname.got.logic.util.EventBuildingFocus
                         || event instanceof com.yourname.got.logic.util.EventBuildingDestroyed) {
