@@ -3618,6 +3618,11 @@ private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyI
     final float[] timeToNextEvent = {0.5f};
     final boolean[] stepPending = {false}; // "Step" while paused: play until the next text event is shown
 
+    final Slider timeline = new Slider(0, events.size(), 1, false, skin);
+    final boolean[] programmatic = {false};
+    final boolean[] ended = {false}; // the "END OF BATTLE" line was added (the driver stays alive so a seek can resume)
+    final long[] initialHealth = {maxAtkHp, maxDefHp};
+
     Action replayDriver = new Action() {
         @Override
         public boolean act(float delta) {
@@ -3628,6 +3633,8 @@ private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyI
             if (timeToNextEvent[0] <= 0f) {
                 if (currentIndex[0] >= events.size()) {
                     // پایان
+                    if (ended[0]) return false;
+                    ended[0] = true;
                     Table endRow = new Table(skin);
                     endRow.setBackground(skin.newDrawable("white", new Color(0.2f, 0.2f, 0.2f, 0.8f)));
                     Label endLabel = new Label("--- END OF BATTLE ---", skin);
@@ -3639,10 +3646,13 @@ private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyI
                     logTable.add(endRow).growX().padTop(20).row();
                     logScroll.layout();
                     logScroll.setScrollPercentY(1.0f);
-                    return true;
+                    return false;
                 }
 
                 BattleEvent event = events.get(currentIndex[0]++);
+                programmatic[0] = true;
+                timeline.setValue(currentIndex[0]);
+                programmatic[0] = false;
                 battlefield.setPlaybackSpeed(playSpeed[0]);
                 battlefield.handle(event);
                 if (event instanceof com.yourname.got.logic.util.EventArmyState armyState) {
@@ -3705,6 +3715,38 @@ private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyI
         playSpeed[0] = 1000f; // one event per frame, i.e. practically instant
         btnSpeed.setText("Speed: max");
     }});
+
+    // Jump to any moment of the battle: the picture is rebuilt by replaying the events up to there at once.
+    timeline.addListener(new ChangeListener() { @Override public void changed(ChangeEvent e, Actor a) {
+        if (programmatic[0]) return;
+        int target = (int) timeline.getValue();
+        battlefield.reset();
+        armyPanel.reset();
+        armyPanel.add(new Label("...", skin)).left();
+        logTable.clearChildren();
+        attackerHealthBar.setValue(initialHealth[0]);
+        defenderHealthBar.setValue(initialHealth[1]);
+        battlefield.setPlaybackSpeed(1000f);
+        int i = 0;
+        for (BattleEvent ev : events) {
+            if (i++ >= target) break;
+            battlefield.handle(ev);
+            if (ev instanceof com.yourname.got.logic.util.EventArmyState st) armyPanel.show(st);
+            if (!(ev instanceof com.yourname.got.logic.util.VisualEvent)
+                    && !(ev instanceof com.yourname.got.logic.util.EventBattleSetup)
+                    && !(ev instanceof com.yourname.got.logic.util.EventBuildingFocus)
+                    && !(ev instanceof com.yourname.got.logic.util.EventBuildingDestroyed)) {
+                addEventToLogTable(logTable, ev, skin, attackerHealthBar, defenderHealthBar);
+            }
+        }
+        battlefield.act(1000f); // let every animation finish so the picture shows the final state of that moment
+        logScroll.layout();
+        logScroll.setScrollPercentY(1.0f);
+        currentIndex[0] = target;
+        ended[0] = false;
+        timeToNextEvent[0] = 0.3f;
+    }});
+    panel.getContentTable().add(timeline).growX().padTop(6f).row();
 
     controls.add(btnPause).width(130).height(50).pad(8);
     controls.add(btnStep).width(100).height(50).pad(8);

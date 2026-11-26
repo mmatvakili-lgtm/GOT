@@ -117,6 +117,16 @@ public class BattlefieldView extends Group {
             }
         }
 
+        void reset() {
+            for (List<Image> list : dots.values()) for (Image d : list) d.remove();
+            dots.clear();
+            firstSeen.clear();
+            clearActions();
+            body.clearActions();
+            body.setColor(color);
+            setVisible(false);
+        }
+
         void flash() {
             body.clearActions();
             body.setColor(1f, 1f, 1f, 1f);
@@ -158,6 +168,20 @@ public class BattlefieldView extends Group {
         } else if (event instanceof EventStrike strike) {
             strike(strike);
         }
+    }
+
+    /** Things that fade away by themselves (crosses, loot and damage texts); kept so a seek can remove them. */
+    private final List<com.badlogic.gdx.scenes.scene2d.Actor> transients = new ArrayList<>();
+
+    /** Back to the empty battlefield (used when the replay jumps to another moment). */
+    public void reset() {
+        for (Image old : pieces.values()) old.remove();
+        pieces.clear();
+        clearFocus();
+        for (com.badlogic.gdx.scenes.scene2d.Actor a : transients) a.remove();
+        transients.clear();
+        attackers.reset();
+        garrison.reset();
     }
 
     private void ensureMarkers() {
@@ -212,6 +236,7 @@ public class BattlefieldView extends Group {
             Actions.parallel(Actions.moveBy(0f, 26f, 1.0f / speed), Actions.fadeOut(1.0f / speed)),
             Actions.removeActor()));
         addActor(floater);
+        transients.add(floater);
     }
 
     private float px(int y) { return y * cell; }
@@ -260,6 +285,7 @@ public class BattlefieldView extends Group {
         cross.pack();
         cross.setPosition(px(d.y) + cell / 2f - cross.getWidth() / 2f, py(d.x) + cell / 2f - cross.getHeight() / 2f);
         addActor(cross);
+        transients.add(cross);
 
         if (d.lootAmount > 0) {
             Label loot = new Label("+" + d.lootAmount + " " + d.lootType, skin);

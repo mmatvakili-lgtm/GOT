@@ -34,6 +34,13 @@ public class ArmyStatusPanel extends Table {
         return Color.WHITE;
     }
 
+    public void reset() {
+        clearChildren();
+        maxHealth.clear();
+        lastCount.clear();
+        startCount.clear();
+    }
+
     public void show(EventArmyState state) {
         clearChildren();
         Label round = new Label(state.label, skin);
