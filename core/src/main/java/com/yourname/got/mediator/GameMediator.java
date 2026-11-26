@@ -1589,6 +1589,11 @@ public void initiateGameSession(GameOfThrones game) {
         return com.yourname.got.logic.system.FeatureSettings.get(key);
     }
 
+    /** Admin panel: validates and saves several bot/event/research settings in one write. */
+    public Result adminSetFeatures(java.util.Map<String, Integer> values) {
+        return com.yourname.got.logic.system.FeatureSettings.setMany(values);
+    }
+
     /** Admin panel: validates and saves a bot/event setting (takes effect at once; bots join at game start). */
     public Result adminSetFeature(String key, String value) {
         return com.yourname.got.logic.system.FeatureSettings.set(key, value);
