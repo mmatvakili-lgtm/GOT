@@ -1568,6 +1568,16 @@ public void initiateGameSession(GameOfThrones game) {
         return GameConfig.getGlobalProps();
     }
 
+    /** Admin panel: value of a bot/event setting. */
+    public int adminGetFeature(String key) {
+        return com.yourname.got.logic.system.FeatureSettings.get(key);
+    }
+
+    /** Admin panel: validates and saves a bot/event setting (takes effect at once; bots join at game start). */
+    public Result adminSetFeature(String key, String value) {
+        return com.yourname.got.logic.system.FeatureSettings.set(key, value);
+    }
+
     public Result adminUpdateGlobalConfig(String key, String value) {
         boolean success = GameConfig.updateGlobalConfig(key, value);
         if (success) {
