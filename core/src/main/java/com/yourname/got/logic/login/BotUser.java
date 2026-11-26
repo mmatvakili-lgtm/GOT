@@ -43,6 +43,34 @@ public class BotUser extends GameUser {
         return com.yourname.got.logic.system.BotBuilder.buildOne(getGame(), this);
     }
 
+    private int lastTrainDay = 0;
+    private int trainRotation = 0;
+
+    /** Soldiers a bot tries to train per game day through its Barrack (bots.train.perDay, default 0 = off). */
+    public static int trainPerDay() {
+        return com.yourname.got.logic.Balance.BalanceConfig.integer("bots.train.perDay", 0, 0, 50);
+    }
+
+    /**
+     * Once per game day: queue trainPerDay soldiers (infantry, archer, cavalry in turn) in the Barrack, paying the
+     * normal resource cost. Does nothing without a built Barrack, resources or camp space. Returns how many were queued.
+     */
+    public int train(int day) {
+        if (day <= lastTrainDay) return 0;
+        lastTrainDay = day;
+        int wanted = trainPerDay();
+        Kingdom k = getKingdom();
+        if (wanted <= 0 || k == null || k.getFirstAvailableBarrack() == null || getGame() == null) return 0;
+        com.yourname.got.logic.enums.SoldierType[] order = {
+            com.yourname.got.logic.enums.SoldierType.INFANTRY,
+            com.yourname.got.logic.enums.SoldierType.ARCHER,
+            com.yourname.got.logic.enums.SoldierType.CAVALRY};
+        com.yourname.got.logic.enums.SoldierType type = order[trainRotation++ % order.length];
+        int before = k.getTrainingQueue().getSize();
+        k.getArmyManager().trainSoldiers(type, wanted, k, getGame().getSpeed());
+        return Math.max(0, k.getTrainingQueue().getSize() - before);
+    }
+
     public int reinforce(int day) {
         Kingdom k = getKingdom();
         if (k == null || day <= lastGrowthDay) return 0;

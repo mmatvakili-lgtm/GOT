@@ -255,4 +255,22 @@ class BotPlayersTest {
             remove();
         }
     }
+
+    @Test
+    void botTrainingDoesNothingWithoutBarrack() throws Exception {
+        TestWorld.reset(true);
+        configure("bots.count=1\nbots.train.perDay=5\n");
+        try {
+            GameUser u1 = new GameUser("alice", "1234", 1);
+            GameOfThrones g = new GameOfThrones("train", 1, u1);
+            g.startGame();
+            BotUser bot = null;
+            for (GameUser u : g.getUsers()) if (BotUser.isBot(u)) bot = (BotUser) u;
+            Check.that(bot.train(1) == 0, "no barrack: nothing is queued and nothing crashes");
+            Check.that(bot.develop(1) == null, "building is still off by default");
+            Check.assertAll();
+        } finally {
+            remove();
+        }
+    }
 }
