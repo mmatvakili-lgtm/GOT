@@ -57,9 +57,10 @@ public class GameUpdater implements Serializable {
             int currentDay = game.getGameTime().getDay();
             game.getWhiteWalkerManager().onDayAdvanced(currentDay);
             try {
-                if (BotUser.growthPerDay() > 0) {
-                    for (GameUser u : game.getUsers()) {
-                        if (u instanceof BotUser bot) bot.reinforce(currentDay);
+                for (GameUser u : game.getUsers()) {
+                    if (u instanceof BotUser bot) {
+                        if (BotUser.growthPerDay() > 0) bot.reinforce(currentDay);
+                        bot.develop(currentDay);
                     }
                 }
             } catch (RuntimeException e) {
