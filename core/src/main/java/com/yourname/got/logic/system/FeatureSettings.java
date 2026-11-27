@@ -23,7 +23,8 @@ public final class FeatureSettings {
     public enum Group {
         BOTS("Bots", "Computer-controlled kingdoms that fill empty player slots."),
         EVENTS("Seasonal Events", "Random harvests, famines and trade windfalls that follow the seasons."),
-        RESEARCH("Research Tree", "Technologies that permanently improve a kingdom.");
+        RESEARCH("Research Tree", "Technologies that permanently improve a kingdom."),
+        DIPLOMACY("Diplomacy", "Peace treaties and alliances: players can agree not to attack each other.");
 
         public final String title, summary;
         Group(String title, String summary) { this.title = title; this.summary = summary; }
@@ -76,6 +77,14 @@ public final class FeatureSettings {
         new Spec(Group.EVENTS, "events.effect.percent", "Event strength",
             "Harvest and windfall add this percent of a kingdom's storage capacity; a famine removes this percent of its food.",
             1, 50, 10, " %", NOW),
+
+        new Spec(Group.DIPLOMACY, "diplomacy.enabled", "Diplomacy",
+            "Turns diplomacy on. Players open it from Extra > Diplomacy to offer a Peace Treaty (ends after a set number of game days) "
+                + "or an Alliance (lasts until someone cancels). While a pact is active neither side can attack the other.",
+            0, 1, 0, "", NOW),
+        new Spec(Group.DIPLOMACY, "diplomacy.peace.days", "Peace treaty length",
+            "How many game days a peace treaty lasts after it is accepted. Alliances have no end date.",
+            1, 60, 10, " days", NOW),
 
         new Spec(Group.RESEARCH, "research.enabled", "Research tree",
             "Turns research on: 15 technologies in Economy, Military and Defense. Players open it from Extra > Research Tree. "

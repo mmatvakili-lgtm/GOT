@@ -1584,6 +1584,90 @@ public void initiateGameSession(GameOfThrones game) {
         return r;
     }
 
+    // ------------------------------------------------------------------ diplomacy
+    /** One row of the diplomacy screen: another player and what stands between you. */
+    public static class DiplomacyRow {
+        public final GameUser other;
+        public final String status;
+        public final boolean hasPact, incoming, outgoing;
+        public final com.yourname.got.logic.system.Diplomacy.Type type;
+        public DiplomacyRow(GameUser other, String status, boolean hasPact, boolean incoming, boolean outgoing,
+                            com.yourname.got.logic.system.Diplomacy.Type type) {
+            this.other = other; this.status = status; this.hasPact = hasPact; this.incoming = incoming;
+            this.outgoing = outgoing; this.type = type;
+        }
+    }
+
+    public boolean diplomacyEnabled() { return com.yourname.got.logic.system.Diplomacy.enabled(); }
+
+    public java.util.List<DiplomacyRow> diplomacyRows() {
+        java.util.List<DiplomacyRow> rows = new java.util.ArrayList<>();
+        if (isGameStateInvalid() || !diplomacyEnabled()) return rows;
+        com.yourname.got.logic.system.Diplomacy d = currentGame.getDiplomacy();
+        int day = currentGame.getGameTime().getDay();
+        d.prune(day);
+        int me = currentUser.getId();
+        for (GameUser u : currentGame.getUsers()) {
+            if (u == null || u.getId() == me) continue;
+            GameOfThrones.PlayerState st = currentGame.getPlayerState(u.getId());
+            if (st != null && st.status == GameOfThrones.PlayerStatus.DEFEATED) continue;
+            com.yourname.got.logic.system.Diplomacy.Pact pact = d.pactBetween(me, u.getId(), day);
+            com.yourname.got.logic.system.Diplomacy.Proposal pr = d.proposalBetween(me, u.getId());
+            String text = "No agreement";
+            if (pact != null) {
+                text = pact.type == com.yourname.got.logic.system.Diplomacy.Type.ALLIANCE ? "Allied"
+                    : "Peace until day " + pact.endDay;
+            } else if (pr != null) {
+                text = (pr.to == me ? "Offers you " : "You offered ") + pr.type.name().toLowerCase();
+            }
+            rows.add(new DiplomacyRow(u, text, pact != null, pr != null && pr.to == me, pr != null && pr.from == me,
+                pact != null ? pact.type : (pr != null ? pr.type : null)));
+        }
+        return rows;
+    }
+
+    public Result diplomacyPropose(GameUser target, com.yourname.got.logic.system.Diplomacy.Type type) {
+        if (isGameStateInvalid() || target == null) return new Result(false, "Invalid player.");
+        if (!diplomacyEnabled()) return new Result(false, "Diplomacy is switched off.");
+        int day = currentGame.getGameTime().getDay();
+        com.yourname.got.logic.system.Diplomacy d = currentGame.getDiplomacy();
+        String err = d.propose(currentUser.getId(), target.getId(), type, day);
+        if (err != null) return new Result(false, err);
+        if (com.yourname.got.logic.login.BotUser.isBot(target)) {
+            d.respond(currentUser.getId(), target.getId(), true, day); // bots only defend, so they always agree
+            GameFileUtility.saveFullGameState(currentGame);
+            return new Result(true, target.getUsername() + " accepted.");
+        }
+        currentGame.sendSystemNotificationToUser(target, "Diplomacy",
+            currentUser.getUsername() + " offers you a " + type.name().toLowerCase()
+                + ". Answer in Extra > Diplomacy within " + com.yourname.got.logic.system.Diplomacy.PROPOSAL_DAYS + " game days.");
+        GameFileUtility.saveFullGameState(currentGame);
+        return new Result(true, "Offer sent to " + target.getUsername() + ".");
+    }
+
+    public Result diplomacyRespond(GameUser from, boolean accept) {
+        if (isGameStateInvalid() || from == null) return new Result(false, "Invalid player.");
+        if (!diplomacyEnabled()) return new Result(false, "Diplomacy is switched off.");
+        String err = currentGame.getDiplomacy().respond(from.getId(), currentUser.getId(), accept,
+            currentGame.getGameTime().getDay());
+        if (err != null) return new Result(false, err);
+        currentGame.sendSystemNotificationToUser(from, "Diplomacy",
+            currentUser.getUsername() + (accept ? " accepted" : " refused") + " your offer.");
+        GameFileUtility.saveFullGameState(currentGame);
+        return new Result(true, accept ? "Agreement made." : "Offer refused.");
+    }
+
+    public Result diplomacyCancel(GameUser other) {
+        if (isGameStateInvalid() || other == null) return new Result(false, "Invalid player.");
+        boolean had = currentGame.getDiplomacy().cancel(currentUser.getId(), other.getId(),
+            currentGame.getGameTime().getDay());
+        if (!had) return new Result(false, "There is no agreement to cancel.");
+        currentGame.sendSystemNotificationToUser(other, "Diplomacy",
+            currentUser.getUsername() + " ended the agreement with you.");
+        GameFileUtility.saveFullGameState(currentGame);
+        return new Result(true, "Agreement cancelled.");
+    }
+
     /** Admin panel: value of a bot/event setting. */
     public int adminGetFeature(String key) {
         return com.yourname.got.logic.system.FeatureSettings.get(key);

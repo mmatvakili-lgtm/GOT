@@ -35,7 +35,7 @@ public class FeatureControlPanel extends Table {
     private static final Color WARN = new Color(0.95f, 0.65f, 0.20f, 1f);
     private static final Color MUTED = new Color(0.66f, 0.69f, 0.76f, 1f);
 
-    private enum Page { OVERVIEW, BOTS, EVENTS, RESEARCH }
+    private enum Page { OVERVIEW, BOTS, EVENTS, RESEARCH, DIPLOMACY }
 
     private final Skin skin;
     private final GameMediator mediator;
@@ -71,6 +71,7 @@ public class FeatureControlPanel extends Table {
             case BOTS -> value("bots.count") > 0;
             case EVENTS -> value("events.enabled") == 1;
             case RESEARCH -> value("research.enabled") == 1;
+            case DIPLOMACY -> value("diplomacy.enabled") == 1;
         };
     }
 
@@ -79,11 +80,12 @@ public class FeatureControlPanel extends Table {
             case BOTS -> new Color(0.30f, 0.78f, 0.95f, 1f);
             case EVENTS -> new Color(0.98f, 0.76f, 0.25f, 1f);
             case RESEARCH -> new Color(0.72f, 0.52f, 0.98f, 1f);
+            case DIPLOMACY -> new Color(0.40f, 0.85f, 0.55f, 1f);
         };
     }
 
     private static Group groupOf(Page p) {
-        return switch (p) { case BOTS -> Group.BOTS; case EVENTS -> Group.EVENTS; case RESEARCH -> Group.RESEARCH; default -> null; };
+        return switch (p) { case BOTS -> Group.BOTS; case EVENTS -> Group.EVENTS; case RESEARCH -> Group.RESEARCH; case DIPLOMACY -> Group.DIPLOMACY; default -> null; };
     }
 
     // ------------------------------------------------------------------ building blocks
@@ -193,7 +195,8 @@ public class FeatureControlPanel extends Table {
         side.add(navItem("Overview", null, Page.OVERVIEW)).growX().height(44f).padBottom(6f).row();
         side.add(navItem(Group.BOTS.title, Group.BOTS, Page.BOTS)).growX().height(44f).padBottom(6f).row();
         side.add(navItem(Group.EVENTS.title, Group.EVENTS, Page.EVENTS)).growX().height(44f).padBottom(6f).row();
-        side.add(navItem(Group.RESEARCH.title, Group.RESEARCH, Page.RESEARCH)).growX().height(44f).padBottom(14f).row();
+        side.add(navItem(Group.RESEARCH.title, Group.RESEARCH, Page.RESEARCH)).growX().height(44f).padBottom(6f).row();
+        side.add(navItem(Group.DIPLOMACY.title, Group.DIPLOMACY, Page.DIPLOMACY)).growX().height(44f).padBottom(14f).row();
         side.add(text("Saved in balance.properties next to the game. Bots join when a new game starts; everything else "
             + "takes effect immediately.", 0.6f, MUTED)).width(200f).row();
         return side;
@@ -241,7 +244,7 @@ public class FeatureControlPanel extends Table {
     }
 
     private static Page pageOf(Group g) {
-        return switch (g) { case BOTS -> Page.BOTS; case EVENTS -> Page.EVENTS; case RESEARCH -> Page.RESEARCH; };
+        return switch (g) { case BOTS -> Page.BOTS; case EVENTS -> Page.EVENTS; case RESEARCH -> Page.RESEARCH; case DIPLOMACY -> Page.DIPLOMACY; };
     }
 
     private void setMaster(Group g, boolean on) {
@@ -249,6 +252,7 @@ public class FeatureControlPanel extends Table {
             case BOTS -> stage("bots.count", on ? Math.max(2, FeatureSettings.find("bots.count").def) : 0);
             case EVENTS -> stage("events.enabled", on ? 1 : 0);
             case RESEARCH -> stage("research.enabled", on ? 1 : 0);
+            case DIPLOMACY -> stage("diplomacy.enabled", on ? 1 : 0);
         }
         render();
     }
@@ -280,8 +284,8 @@ public class FeatureControlPanel extends Table {
         boolean masterOn = groupOn(g);
         for (Spec s : FeatureSettings.SPEC) {
             if (s.group != g) continue;
-            boolean isMaster = s.key.equals("bots.count") || s.key.equals("events.enabled") || s.key.equals("research.enabled");
-            if (s.key.equals("events.enabled") || s.key.equals("research.enabled")) continue; // the big switch above is that setting
+            boolean isMaster = s.key.equals("bots.count") || s.key.equals("events.enabled") || s.key.equals("research.enabled") || s.key.equals("diplomacy.enabled");
+            if (s.key.equals("events.enabled") || s.key.equals("research.enabled") || s.key.equals("diplomacy.enabled")) continue; // the big switch above is that setting
             content.add(settingRow(s, masterOn || isMaster, accent)).width(790f).padBottom(6f).row();
         }
         content.add(button("Reset this page to defaults", () -> {
@@ -307,6 +311,9 @@ public class FeatureControlPanel extends Table {
                 + "in Economy, Military and Defense, up to 3 levels each, with prerequisites and castle-level requirements. "
                 + "Bonuses are permanent percentages (production, storage, training and march speed, attack, toughness, loot, towers). "
                 + "Switching research off stops all bonuses; learned technologies are kept for when it is switched on again.";
+            case DIPLOMACY -> "Players open Extra > Diplomacy to offer another player a Peace Treaty (ends after the number of days set below) "
+                + "or an Alliance (until someone cancels). The other player gets a notice and answers within 3 game days. "
+                + "While a pact is active neither side can attack the other; either side may cancel at any time. Bots always accept.";
         };
         t.add(text(body, 0.7f, Color.WHITE)).width(760f).left();
         return t;
@@ -332,6 +339,7 @@ public class FeatureControlPanel extends Table {
             case BOTS -> new String[]{"Off", "Easy", "Normal", "Hard"};
             case EVENTS -> new String[]{"Off", "Gentle", "Normal", "Wild"};
             case RESEARCH -> new String[]{"Off", "Fast", "Normal", "Slow"};
+            case DIPLOMACY -> new String[]{"Off", "Short", "Normal", "Long"};
         };
     }
 
@@ -355,6 +363,14 @@ public class FeatureControlPanel extends Table {
                     case "Gentle" -> { m.put("events.enabled", 1); m.put("events.chance.percent", 8); m.put("events.effect.percent", 5); }
                     case "Normal" -> { m.put("events.enabled", 1); m.put("events.chance.percent", 15); m.put("events.effect.percent", 10); }
                     default -> { m.put("events.enabled", 1); m.put("events.chance.percent", 35); m.put("events.effect.percent", 25); }
+                }
+            }
+            case DIPLOMACY -> {
+                switch (name) {
+                    case "Off" -> m.put("diplomacy.enabled", 0);
+                    case "Short" -> { m.put("diplomacy.enabled", 1); m.put("diplomacy.peace.days", 5); }
+                    case "Normal" -> { m.put("diplomacy.enabled", 1); m.put("diplomacy.peace.days", 10); }
+                    default -> { m.put("diplomacy.enabled", 1); m.put("diplomacy.peace.days", 25); }
                 }
             }
             case RESEARCH -> {
@@ -432,6 +448,10 @@ public class FeatureControlPanel extends Table {
                 if (value("events.enabled") == 0) return "no seasonal events happen.";
                 return "about " + value("events.chance.percent") + "% of game days bring an event worth " + value("events.effect.percent")
                     + "% of storage, the same for every kingdom.";
+            }
+            case DIPLOMACY -> {
+                if (value("diplomacy.enabled") == 0) return "diplomacy is closed; nobody can make pacts.";
+                return "players can offer peace treaties lasting " + value("diplomacy.peace.days") + " game days, or open-ended alliances.";
             }
             default -> {
                 if (value("research.enabled") == 0) return "research is closed; no technology bonuses apply.";

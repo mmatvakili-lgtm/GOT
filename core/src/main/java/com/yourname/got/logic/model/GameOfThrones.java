@@ -76,6 +76,14 @@ public class GameOfThrones implements Serializable {
         return isFinished;
     }
 
+    /** Peace treaties and alliances. Old saves have none; created on first use. */
+    private com.yourname.got.logic.system.Diplomacy diplomacy;
+
+    public com.yourname.got.logic.system.Diplomacy getDiplomacy() {
+        if (diplomacy == null) diplomacy = new com.yourname.got.logic.system.Diplomacy();
+        return diplomacy;
+    }
+
     public int getLastEventDay() {
         return lastEventDay;
     }

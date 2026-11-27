@@ -3835,6 +3835,16 @@ private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyI
             }
         });
         content.add(researchBtn).row();
+        if (mediator.diplomacyEnabled()) {
+            TextButton diplomacyBtn = new TextButton("Diplomacy", skin);
+            diplomacyBtn.addListener(new ChangeListener() {
+                @Override
+                public void changed(ChangeEvent event, Actor actor) {
+                    openWindow("Diplomacy", new DiplomacyPanel(skin, mediator));
+                }
+            });
+            content.add(diplomacyBtn).row();
+        }
         openWindow("Extra", content);
     }
 
