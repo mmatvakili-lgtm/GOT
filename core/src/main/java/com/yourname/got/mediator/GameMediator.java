@@ -1584,6 +1584,12 @@ public void initiateGameSession(GameOfThrones game) {
         return r;
     }
 
+    /** The current player's kingdom for the beginner's guide (null when no game is running). */
+    public Kingdom getCurrentKingdomForGuide() {
+        if (isGameStateInvalid()) return null;
+        return currentGame.getUser(currentUser.getId()).getKingdom();
+    }
+
     // ------------------------------------------------------------------ diplomacy
     /** One row of the diplomacy screen: another player and what stands between you. */
     public static class DiplomacyRow {

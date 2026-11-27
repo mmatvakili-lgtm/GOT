@@ -3835,6 +3835,14 @@ private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyI
             }
         });
         content.add(researchBtn).row();
+        TextButton guideBtn = new TextButton("Beginner's Guide", skin);
+        guideBtn.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                openWindow("Beginner's Guide", new TutorialPanel(skin, mediator.getCurrentKingdomForGuide()));
+            }
+        });
+        content.add(guideBtn).row();
         if (mediator.diplomacyEnabled()) {
             TextButton diplomacyBtn = new TextButton("Diplomacy", skin);
             diplomacyBtn.addListener(new ChangeListener() {
