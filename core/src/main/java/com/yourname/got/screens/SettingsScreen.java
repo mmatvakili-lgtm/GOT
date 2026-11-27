@@ -33,7 +33,7 @@ public class SettingsScreen implements Screen {
         this.mediator = mediator;
         this.currentUser = user;
         this.stage = new Stage(new ScreenViewport());
-        this.skin = new Skin(Gdx.files.internal("ui/plain-james-ui.json"));
+        this.skin = UiTheme.loadSkin();
         this.background = new Texture("images/background-loding.jpg");
         createUI();
     }
@@ -65,6 +65,15 @@ public class SettingsScreen implements Screen {
             }
         });
 
+        final TextButton effects = new TextButton("Visual effects: " + (UserSettings.isEffectsEnabled() ? "On" : "Off"), skin);
+        effects.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                UserSettings.setEffectsEnabled(!UserSettings.isEffectsEnabled());
+                effects.setText("Visual effects: " + (UserSettings.isEffectsEnabled() ? "On" : "Off"));
+            }
+        });
+
         TextButton back = new TextButton("Back", skin);
         back.addListener(new ChangeListener() {
             @Override
@@ -79,7 +88,8 @@ public class SettingsScreen implements Screen {
         root.add(music).width(250).row();
         root.add(new Label("Effects volume", skin)).left().padRight(20).padTop(15);
         root.add(sfx).width(250).padTop(15).row();
-        root.add(back).colspan(2).width(300).padTop(30).row();
+        root.add(effects).colspan(2).width(300).padTop(25).row();
+        root.add(back).colspan(2).width(300).padTop(15).row();
     }
 
     @Override public void show() { Gdx.input.setInputProcessor(stage); }

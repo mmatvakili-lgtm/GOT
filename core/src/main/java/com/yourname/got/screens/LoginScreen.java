@@ -51,7 +51,7 @@ public class LoginScreen extends ScreenAdapter implements GameMessageListener {
         Gdx.input.setInputProcessor(stage);
 
         background = new Texture("images/background2.jpg");
-        skin = new Skin(Gdx.files.internal("ui/plain-james-ui.json"));
+        skin = UiTheme.loadSkin();
 
         Table table = new Table();
         table.setFillParent(true);

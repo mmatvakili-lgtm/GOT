@@ -169,7 +169,7 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
         this.background = safeLoad(backgroundPath);
         this.tileTexture = safeLoad("icon/tile_default.png");
 
-        this.skin = new Skin(Gdx.files.internal("ui/plain-james-ui.json"));
+        this.skin = UiTheme.loadSkin();
         Drawable roundGray = skin.getDrawable("round-gray");
         skin.add("default-round", roundGray, Drawable.class);
 
@@ -803,6 +803,7 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
             (stage.getHeight() - window.getHeight()) / 2
         );
         stage.addActor(window);
+        UiTheme.fadeIn(window);
         activeDialog = window;
     }
     private void openMessagesPanel() {
@@ -3959,14 +3960,7 @@ private void renderTilesAndUpdate() {
                 Label l = new Label(displayText, skin);
                 l.setWrap(true);
 
-                switch (messageType) {
-                    case "ERROR": l.setColor(0.8f,0,0,1); break;
-                    case "SYSTEM": l.setColor(0,0.8f,0,1); break;
-                    case "NOTIF":
-                        l.setColor(Color.YELLOW);
-                        break;
-                    default: l.setColor(Color.WHITE); break;
-                }
+                l.setColor(UiTheme.messageColor(messageType));
                 messagesTable.add(l).left().expandX().fillX().padBottom(2).row();
             }
         }

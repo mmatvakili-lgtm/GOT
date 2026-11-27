@@ -36,7 +36,7 @@ public class GameHistoryScreen implements Screen {
         this.mediator = mediator;
         this.currentUser = user;
         this.stage = new Stage(new ScreenViewport());
-        this.skin = new Skin(Gdx.files.internal("ui/plain-james-ui.json"));
+        this.skin = UiTheme.loadSkin();
         this.background = new Texture("images/background-loding.jpg");
 
         createUI();

@@ -42,4 +42,25 @@ class UserSettingsTest {
         FILE.delete();
         UserSettings.load();
     }
+
+    @Test
+    void visualEffectsAreOnByDefaultAndSaved() throws Exception {
+        TestWorld.reset(true);
+        FILE.delete();
+        UserSettings.load();
+        Check.that(UserSettings.isEffectsEnabled(), "effects are on by default");
+        UserSettings.setEffectsEnabled(false);
+        UserSettings.save();
+        UserSettings.setEffectsEnabled(true);
+        UserSettings.load();
+        Check.that(!UserSettings.isEffectsEnabled(), "the off choice is kept");
+        Files.writeString(FILE.toPath(), "visual.effects=banana\n");
+        UserSettings.load();
+        Check.that(UserSettings.isEffectsEnabled(), "an unknown value means on");
+        Check.that(com.yourname.got.screens.UiTheme.messageColor("ERROR") != com.yourname.got.screens.UiTheme.messageColor("SYSTEM"),
+            "message types have different colours");
+        Check.assertAll();
+        FILE.delete();
+        UserSettings.load();
+    }
 }

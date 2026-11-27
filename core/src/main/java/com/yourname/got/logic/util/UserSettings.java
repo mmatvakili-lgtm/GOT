@@ -17,12 +17,14 @@ public final class UserSettings {
 
     private static float music = DEFAULT_MUSIC;
     private static float sfx = DEFAULT_SFX;
+    private static boolean effects = true;
 
     private UserSettings() {}
 
     public static synchronized void load() {
         music = DEFAULT_MUSIC;
         sfx = DEFAULT_SFX;
+        effects = true;
         File f = new File(FILE);
         if (!f.exists()) return;
         Properties p = new Properties();
@@ -34,12 +36,14 @@ public final class UserSettings {
         }
         music = parse(p.getProperty("music.volume"), DEFAULT_MUSIC);
         sfx = parse(p.getProperty("sfx.volume"), DEFAULT_SFX);
+        effects = !"false".equalsIgnoreCase(p.getProperty("visual.effects", "true").trim());
     }
 
     public static synchronized void save() {
         Properties p = new Properties();
         p.setProperty("music.volume", Float.toString(music));
         p.setProperty("sfx.volume", Float.toString(sfx));
+        p.setProperty("visual.effects", Boolean.toString(effects));
         File target = new File(FILE);
         File tmp = new File(FILE + ".tmp");
         try (FileOutputStream out = new FileOutputStream(tmp)) {
@@ -53,6 +57,9 @@ public final class UserSettings {
 
     public static synchronized float getMusicVolume() { return music; }
     public static synchronized float getSfxVolume() { return sfx; }
+    /** Small visual extras such as window fade-ins (Settings > Visual effects). On by default. */
+    public static synchronized boolean isEffectsEnabled() { return effects; }
+    public static synchronized void setEffectsEnabled(boolean on) { effects = on; }
     public static synchronized void setMusicVolume(float v) { music = clamp(v); }
     public static synchronized void setSfxVolume(float v) { sfx = clamp(v); }
 

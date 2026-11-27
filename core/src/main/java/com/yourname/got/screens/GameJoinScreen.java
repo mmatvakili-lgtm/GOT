@@ -82,7 +82,7 @@ public class GameJoinScreen implements Screen, GameMessageListener {
         this.currentUser = user;
         this.stage = new Stage(new ScreenViewport());
         this.background = new Texture("images/background-loding.jpg");
-        this.skin = new Skin(Gdx.files.internal("ui/plain-james-ui.json"));
+        this.skin = UiTheme.loadSkin();
         createUI();
     }
 
@@ -667,10 +667,10 @@ public class GameJoinScreen implements Screen, GameMessageListener {
         if (inGame) {
             if (isOwner) {
                 TextButton settingsBtn = new TextButton("Settings", skin);
-                TextButton deleteBtn = new TextButton("Delete Lobby", skin);
-                TextButton startBtn = new TextButton("START GAME", skin);
-                startBtn.setColor(Color.GREEN);
-                deleteBtn.setColor(Color.FIREBRICK);
+                TextButton deleteBtn = new TextButton("Delete Lobby", skin, skin.has("danger", TextButton.TextButtonStyle.class) ? "danger" : "default");
+                TextButton startBtn = new TextButton("START GAME", skin, skin.has("primary", TextButton.TextButtonStyle.class) ? "primary" : "default");
+                if (!skin.has("primary", TextButton.TextButtonStyle.class)) startBtn.setColor(Color.GREEN);
+                if (!skin.has("danger", TextButton.TextButtonStyle.class)) deleteBtn.setColor(Color.FIREBRICK);
 
                 settingsBtn.addListener(new ChangeListener() { @Override public void changed(ChangeEvent e, Actor a) { if(currentUser.getGame() != null) openGameSettingsWindow(currentUser.getGame().getId()); } });
                 deleteBtn.addListener(new ChangeListener() { @Override public void changed(ChangeEvent e, Actor a) { mediator.deleteCurrentGame(); } });
