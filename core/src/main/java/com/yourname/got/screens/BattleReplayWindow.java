@@ -372,7 +372,7 @@ public void open(final GameMediator.BattleHistoryInfo historyInfo) {
             if (msg.contains("calc") || msg.contains("totalDamage")) return;
 
             // ترجمه و تمیز کردن متن (تبدیل به انگلیسی)
-            String displayMsg = formatBattleMessage(msg);
+            String displayMsg = formatter.apply(msg);
 
             Label lbl = new Label(displayMsg, skin);
             lbl.setWrap(true);
