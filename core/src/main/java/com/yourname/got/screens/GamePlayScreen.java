@@ -487,6 +487,8 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
     private void addMenuButtonAt(Table container, String text, Runnable onClick, float centerY, float height) {
         TextButton b = new TextButton(text, skin);
         b.addListener(new ChangeListener() { @Override public void changed(ChangeEvent event, Actor actor) { onClick.run(); } });
+        TextTooltip tip = UiTheme.tooltip(skin, UiTheme.menuTip(text));
+        if (tip != null) b.addListener(tip);
         float top = centerY - height / 2f;
         float gap = Math.max(0f, top - menuCursorY);
         container.add(b).width(260).height(height).padTop(gap).padRight(36).row();
@@ -3935,6 +3937,7 @@ private void renderTilesAndUpdate() {
     public void addError(String msg) {
         messageLog.addFirst("ERROR::" + msg);
         refreshMessages();
+        Toast.show(stage, skin, msg, UiTheme.BAD);
     }
 
 
@@ -4099,12 +4102,18 @@ private void renderTilesAndUpdate() {
 
         for (BuildingManager.ConstructionOption option : options) {
             Table itemTable = new Table();
+            // a dark card so the text is readable on the grey list, and the state is visible at a glance
+            itemTable.setBackground(skin.newDrawable("white", option.isActionable
+                ? new Color(0.13f, 0.19f, 0.15f, 1f) : new Color(0.17f, 0.15f, 0.15f, 1f)));
             itemTable.add(createPlaceholder(option.displayName, 1)).width(80).height(80).pad(5);
 
             Table infoTable = new Table();
-            infoTable.add(new Label(option.displayName, skin)).left().row();
+            Label nameLabel = new Label(option.displayName, skin);
+            nameLabel.setColor(UiTheme.GOLD);
+            infoTable.add(nameLabel).left().row();
             Label costLabel = new Label(option.costString, skin);
             costLabel.setFontScale(0.8f);
+            costLabel.setColor(option.isActionable ? Color.WHITE : UiTheme.MUTED);
             infoTable.add(costLabel).left().row();
 
             Label statusLabel = new Label(option.statusMessage, skin);
@@ -4115,7 +4124,8 @@ private void renderTilesAndUpdate() {
             infoTable.add(statusLabel).left();
 
             itemTable.add(infoTable).left().expandX().fillX();
-            TextButton chooseButton = new TextButton("Select", skin);
+            TextButton chooseButton = new TextButton("Select", skin,
+                option.isActionable && skin.has("primary", TextButton.TextButtonStyle.class) ? "primary" : "default");
 
             if (!option.isActionable) {
                 chooseButton.setDisabled(true);

@@ -7,6 +7,8 @@ import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.ui.TextTooltip;
+import com.badlogic.gdx.scenes.scene2d.ui.TooltipManager;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.yourname.got.logic.util.GameLog;
 import com.yourname.got.logic.util.UserSettings;
@@ -56,6 +58,14 @@ public final class UiTheme {
         addLabel(skin, label, "warn", WARN);
         addLabel(skin, label, "muted", MUTED);
         addLabel(skin, label, "heading", GOLD);
+
+        // The skin's own tooltip is white text on a white box, so a readable one is added next to it.
+        TextTooltip.TextTooltipStyle tip = new TextTooltip.TextTooltipStyle();
+        tip.label = new Label.LabelStyle(label);
+        tip.label.fontColor = Color.WHITE;
+        tip.background = skin.newDrawable("round-white", new Color(0.08f, 0.09f, 0.13f, 0.95f));
+        skin.add("themed", tip, TextTooltip.TextTooltipStyle.class);
+        TooltipManager.getInstance().initialTime = 0.35f;
     }
 
     private static TextButton.TextButtonStyle button(Skin skin, TextButton.TextButtonStyle base, Color up, Color over, Color down, Color font) {
@@ -71,6 +81,33 @@ public final class UiTheme {
         Label.LabelStyle s = new Label.LabelStyle(base);
         s.fontColor = color;
         skin.add(name, s, Label.LabelStyle.class);
+    }
+
+    /** A readable tooltip for an actor, or null when the theme is not available or there is no text. */
+    public static TextTooltip tooltip(Skin skin, String text) {
+        if (text == null || text.isEmpty() || !skin.has("themed", TextTooltip.TextTooltipStyle.class)) return null;
+        return new TextTooltip(text, skin, "themed");
+    }
+
+    /** One-line help for the right-hand menu buttons, by button text (null for unknown buttons). */
+    public static String menuTip(String button) {
+        if (button == null) return null;
+        switch (button) {
+            case "New Building": return "Build a mine, storage, camp, barrack or tower";
+            case "Overhaul": return "Upgrade or repair a building";
+            case "Destroy": return "Remove a building";
+            case "Move": return "Move a building to another tile";
+            case "Train Soldiers": return "Train infantry, archers and cavalry";
+            case "Attack": return "Send an army against another kingdom";
+            case "History": return "Past battles and their replays";
+            case "Shipping": return "Port, ships and sea travel";
+            case "Kingdom": return "Your kingdom's defences and army";
+            case "WhiteWalkers": return "Information about the White Walker threat";
+            case "Buy": return "Trade with the market";
+            case "Sell": return "Sell to the market";
+            case "Help": return "Help defend the Wall";
+            default: return null;
+        }
     }
 
     /** Colour of a line in the message log by type (ERROR, SYSTEM, NOTIF); other types are white. */
