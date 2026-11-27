@@ -67,6 +67,20 @@ public final class FeatureSettings {
             "Soldiers a bot queues in its Barrack every day, paying the normal cost. Needs the economy option above to reach a Barrack.",
             0, 50, 0, " / day", NOW),
 
+        new Spec(Group.BOTS, "bots.attack.enabled", "Bots attack",
+            "Lets bots march on real players. Off = bots only defend. Bots obey every normal rule (no attacks in spring or winter, "
+                + "peace treaties and alliances protect you) and the target gets a warning as soon as they set out.",
+            0, 1, 0, "", NOW),
+        new Spec(Group.BOTS, "bots.attack.startDay", "Grace period",
+            "Bots do not attack before this game day, so new players can build up first.",
+            0, 200, 10, " days", NOW),
+        new Spec(Group.BOTS, "bots.attack.days", "Attack interval",
+            "A bot attacks at most once in this many game days, and never while its last army is still marching.",
+            1, 60, 7, " days", NOW),
+        new Spec(Group.BOTS, "bots.attack.strength", "Army sent",
+            "Share of its infantry, archers and cavalry a bot sends. The rest stays home to defend.",
+            10, 100, 50, " %", NOW),
+
         new Spec(Group.EVENTS, "events.enabled", "Seasonal events",
             "Turns the events on. Summer and fall can bring a Bountiful Harvest, winter a Famine, spring a Trade Windfall. "
                 + "Every kingdom (players and bots) is affected the same, so nobody is favoured.",

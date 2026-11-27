@@ -301,8 +301,8 @@ public class FeatureControlPanel extends Table {
         String body = switch (g) {
             case BOTS -> "Bots are extra kingdoms controlled by the game, so you can play alone or fill empty slots. They exist only "
                 + "inside the game file (they are not accounts and never appear in the user list or the leaderboard) and carry the "
-                + "name [BOT]. They defend with their soldiers; they never attack. Optional: they can grow, build an economy and "
-                + "train soldiers. A game with only bots left ends when no real player is alive.";
+                + "name [BOT]. They defend with their soldiers. Optional: they can grow, build an economy, train soldiers and "
+                + "(Bots attack) march on players, after a grace period and under the normal rules. A game with only bots left ends when no real player is alive.";
             case EVENTS -> "Once per game day the game rolls a die (the same for everyone). On a hit, the season decides the event: "
                 + "Bountiful Harvest (+food) in summer and fall, Famine (-food) in winter, Trade Windfall (+coin) in spring. "
                 + "Every kingdom, players and bots alike, is affected by the same percent, and a notice is sent to the players. "
@@ -442,7 +442,8 @@ public class FeatureControlPanel extends Table {
                 if (value("bots.growth.perDay") > 0) sb.append(", gain ").append(value("bots.growth.perDay")).append(" per day up to ").append(value("bots.garrison.max"));
                 if (value("bots.build.enabled") == 1) sb.append(", build an economy");
                 if (value("bots.train.perDay") > 0) sb.append(", train ").append(value("bots.train.perDay")).append(" soldiers per day");
-                return sb.append(". They only defend.").toString();
+                return sb.append(value("bots.attack.enabled") == 1 ? ". They attack every " + value("bots.attack.days") + " days after day "
+                    + value("bots.attack.startDay") + ", sending " + value("bots.attack.strength") + "% of their army." : ". They only defend.").toString();
             }
             case EVENTS -> {
                 if (value("events.enabled") == 0) return "no seasonal events happen.";

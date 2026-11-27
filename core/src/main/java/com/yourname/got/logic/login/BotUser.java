@@ -43,6 +43,12 @@ public class BotUser extends GameUser {
         return com.yourname.got.logic.system.BotBuilder.buildOne(getGame(), this);
     }
 
+    /** Last game day this bot sent an attack (0 = never). See BotAttacker. */
+    private int lastAttackDay = 0;
+
+    public int getLastAttackDay() { return lastAttackDay; }
+    public void setLastAttackDay(int day) { this.lastAttackDay = day; }
+
     private int lastTrainDay = 0;
     private int trainRotation = 0;
 

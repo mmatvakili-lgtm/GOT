@@ -62,6 +62,7 @@ public class GameUpdater implements Serializable {
                         if (BotUser.growthPerDay() > 0) bot.reinforce(currentDay);
                         bot.develop(currentDay);
                         bot.train(currentDay);
+                        BotAttacker.tryAttack(game, bot, currentDay);
                     }
                 }
             } catch (RuntimeException e) {
