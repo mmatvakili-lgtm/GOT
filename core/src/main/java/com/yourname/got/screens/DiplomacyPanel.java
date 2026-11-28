@@ -26,8 +26,11 @@ public class DiplomacyPanel extends Table {
     }
 
     private TextButton button(String text, Runnable action) {
-        TextButton b = new TextButton(text, skin);
-        b.getLabel().setColor(Color.BLACK);
+        String style = (text.equals("Accept") || text.startsWith("Offer")) ? "primary"
+                : (text.equals("Refuse") || text.equals("Cancel") || text.equals("Withdraw")) ? "danger" : null;
+        TextButton b = (style != null && skin.has(style, TextButton.TextButtonStyle.class))
+                ? new TextButton(text, skin, style) : new TextButton(text, skin);
+        b.getLabel().setColor(style != null && skin.has(style, TextButton.TextButtonStyle.class) ? Color.WHITE : Color.BLACK);
         b.addListener(new ChangeListener() {
             @Override public void changed(ChangeEvent event, Actor actor) { action.run(); }
         });

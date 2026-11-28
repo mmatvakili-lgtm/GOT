@@ -784,6 +784,7 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
         }
 
         Window window = new Window(title, skin);
+        try { window.getTitleLabel().setColor(UiTheme.GOLD); } catch (Exception ignored) { }
         window.setModal(true);
         window.setMovable(true);
         window.padTop(40);
@@ -4054,6 +4055,19 @@ private void renderTilesAndUpdate() {
      * Floating "+N" (green) / "-N" (red) above a resource when its amount changed since the last refresh.
      * It gives the HUD a living feel: production, trading and spending are visible at the moment they happen.
      */
+    /** Colours a "current/max" label: gold when nearly full, red when nearly empty. Silent on any parse problem. */
+    private void tintByFill(Label l) {
+        try {
+            String t = l.getText().toString();
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d+)\\s*/\\s*(\\d+)").matcher(t);
+            if (!m.find()) return;
+            double max = Double.parseDouble(m.group(2));
+            if (max <= 0) return;
+            double r = Double.parseDouble(m.group(1)) / max;
+            l.setColor(r >= 0.95 ? UiTheme.GOLD : r <= 0.10 ? new Color(1f, 0.5f, 0.45f, 1f) : Color.WHITE);
+        } catch (Exception ignored) { }
+    }
+
     private void showResourceChange(Label anchor, String type) {
         int now = mediator.getResourceAmount(type);
         Integer before = lastResourceAmount.put(type, now);
@@ -4109,6 +4123,10 @@ private void renderTilesAndUpdate() {
         lblStone.setText(mediator.getResourceInfoStone());
         lblFood.setText(mediator.getResourceInfoFood());
         lblCoin.setText(mediator.getResourceInfoCoin());
+        tintByFill(lblWood);
+        tintByFill(lblStone);
+        tintByFill(lblFood);
+        tintByFill(lblCoin);
         showResourceChange(lblWood, "Wood");
         showResourceChange(lblStone, "Stone");
         showResourceChange(lblFood, "Food");

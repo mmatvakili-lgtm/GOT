@@ -130,8 +130,9 @@ public class FeatureControlPanel extends Table {
     }
 
     private TextButton button(String label, final Runnable action) {
-        TextButton b = new TextButton(label, skin);
-        b.getLabel().setColor(Color.BLACK);
+        boolean apply = label.toLowerCase().startsWith("apply") && skin.has("primary", TextButton.TextButtonStyle.class);
+        TextButton b = apply ? new TextButton(label, skin, "primary") : new TextButton(label, skin);
+        b.getLabel().setColor(apply ? Color.WHITE : Color.BLACK);
         b.addListener(new ChangeListener() {
             @Override public void changed(ChangeEvent event, Actor actor) { action.run(); }
         });
