@@ -71,4 +71,32 @@ class WhiteWalkerBalanceTest {
         Check.that(WhiteWalkerWave.describe(cl).contains("the Night King"), "the description names the Night King");
         Check.assertAll();
     }
+
+    @Test
+    void finalWaveIsReallyLaunchedAndResolved() throws Exception {
+        TestWorld.reset(true);
+        GameUser u1 = new GameUser("alice", "1234", 1), u2 = new GameUser("bob", "1234", 2);
+        GameOfThrones g = new GameOfThrones("finalwave", 1, u1);
+        g.addPlayer(u2);
+        g.startGame();
+        g.getWhiteWalkerManager().onDayAdvanced(g.getWhitewalkerFinalDay());
+        int launched = 0;
+        for (com.yourname.got.logic.model.Mission m : g.getMissions()) {
+            if (m instanceof WhiteWalkerMission) {
+                launched++;
+                Check.that(m.getInitialDuration() > 0, "the dead need time to march");
+            }
+        }
+        Check.that(launched == 2, "one attack per living kingdom was created (was " + launched + ")");
+        Check.that(u1.isInFight() && u2.isInFight(), "both kingdoms are marked as under attack");
+        com.yourname.got.logic.model.Mission[] all = new com.yourname.got.logic.model.Mission[g.getMissions().size()];
+        g.getMissions().fillArray(all);
+        for (com.yourname.got.logic.model.Mission m : all) {
+            if (m instanceof WhiteWalkerMission) Check.that(m.startAttack(), "the battle resolves");
+        }
+        for (com.yourname.got.logic.model.Mission m : g.getMissions()) {
+            if (m instanceof WhiteWalkerMission) Check.that(m.isCompleted(), "every attack is completed");
+        }
+        Check.assertAll();
+    }
 }

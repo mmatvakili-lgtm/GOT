@@ -114,7 +114,9 @@ public class Mission implements Serializable {
         // ... (کدهای قبلی سازنده بدون تغییر)
 
         // --- تغییر: تعیین نوع حمله بر اساس حضور هیرو (قانون ۳) ---
-        Hero h = attacker.getKingdom().getHero();
+        // White Walker missions have no attacker kingdom; this line used to throw for them, so no White Walker
+        // attack was ever created (the error was swallowed by WhiteWalkerManager).
+        Hero h = (attacker != null && attacker.getKingdom() != null) ? attacker.getKingdom().getHero() : null;
         if (h != null && h.isAvailable()) {
             this.isConquest = true;
             this.heroParticipated = true;
@@ -1098,6 +1100,7 @@ public class Mission implements Serializable {
     public GameUser getDefender() { return defender; }
     public SoldierUnit[] getAttackerTroops() { return troopsAttacker; }
     public LocalDateTime getStartTime() { return startTime; }
+    public SoldierUnit[] getTroopsAttacker() { return troopsAttacker; }
     public int getInitialDuration() { return durationSeconds; }
     public int getElapsedTime() {
         if (startTime == null) return 0;

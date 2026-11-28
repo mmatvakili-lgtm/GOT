@@ -62,6 +62,10 @@ public class GameMediator {
         void disablePlayerControlsForObservation();
         void refreshMap(); // <<-- ADD THIS LINE
         void showFloatingText(int row, int col, String text, String colorName);
+        /** The dead are marching on the player (default: nothing). */
+        default void showLongNightWarning(String enemies, int seconds, boolean finalWave) {}
+        /** A White Walker battle against the player has ended (default: nothing). */
+        default void showAssaultReport(com.yourname.got.logic.WhiteWalker.AssaultReport report) {}
     }
 
     public void setPanelPresenter(GamePanelPresenter presenter) {
@@ -347,6 +351,20 @@ public class GameMediator {
         public MessageRecipientInfo(int userId, String displayText) {
             this.userId = userId;
             this.displayText = displayText;
+        }
+    }
+
+    /** Called by the White Walker manager when an attack on {@code userId} has been created. */
+    public void triggerLongNightWarning(int userId, String enemies, int seconds, boolean finalWave) {
+        if (panelPresenter != null && currentUser != null && currentUser.getId() == userId) {
+            Gdx.app.postRunnable(() -> panelPresenter.showLongNightWarning(enemies, seconds, finalWave));
+        }
+    }
+
+    /** Called by the White Walker mission when the battle against one kingdom is over. */
+    public void triggerAssaultReport(com.yourname.got.logic.WhiteWalker.AssaultReport report) {
+        if (report != null && panelPresenter != null && currentUser != null && currentUser.getId() == report.userId) {
+            Gdx.app.postRunnable(() -> panelPresenter.showAssaultReport(report));
         }
     }
 
@@ -1434,6 +1452,16 @@ public void initiateGameSession(GameOfThrones game) {
 
         MyLinkedList<Mission> allMissions = currentGame.getMissions();
         for (Mission mission : allMissions) {
+            if (mission == null) continue;
+            if (mission.getAttacker() == null) { // the dead marching on this player
+                if (mission.getDefender() != null && mission.getDefender().getId() == currentUser.getId()) {
+                    int total = mission.getInitialDuration();
+                    float progress = (total > 0) ? Math.min(1.0f, (float) mission.getElapsedTime() / total) : 0f;
+                    missionInfos.add(new MissionInfo("WHITE WALKERS", mission.getDefender().getKingdom().getType().toString(),
+                        Time.formatSeconds(mission.getRemainingTime()), progress));
+                }
+                continue;
+            }
             if (mission.getAttacker().getId() == currentUser.getId()) {
 
                 int totalDuration = mission.getInitialDuration();

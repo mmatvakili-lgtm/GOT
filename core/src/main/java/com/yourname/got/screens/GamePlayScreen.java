@@ -3284,6 +3284,37 @@ private void openBattleHistoryPanel() {
         stage.addActor(defeatDialog);
     }
 
+    @Override
+    public void showLongNightWarning(String enemies, int seconds, boolean finalWave) {
+        try {
+            Actor old = stage.getRoot().findActor("longNight");
+            if (old != null) old.remove();
+            LongNightOverlay overlay = new LongNightOverlay(skin, stage.getWidth(), stage.getHeight(), enemies, seconds, finalWave);
+            stage.addActor(overlay);
+            addError((finalWave ? "THE LONG NIGHT HAS COME! " : "The dead are marching on you: ") + enemies);
+        } catch (RuntimeException e) {
+            GameLog.error("Could not show the Long Night overlay: " + e);
+        }
+    }
+
+    @Override
+    public void showAssaultReport(com.yourname.got.logic.WhiteWalker.AssaultReport report) {
+        try {
+            Actor old = stage.getRoot().findActor("longNight");
+            if (old != null) old.remove();
+            final Window window = new Window("", skin, "default");
+            window.setModal(true);
+            window.setMovable(false);
+            window.add(new WhiteWalkerReportPanel(skin, report, window::remove));
+            window.pack();
+            window.setPosition((stage.getWidth() - window.getWidth()) / 2f, (stage.getHeight() - window.getHeight()) / 2f);
+            stage.addActor(window);
+            UiTheme.fadeIn(window);
+        } catch (RuntimeException e) {
+            GameLog.error("Could not show the White Walker report: " + e);
+        }
+    }
+
     public void showGameResultsPanel(GameRecord record) {
         boolean isWinner = false;
         for (PlayerResult result : record.getPlayerResults()) {
