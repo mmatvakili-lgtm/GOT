@@ -37,7 +37,7 @@ public class GameBuilderScreen implements Screen {
         Gdx.input.setInputProcessor(stage);
 
         background = new Texture("images/background-loding.jpg");
-        skin = new Skin(Gdx.files.internal("ui/plain-james-ui.json"));
+        skin = UiTheme.loadSkin();
 
         createUI();
     }

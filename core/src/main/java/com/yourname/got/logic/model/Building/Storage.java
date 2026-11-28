@@ -77,5 +77,9 @@ public class Storage extends Building implements Serializable {
 
     public String getResourceType() { return resourceType; }
     public int getQuantity() { return quantity; }
-    public int getMaxCapacity() { return GameBalance.getStorageCapacity(resourceType, level); }
+    public int getMaxCapacity() {
+        int base = GameBalance.getStorageCapacity(resourceType, level);
+        // "Granaries" research (1.0 when research is off or this storage has no kingdom).
+        return (int) Math.round(base * com.yourname.got.logic.research.Research.multiplier(owner, com.yourname.got.logic.research.Effect.STORAGE));
+    }
 }

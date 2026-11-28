@@ -62,6 +62,10 @@ public class GameMediator {
         void disablePlayerControlsForObservation();
         void refreshMap(); // <<-- ADD THIS LINE
         void showFloatingText(int row, int col, String text, String colorName);
+        /** The dead are marching on the player (default: nothing). */
+        default void showLongNightWarning(String enemies, int seconds, boolean finalWave) {}
+        /** A White Walker battle against the player has ended (default: nothing). */
+        default void showAssaultReport(com.yourname.got.logic.WhiteWalker.AssaultReport report) {}
     }
 
     public void setPanelPresenter(GamePanelPresenter presenter) {
@@ -347,6 +351,20 @@ public class GameMediator {
         public MessageRecipientInfo(int userId, String displayText) {
             this.userId = userId;
             this.displayText = displayText;
+        }
+    }
+
+    /** Called by the White Walker manager when an attack on {@code userId} has been created. */
+    public void triggerLongNightWarning(int userId, String enemies, int seconds, boolean finalWave) {
+        if (panelPresenter != null && currentUser != null && currentUser.getId() == userId) {
+            Gdx.app.postRunnable(() -> panelPresenter.showLongNightWarning(enemies, seconds, finalWave));
+        }
+    }
+
+    /** Called by the White Walker mission when the battle against one kingdom is over. */
+    public void triggerAssaultReport(com.yourname.got.logic.WhiteWalker.AssaultReport report) {
+        if (report != null && panelPresenter != null && currentUser != null && currentUser.getId() == report.userId) {
+            Gdx.app.postRunnable(() -> panelPresenter.showAssaultReport(report));
         }
     }
 
@@ -689,7 +707,8 @@ public class GameMediator {
             if (gameInstance.isGameReady()) {
                 return new Result(false, "This game has already started.");
             }
-            if (gameInstance.getNumberOfPlayers() < 2) { // Example rule: Minimum 2 players
+            // Bots count as opponents: a lone player can start when bots are configured.
+            if (gameInstance.getNumberOfPlayers() + GameOfThrones.configuredBots() < 2) { // Minimum 2 players
                 return new Result(false, "At least 2 players are required to start.");
             }
 // در فایل GameMediator.java و متد startGameFromUI
@@ -1433,6 +1452,16 @@ public void initiateGameSession(GameOfThrones game) {
 
         MyLinkedList<Mission> allMissions = currentGame.getMissions();
         for (Mission mission : allMissions) {
+            if (mission == null) continue;
+            if (mission.getAttacker() == null) { // the dead marching on this player
+                if (mission.getDefender() != null && mission.getDefender().getId() == currentUser.getId()) {
+                    int total = mission.getInitialDuration();
+                    float progress = (total > 0) ? Math.min(1.0f, (float) mission.getElapsedTime() / total) : 0f;
+                    missionInfos.add(new MissionInfo("WHITE WALKERS", mission.getDefender().getKingdom().getType().toString(),
+                        Time.formatSeconds(mission.getRemainingTime()), progress));
+                }
+                continue;
+            }
             if (mission.getAttacker().getId() == currentUser.getId()) {
 
                 int totalDuration = mission.getInitialDuration();
@@ -1565,6 +1594,127 @@ public void initiateGameSession(GameOfThrones game) {
 
     public Properties adminGetGlobalConfig() {
         return GameConfig.getGlobalProps();
+    }
+
+    /** Research tree: queues the next level of a technology for the current player (saved at once). */
+    public Result researchStart(com.yourname.got.logic.research.Tech tech) {
+        if (currentUser == null || currentUser.getKingdom() == null) return new Result(false, "No kingdom.");
+        Result r = com.yourname.got.logic.research.Research.enqueue(currentUser.getKingdom(), tech);
+        if (r.isSuccess() && currentGame != null) GameFileUtility.saveFullGameState(currentGame);
+        return r;
+    }
+
+    /** Research tree: cancels the queue entry at index (and later levels of the same technology). */
+    public Result researchCancel(int index) {
+        if (currentUser == null || currentUser.getKingdom() == null) return new Result(false, "No kingdom.");
+        Result r = com.yourname.got.logic.research.Research.cancel(currentUser.getKingdom(), index);
+        if (r.isSuccess() && currentGame != null) GameFileUtility.saveFullGameState(currentGame);
+        return r;
+    }
+
+    /** The current player's kingdom for the beginner's guide (null when no game is running). */
+    public Kingdom getCurrentKingdomForGuide() {
+        if (isGameStateInvalid()) return null;
+        return currentGame.getUser(currentUser.getId()).getKingdom();
+    }
+
+    // ------------------------------------------------------------------ diplomacy
+    /** One row of the diplomacy screen: another player and what stands between you. */
+    public static class DiplomacyRow {
+        public final GameUser other;
+        public final String status;
+        public final boolean hasPact, incoming, outgoing;
+        public final com.yourname.got.logic.system.Diplomacy.Type type;
+        public DiplomacyRow(GameUser other, String status, boolean hasPact, boolean incoming, boolean outgoing,
+                            com.yourname.got.logic.system.Diplomacy.Type type) {
+            this.other = other; this.status = status; this.hasPact = hasPact; this.incoming = incoming;
+            this.outgoing = outgoing; this.type = type;
+        }
+    }
+
+    public boolean diplomacyEnabled() { return com.yourname.got.logic.system.Diplomacy.enabled(); }
+
+    public java.util.List<DiplomacyRow> diplomacyRows() {
+        java.util.List<DiplomacyRow> rows = new java.util.ArrayList<>();
+        if (isGameStateInvalid() || !diplomacyEnabled()) return rows;
+        com.yourname.got.logic.system.Diplomacy d = currentGame.getDiplomacy();
+        int day = currentGame.getGameTime().getDay();
+        d.prune(day);
+        int me = currentUser.getId();
+        for (GameUser u : currentGame.getUsers()) {
+            if (u == null || u.getId() == me) continue;
+            GameOfThrones.PlayerState st = currentGame.getPlayerState(u.getId());
+            if (st != null && st.status == GameOfThrones.PlayerStatus.DEFEATED) continue;
+            com.yourname.got.logic.system.Diplomacy.Pact pact = d.pactBetween(me, u.getId(), day);
+            com.yourname.got.logic.system.Diplomacy.Proposal pr = d.proposalBetween(me, u.getId());
+            String text = "No agreement";
+            if (pact != null) {
+                text = pact.type == com.yourname.got.logic.system.Diplomacy.Type.ALLIANCE ? "Allied"
+                    : "Peace until day " + pact.endDay;
+            } else if (pr != null) {
+                text = (pr.to == me ? "Offers you " : "You offered ") + pr.type.name().toLowerCase();
+            }
+            rows.add(new DiplomacyRow(u, text, pact != null, pr != null && pr.to == me, pr != null && pr.from == me,
+                pact != null ? pact.type : (pr != null ? pr.type : null)));
+        }
+        return rows;
+    }
+
+    public Result diplomacyPropose(GameUser target, com.yourname.got.logic.system.Diplomacy.Type type) {
+        if (isGameStateInvalid() || target == null) return new Result(false, "Invalid player.");
+        if (!diplomacyEnabled()) return new Result(false, "Diplomacy is switched off.");
+        int day = currentGame.getGameTime().getDay();
+        com.yourname.got.logic.system.Diplomacy d = currentGame.getDiplomacy();
+        String err = d.propose(currentUser.getId(), target.getId(), type, day);
+        if (err != null) return new Result(false, err);
+        if (com.yourname.got.logic.login.BotUser.isBot(target)) {
+            d.respond(currentUser.getId(), target.getId(), true, day); // bots only defend, so they always agree
+            GameFileUtility.saveFullGameState(currentGame);
+            return new Result(true, target.getUsername() + " accepted.");
+        }
+        currentGame.sendSystemNotificationToUser(target, "Diplomacy",
+            currentUser.getUsername() + " offers you a " + type.name().toLowerCase()
+                + ". Answer in Extra > Diplomacy within " + com.yourname.got.logic.system.Diplomacy.PROPOSAL_DAYS + " game days.");
+        GameFileUtility.saveFullGameState(currentGame);
+        return new Result(true, "Offer sent to " + target.getUsername() + ".");
+    }
+
+    public Result diplomacyRespond(GameUser from, boolean accept) {
+        if (isGameStateInvalid() || from == null) return new Result(false, "Invalid player.");
+        if (!diplomacyEnabled()) return new Result(false, "Diplomacy is switched off.");
+        String err = currentGame.getDiplomacy().respond(from.getId(), currentUser.getId(), accept,
+            currentGame.getGameTime().getDay());
+        if (err != null) return new Result(false, err);
+        currentGame.sendSystemNotificationToUser(from, "Diplomacy",
+            currentUser.getUsername() + (accept ? " accepted" : " refused") + " your offer.");
+        GameFileUtility.saveFullGameState(currentGame);
+        return new Result(true, accept ? "Agreement made." : "Offer refused.");
+    }
+
+    public Result diplomacyCancel(GameUser other) {
+        if (isGameStateInvalid() || other == null) return new Result(false, "Invalid player.");
+        boolean had = currentGame.getDiplomacy().cancel(currentUser.getId(), other.getId(),
+            currentGame.getGameTime().getDay());
+        if (!had) return new Result(false, "There is no agreement to cancel.");
+        currentGame.sendSystemNotificationToUser(other, "Diplomacy",
+            currentUser.getUsername() + " ended the agreement with you.");
+        GameFileUtility.saveFullGameState(currentGame);
+        return new Result(true, "Agreement cancelled.");
+    }
+
+    /** Admin panel: value of a bot/event setting. */
+    public int adminGetFeature(String key) {
+        return com.yourname.got.logic.system.FeatureSettings.get(key);
+    }
+
+    /** Admin panel: validates and saves several bot/event/research settings in one write. */
+    public Result adminSetFeatures(java.util.Map<String, Integer> values) {
+        return com.yourname.got.logic.system.FeatureSettings.setMany(values);
+    }
+
+    /** Admin panel: validates and saves a bot/event setting (takes effect at once; bots join at game start). */
+    public Result adminSetFeature(String key, String value) {
+        return com.yourname.got.logic.system.FeatureSettings.set(key, value);
     }
 
     public Result adminUpdateGlobalConfig(String key, String value) {
@@ -1753,7 +1903,7 @@ public void initiateGameSession(GameOfThrones game) {
 
                 Double speedMov = (attackType == AttackType.SEA && attacker.getKingdom().getBattleShip() != null) ?
                     attacker.getKingdom().getBattleShip().Speed :
-                    attacker.getKingdom().getArmyManager().getSoldierSpeed();
+                    attacker.getKingdom().getMarchSpeed();
 
                 int durationSeconds = currentGame.getGameTime().getTimeForDistance(distance, speedMov);
 
@@ -1880,7 +2030,7 @@ public void initiateGameSession(GameOfThrones game) {
             speedMov = (kingdom.getBattleShip() != null) ? kingdom.getBattleShip().Speed : 1.0;
         } else {
             distance = currentGame.GroundDistance(attacker, target);
-            speedMov = kingdom.getArmyManager().getSoldierSpeed();
+            speedMov = kingdom.getMarchSpeed();
         }
         int durationSeconds = currentGame.getGameTime().getTimeForDistance(distance, speedMov);
 
@@ -1952,7 +2102,7 @@ public void initiateGameSession(GameOfThrones game) {
             speedMov = (kingdom.getBattleShip() != null) ? kingdom.getBattleShip().Speed : 1.0;
         } else {
             distance = currentGame.GroundDistance(attacker, target);
-            speedMov = kingdom.getArmyManager().getSoldierSpeed();
+            speedMov = kingdom.getMarchSpeed();
         }
         int eta = currentGame.getGameTime().getTimeForDistance(distance, speedMov);
 
@@ -2424,7 +2574,7 @@ public void initiateGameSession(GameOfThrones game) {
         if (isGameStateInvalid()) return recipients;
 
         for (GameUser user : currentGame.getUsers()) {
-            if (user != null && user.getId() != currentUser.getId() &&
+            if (user != null && !BotUser.isBot(user) && user.getId() != currentUser.getId() &&
                 user.isActive() && !user.isInFight() &&
                 user.getKingdom() != null) {
 

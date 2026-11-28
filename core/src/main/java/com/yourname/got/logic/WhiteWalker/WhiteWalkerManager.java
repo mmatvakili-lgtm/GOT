@@ -197,7 +197,7 @@ public class WhiteWalkerManager implements Serializable {
         GameLog.info("-> Launching a full-scale invasion against " + targets.length + " kingdoms.");
 
         for (GameUser target : targets) {
-            launchWhiteWalkerMission(target, template, message);
+            launchWhiteWalkerMission(target, template, message, isFinalWave, day);
         }
     }
 
@@ -219,7 +219,7 @@ public class WhiteWalkerManager implements Serializable {
             pool[i] = pool[swapIndex];
             pool[swapIndex] = temp;
             GameUser target = pool[i];
-            launchWhiteWalkerMission(target, template, "You have been targeted at random!");
+            launchWhiteWalkerMission(target, template, "You have been targeted at random!", false, day);
         }
     }
 
@@ -245,7 +245,7 @@ public class WhiteWalkerManager implements Serializable {
         int toAttack = Math.max(1, pool.length / 2);
         GameLog.info("-> اهداف نزدیک مشخص شدند. تعداد: " + toAttack);
         for (int i = 0; i < toAttack; i++) {
-            launchWhiteWalkerMission(pool[i], template, "خطر! از لحاظ فاصله هدف گرفته شده‌اید.");
+            launchWhiteWalkerMission(pool[i], template, "خطر! از لحاظ فاصله هدف گرفته شده‌اید.", false, day);
         }
     }
 
@@ -315,16 +315,32 @@ public class WhiteWalkerManager implements Serializable {
         return pool;
     }
 
-    private void launchWhiteWalkerMission(GameUser target, SoldierUnit[] armyTemplate, String message) {
+    /** Seconds the dead need to reach a kingdom (real time), so the player has a moment to see them coming. */
+    private static int marchSeconds(boolean finalWave) { return finalWave ? 120 : 60; }
+
+    private void launchWhiteWalkerMission(GameUser target, SoldierUnit[] armyTemplate, String message, boolean finalWave, int day) {
         if (target == null) return;
         try {
-
             SoldierUnit[] armyCopy = cloneUnits(armyTemplate);
+            int march = marchSeconds(finalWave);
+            WhiteWalkerMission mission = new WhiteWalkerMission(target, armyCopy, march, finalWave, day);
             target.setInFight(true);
 
-            game.getPostOffice().add(new Notice(0, null, target, "حملهٔ وایت‌واکرها", message));
-            game.getMissions().add(new WhiteWalkerMission(target, armyCopy));
-        } catch (Throwable ignored) {}
+            String enemies = WhiteWalkerWave.describe(WhiteWalkerWave.census(armyCopy));
+            game.getPostOffice().add(new Notice(0, null, target, "حملهٔ وایت‌واکرها", message + "\nThe dead march on you: " + enemies + "."));
+            game.getMissions().add(mission);
+            try {
+                if (com.yourname.got.mediator.GameMediator.getInstance() != null) {
+                    com.yourname.got.mediator.GameMediator.getInstance().triggerLongNightWarning(target.getId(), enemies, march, finalWave);
+                }
+            } catch (RuntimeException e) {
+                GameLog.error("Long Night warning could not be shown: " + e);
+            }
+        } catch (Throwable t) {
+            // This used to be swallowed silently, which hid the fact that no White Walker attack was ever created.
+            GameLog.error("White Walker attack on " + target.getUsername() + " could not be created: " + t);
+            target.setInFight(false);
+        }
     }
 
 

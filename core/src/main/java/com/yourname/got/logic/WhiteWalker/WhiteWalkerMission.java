@@ -17,9 +17,32 @@ import java.io.Serializable;
 public class WhiteWalkerMission extends Mission implements Serializable {
     private static final long serialVersionUID = 1L;
 
+    private boolean finalWave;
+    private int day;
+
     public WhiteWalkerMission(GameUser defender, SoldierUnit[] attackers) {
-        super(null, defender, attackers, 0, com.yourname.got.logic.enums.AttackType.WHITEWALKER);
+        this(defender, attackers, 0, false, 0);
+    }
+
+    /** The dead need {@code marchSeconds} to arrive, so the player sees them coming. */
+    public WhiteWalkerMission(GameUser defender, SoldierUnit[] attackers, int marchSeconds, boolean finalWave, int day) {
+        super(null, defender, attackers, marchSeconds, com.yourname.got.logic.enums.AttackType.WHITEWALKER);
         this.ambush = false; // WWs never ambush
+        this.finalWave = finalWave;
+        this.day = day;
+    }
+
+    private static int count(SoldierUnit[] units) {
+        int n = 0;
+        if (units != null) for (SoldierUnit u : units) if (u != null) n += u.getCount();
+        return n;
+    }
+
+    private static int defenderCount(Kingdom k) {
+        int n = 0;
+        if (k == null) return 0;
+        for (SoldierUnit u : k.getArmyManager().getDefenceManager().getDefenders()) if (u != null) n += u.getCount();
+        return n;
     }
 
     @Override
@@ -42,9 +65,21 @@ public class WhiteWalkerMission extends Mission implements Serializable {
 
         GameLog.info("\n❄️ [WWMission] White Walker battle starting against " + defUser.getKingdom().getType() + "...");
 
-        getReplayLog().add(new EventTextLog("The White Walkers attack " + defUser.getKingdom().getType() + "!"));
+        getReplayLog().add(new EventTextLog((finalWave ? "THE LONG NIGHT HAS COME! " : "The dead march from beyond the Wall. ")
+            + "The White Walkers attack " + defUser.getKingdom().getType() + "!"));
+        getReplayLog().add(new EventTextLog("Against you: " + WhiteWalkerWave.describe(WhiteWalkerWave.census(getTroopsAttacker())) + "."));
+
+        Kingdom kingdom = defUser.getKingdom();
+        String enemies = WhiteWalkerWave.describe(WhiteWalkerWave.census(getTroopsAttacker()));
+        int enemiesBefore = count(getTroopsAttacker());
+        int defendersBefore = defenderCount(kingdom);
+        int glassBefore = kingdom.getDragonGlass();
 
         boolean whiteWalkersWon = this.soldierVsSoldierCombatAdvanced();
+
+        AssaultReport report = new AssaultReport(day, finalWave, defUser.getId(), kingdom.getType().name(), enemies,
+            enemiesBefore, count(getTroopsAttacker()), defendersBefore, defenderCount(kingdom),
+            Math.max(0, glassBefore - kingdom.getDragonGlass()), whiteWalkersWon);
 
         if (whiteWalkersWon) {
             GameLog.info("...💀 The armies of " + defUser.getKingdom().getType() + " have fallen. The kingdom is overrun.");
@@ -76,6 +111,13 @@ public class WhiteWalkerMission extends Mission implements Serializable {
         this.markCompleted();
 
         GameFileUtility.saveFullGameState(game);
+        try {
+            if (com.yourname.got.mediator.GameMediator.getInstance() != null) {
+                com.yourname.got.mediator.GameMediator.getInstance().triggerAssaultReport(report);
+            }
+        } catch (RuntimeException e) {
+            GameLog.error("White Walker report could not be shown: " + e);
+        }
         return true;
     }
 

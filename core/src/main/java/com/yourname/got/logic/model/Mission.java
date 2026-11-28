@@ -114,7 +114,9 @@ public class Mission implements Serializable {
         // ... (کدهای قبلی سازنده بدون تغییر)
 
         // --- تغییر: تعیین نوع حمله بر اساس حضور هیرو (قانون ۳) ---
-        Hero h = attacker.getKingdom().getHero();
+        // White Walker missions have no attacker kingdom; this line used to throw for them, so no White Walker
+        // attack was ever created (the error was swallowed by WhiteWalkerManager).
+        Hero h = (attacker != null && attacker.getKingdom() != null) ? attacker.getKingdom().getHero() : null;
         if (h != null && h.isAvailable()) {
             this.isConquest = true;
             this.heroParticipated = true;
@@ -229,6 +231,8 @@ public class Mission implements Serializable {
             // ---------------------------------------
             // 2. Apply Environment Effects
             applyInitialBattleEffects();
+            addBattleSetupEvent();
+            addArmyState("Battle start", null, 0);
 
             // 3. Execute Battle Scenario
             if (this.ambush) {
@@ -436,17 +440,25 @@ public class Mission implements Serializable {
             getReplayLog().add(new EventRoundUpdate("Gate Assault Round " + round, getOverallHealth(troopsAttacker), complex.getTotalHealth(this.attackType)));
 
             // اعمال آسیب به دیوار/دروازه
+            double sturdiness = researchOf(defender, com.yourname.got.logic.research.Effect.STRUCTURE);
+            int meleeVsWall = sturdiness > 1.0 ? (int) Math.ceil(attackerMeleeAP / sturdiness) : attackerMeleeAP;
+            int allVsWall = sturdiness > 1.0 ? (int) Math.ceil((attackerMeleeAP + attackerArchersAP) / sturdiness) : attackerMeleeAP + attackerArchersAP;
             if (wallArcherUnit != null && wallArcherUnit.getCount() > 0) {
                 if (attackerArchersAP > 0) wallArcherUnit.getTotalDamage(attackerArchersAP);
-                if (attackerMeleeAP > 0) complex.applyDamage(this.attackType, attackerMeleeAP);
+                if (attackerMeleeAP > 0) complex.applyDamage(this.attackType, meleeVsWall);
             } else {
-                complex.applyDamage(this.attackType, attackerMeleeAP + attackerArchersAP);
+                complex.applyDamage(this.attackType, allVsWall);
             }
 
             // آسیب مدافعان دیوار به مهاجم
             if (wallArchersAP > 0) {
                 applyDamageToUnits(troopsAttacker, wallArchersAP);
             }
+
+            addStrike(true, "MELEE", attackerMeleeAP, null);
+            addStrike(true, "ARCHER", attackerArchersAP, null);
+            addStrike(false, "WALL_ARCHERS", wallArchersAP, null);
+            addArmyState("Gate assault, round " + round, "Gate / walls", complex.getTotalHealth(this.attackType));
         }
 
         return complex.getTotalHealth(this.attackType) <= 0 && (wallArcherUnit == null || wallArcherUnit.getCount() <= 0);
@@ -493,6 +505,9 @@ public class Mission implements Serializable {
             applyDamageToUnits(defenderUnits, attackerAP);
             applyDamageToUnits(troopsAttacker, defenderAP);
 
+            addStrike(true, "ARMY", attackerAP, null);
+            addStrike(false, "GARRISON", defenderAP, null);
+            addArmyState("Garrison fight, round " + round, null, 0);
             // آپدیت نوار سلامتی در ریپلای
             getReplayLog().add(new EventRoundUpdate("Troop Clash", getOverallHealth(troopsAttacker), getOverallHealth(defenderUnits)));
         }
@@ -510,7 +525,7 @@ public class Mission implements Serializable {
             return;
         }
 
-        addBattleSetupEvent();
+        moveArmyTo(entry, "Through the gate");
 
         Position currentPos = entry.getPosition();
         java.util.Set<Building> abandoned = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
@@ -536,6 +551,7 @@ public class Mission implements Serializable {
 
             getReplayLog().add(new EventTextLog("Advancing to " + target.getName()));
             addFocusEvent(target);
+            moveArmyTo(target, "Advancing to " + target.getName());
 
             if (target instanceof Castle) {
                 if (!isConquest) {
@@ -582,13 +598,19 @@ public class Mission implements Serializable {
                 for(SoldierUnit u : troopsAttacker) if(u!=null) u.applyHealthReductionPercentage(effect.getHealthReductionPercentage());
             }
 
-            targetBuilding.takeDamage(damage);
+            // "Masonry" / "Iron Gates": the defender's buildings take less damage.
+            double sturdiness = researchOf(defender, com.yourname.got.logic.research.Effect.STRUCTURE);
+            targetBuilding.takeDamage(sturdiness > 1.0 ? Math.max(1, (int) Math.ceil(damage / sturdiness)) : damage);
 
             // آسیب برج‌های دفاعی
             int towerDamage = calculateTowerDamage(attackerPosition);
             if (towerDamage > 0) {
                 applyDamageToUnits(troopsAttacker, towerDamage);
             }
+
+            addStrike(true, "MELEE", damage, targetBuilding);
+            addStrike(false, "TOWER", towerDamage, null);
+            addArmyState("Attacking " + targetBuilding.getName(), targetBuilding.getName(), targetBuilding.getHealth());
         }
 
         if (targetBuilding.getHealth() <= 0 && !targetBuilding.isDestroyed()) {
@@ -709,6 +731,13 @@ public class Mission implements Serializable {
                 return true;
             }
 
+            if (isWhiteWalkerFight && (round == 1 || round % 2 == 0) && round <= 120) {
+                // the replay of the Long Night shows both armies shrinking round by round
+                getReplayLog().add(new EventTextLog("Round " + round + ": the dead strike with " + atkPower
+                    + " power, your army answers with " + defPower + "."));
+                addArmyState(round == 1 ? "The dead arrive" : "Round " + round, null, 0);
+            }
+
             long damageToDef = (long) (atkPower * (0.6 + 0.2 * rng.nextDouble()));
             long damageToAtk = (long) (defPower * (0.6 + 0.2 * rng.nextDouble()));
 
@@ -819,6 +848,68 @@ public class Mission implements Serializable {
         getReplayLog().add(setup);
     }
 
+    // ---- Extra replay detail: armies, soldiers, movement, blows. None of it may ever break a battle. ----
+    private int[] armyTile = null; // where the attacking army stands in the defender's kingdom (local x, y)
+
+    private void addArmyState(String label, String structureName, long structureHealth) {
+        try {
+            com.yourname.got.logic.util.EventArmyState st = new com.yourname.got.logic.util.EventArmyState(label);
+            if (troopsAttacker != null) {
+                for (SoldierUnit u : troopsAttacker) {
+                    if (u != null && u.getCount() > 0) {
+                        st.attackers.add(new com.yourname.got.logic.util.EventArmyState.Unit(u.getType().name(), u.getCount(), u.getTotalHealth()));
+                    }
+                }
+            }
+            if (defend != null && defend.getDefenders() != null) {
+                for (SoldierUnit u : defend.getDefenders()) {
+                    if (u != null && u.getCount() > 0) {
+                        st.defenders.add(new com.yourname.got.logic.util.EventArmyState.Unit(u.getType().name(), u.getCount(), u.getTotalHealth()));
+                    }
+                }
+            }
+            if (defend != null && defend.getDefenseComplex() != null) {
+                SoldierUnit wall = defend.getDefenseComplex().getDefensiveArchers();
+                if (wall != null && wall.getCount() > 0) {
+                    st.defenders.add(new com.yourname.got.logic.util.EventArmyState.Unit("WALL ARCHERS", wall.getCount(), wall.getTotalHealth()));
+                }
+            }
+            if (attacker != null && isConquest && heroParticipated && attacker.getKingdom().getHero() != null) {
+                st.heroName = attacker.getKingdom().getHero().getName();
+                st.heroHealth = attacker.getKingdom().getHero().getHealth();
+            }
+            st.structureName = structureName;
+            st.structureHealth = Math.max(0, structureHealth);
+            getReplayLog().add(st);
+        } catch (RuntimeException e) {
+            GameLog.error("Replay detail (army state) skipped: " + e);
+        }
+    }
+
+    private void addStrike(boolean byAttacker, String kind, long amount, Building target) {
+        try {
+            if (amount <= 0) return;
+            int[] at = (target == null) ? null : localTile(target);
+            getReplayLog().add(new com.yourname.got.logic.util.EventStrike(byAttacker, kind, amount,
+                at == null ? -1 : at[0], at == null ? -1 : at[1]));
+        } catch (RuntimeException e) {
+            GameLog.error("Replay detail (strike) skipped: " + e);
+        }
+    }
+
+    private void moveArmyTo(Building target, String note) {
+        try {
+            int[] to = localTile(target);
+            if (to == null) return;
+            int fx = armyTile == null ? -1 : armyTile[0];
+            int fy = armyTile == null ? -1 : armyTile[1];
+            getReplayLog().add(new com.yourname.got.logic.util.EventArmyMove(fx, fy, to[0], to[1], note));
+            armyTile = to;
+        } catch (RuntimeException e) {
+            GameLog.error("Replay detail (movement) skipped: " + e);
+        }
+    }
+
     private void addFocusEvent(Building b) {
         int[] at = localTile(b);
         if (at != null) {
@@ -881,6 +972,12 @@ public class Mission implements Serializable {
         if (defender != null) defender.setInFight(false);
     }
 
+    /** Research multiplier of a player's kingdom (1.0 for White Walkers, who have no kingdom). */
+    private static double researchOf(GameUser user, com.yourname.got.logic.research.Effect effect) {
+        if (user == null || user.getKingdom() == null) return 1.0;
+        return com.yourname.got.logic.research.Research.multiplier(user.getKingdom(), effect);
+    }
+
     private int calculateRowBasedAttackPower(SoldierUnit[] units) {
         double power = 0;
         int row = 0;
@@ -889,7 +986,7 @@ public class Mission implements Serializable {
                 power += u.getTotalAttackPower() * Math.pow(rowEfficiency(), row++);
             }
         }
-        return (int) power;
+        return (int) (power * researchOf(attacker, com.yourname.got.logic.research.Effect.ATTACK));
     }
 
     private int calculateTotalAttackPower(MyLinkedList<SoldierUnit> units) {
@@ -899,7 +996,7 @@ public class Mission implements Serializable {
         for (SoldierUnit u : arr) {
             if (u != null && u.getCount() > 0) power += u.getTotalAttackPower();
         }
-        return power;
+        return (int) (power * researchOf(defender, com.yourname.got.logic.research.Effect.ATTACK));
     }
 
     private int calculateTowerDamage(Position pos) {
@@ -912,11 +1009,14 @@ public class Mission implements Serializable {
                 }
             }
         }
-        return damage;
+        return (int) (damage * researchOf(defender, com.yourname.got.logic.research.Effect.TOWER));
     }
 
     private void applyDamageToUnits(SoldierUnit[] units, int damage) {
         if (units == null || damage <= 0) return;
+        // "Forge" / "Bulwark": tougher soldiers take less damage (the attackers' own bonus when they are the ones hit).
+        double toughness = researchOf(units == troopsAttacker ? attacker : defender, com.yourname.got.logic.research.Effect.HEALTH);
+        if (toughness > 1.0 && damage < 9_000_000) damage = (int) Math.ceil(damage / toughness);
         for (SoldierUnit u : units) {
             if (damage <= 0) break;
             if (u != null && u.getCount() > 0) {
@@ -927,6 +1027,8 @@ public class Mission implements Serializable {
 
     private void applyDamageToUnits(MyLinkedList<SoldierUnit> units, int damage) {
         if (units == null || damage <= 0) return;
+        double toughness = researchOf(defender, com.yourname.got.logic.research.Effect.HEALTH);
+        if (toughness > 1.0 && damage < 9_000_000) damage = (int) Math.ceil(damage / toughness);
         Node<SoldierUnit> node = units.getHead();
         while (node != null && damage > 0) {
             SoldierUnit u = node.data;
@@ -1005,6 +1107,7 @@ public class Mission implements Serializable {
     public GameUser getDefender() { return defender; }
     public SoldierUnit[] getAttackerTroops() { return troopsAttacker; }
     public LocalDateTime getStartTime() { return startTime; }
+    public SoldierUnit[] getTroopsAttacker() { return troopsAttacker; }
     public int getInitialDuration() { return durationSeconds; }
     public int getElapsedTime() {
         if (startTime == null) return 0;

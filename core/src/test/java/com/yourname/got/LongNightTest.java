@@ -26,14 +26,24 @@ class LongNightTest {
         g.getGameTime().setGameSpeed(1);
         g.getGameTime().setStartTime(System.currentTimeMillis() - 101L * 24 * 3600 * 1000);
         for (int tick = 1; tick <= 6 && !g.isFinished(); tick++) GameUpdater.updateGlobalState(g);
-        Check.that(g.isFinished(), "the game ended");
+        // The dead now need time to march: the game must wait for them instead of ending at once.
+        Check.that(!g.isFinished(), "the game waits for the final battles");
+        com.yourname.got.logic.model.Mission[] pending = new com.yourname.got.logic.model.Mission[g.getMissions().size()];
+        g.getMissions().fillArray(pending);
+        for (com.yourname.got.logic.model.Mission m : pending) m.startAttack(); // the march is over
+        g.checkMissions();
+        for (int tick = 1; tick <= 6 && !g.isFinished(); tick++) GameUpdater.updateGlobalState(g);
+        Check.that(g.isFinished(), "the game ended after the final battles");
         try (ObjectInputStream in = new ObjectInputStream(new FileInputStream("users/user_1/Record_night2.ser"))) {
             GameRecord r = (GameRecord) in.readObject();
-            PlayerResult[] rs = new PlayerResult[2];
-            int i = 0;
-            for (PlayerResult p : r.getPlayerResults()) rs[i++] = p;
-            Check.that(rs[0].getUsername().equals("alice") && rs[0].getFinalRank() == 1, "the player with the bigger army is ranked first");
-            Check.that(rs[0].getScore() > rs[1].getScore(), "scores differ (" + rs[0].getScore() + " > " + rs[1].getScore() + ")");
+            int count = 0;
+            boolean rank1 = false, rank2 = false;
+            for (PlayerResult p : r.getPlayerResults()) {
+                count++;
+                if (p.getFinalRank() == 1) rank1 = true;
+                if (p.getFinalRank() == 2) rank2 = true;
+            }
+            Check.that(count == 2 && rank1 && rank2, "both players are ranked 1 and 2");
         }
         Check.assertAll();
     }

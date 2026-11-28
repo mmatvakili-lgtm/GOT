@@ -169,7 +169,7 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
         this.background = safeLoad(backgroundPath);
         this.tileTexture = safeLoad("icon/tile_default.png");
 
-        this.skin = new Skin(Gdx.files.internal("ui/plain-james-ui.json"));
+        this.skin = UiTheme.loadSkin();
         Drawable roundGray = skin.getDrawable("round-gray");
         skin.add("default-round", roundGray, Drawable.class);
 
@@ -487,6 +487,8 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
     private void addMenuButtonAt(Table container, String text, Runnable onClick, float centerY, float height) {
         TextButton b = new TextButton(text, skin);
         b.addListener(new ChangeListener() { @Override public void changed(ChangeEvent event, Actor actor) { onClick.run(); } });
+        TextTooltip tip = UiTheme.tooltip(skin, UiTheme.menuTip(text));
+        if (tip != null) b.addListener(tip);
         float top = centerY - height / 2f;
         float gap = Math.max(0f, top - menuCursorY);
         container.add(b).width(260).height(height).padTop(gap).padRight(36).row();
@@ -782,6 +784,7 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
         }
 
         Window window = new Window(title, skin);
+        try { window.getTitleLabel().setColor(UiTheme.GOLD); } catch (Exception ignored) { }
         window.setModal(true);
         window.setMovable(true);
         window.padTop(40);
@@ -803,6 +806,7 @@ public class GamePlayScreen implements Screen, GameMessageListener , GameMediato
             (stage.getHeight() - window.getHeight()) / 2
         );
         stage.addActor(window);
+        UiTheme.fadeIn(window);
         activeDialog = window;
     }
     private void openMessagesPanel() {
@@ -3281,7 +3285,44 @@ private void openBattleHistoryPanel() {
         stage.addActor(defeatDialog);
     }
 
+    @Override
+    public void showLongNightWarning(String enemies, int seconds, boolean finalWave) {
+        try {
+            Actor old = stage.getRoot().findActor("longNight");
+            if (old != null) old.remove();
+            LongNightOverlay overlay = new LongNightOverlay(skin, stage.getWidth(), stage.getHeight(), enemies, seconds, finalWave);
+            stage.addActor(overlay);
+            addError((finalWave ? "THE LONG NIGHT HAS COME! " : "The dead are marching on you: ") + enemies);
+        } catch (RuntimeException e) {
+            GameLog.error("Could not show the Long Night overlay: " + e);
+        }
+    }
+
+    @Override
+    public void showAssaultReport(com.yourname.got.logic.WhiteWalker.AssaultReport report) {
+        try {
+            Actor old = stage.getRoot().findActor("longNight");
+            if (old != null) old.remove();
+            final Window window = new Window("", skin, "default");
+            window.setModal(true);
+            window.setMovable(false);
+            window.add(new WhiteWalkerReportPanel(skin, report, window::remove));
+            window.pack();
+            window.setPosition((stage.getWidth() - window.getWidth()) / 2f, (stage.getHeight() - window.getHeight()) / 2f);
+            stage.addActor(window);
+            UiTheme.fadeIn(window);
+        } catch (RuntimeException e) {
+            GameLog.error("Could not show the White Walker report: " + e);
+        }
+    }
+
     public void showGameResultsPanel(GameRecord record) {
+        try {
+            game.setScreen(new EndingCinematicScreen(game, mediator, record, currentUser));
+            return; // the film ends with the final standings and the way back to the menu
+        } catch (RuntimeException e) {
+            GameLog.error("The ending film could not start, showing the plain results: " + e);
+        }
         boolean isWinner = false;
         for (PlayerResult result : record.getPlayerResults()) {
             if (result.getUsername().equals(currentUser.getUsername())) {
@@ -3495,189 +3536,10 @@ private void addPortIconsToStage() {
 //
 //// ✅ جدید (درست و هماهنگ با ReplayData)
 
-private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyInfo) {
-    if (historyInfo == null || historyInfo.replayFilePath == null || historyInfo.replayFilePath.equals("N/A")) {
-        addError("Replay file not found.");
-        return;
+    private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyInfo) {
+        new BattleReplayWindow(skin, stage, mediator, this::addError, this::formatBattleMessage,
+            this::getCachedBuildingDrawable).open(historyInfo);
     }
-
-    ReplayData replayData = mediator.loadReplayLog(historyInfo.replayFilePath);
-    if (replayData == null || replayData.getEvents() == null || replayData.getEvents().isEmpty()) {
-        addError("Replay data is corrupted or empty.");
-        return;
-    }
-
-    final MyLinkedList<BattleEvent> events = replayData.getEvents();
-    final String attackerName = (replayData.getAttackerName() != null ? replayData.getAttackerName() : "Attacker");
-    final String defenderName = (replayData.getDefenderName() != null ? replayData.getDefenderName() : "Defender");
-
-    final Dialog panel = new Dialog("Battle Replay", skin, "default");
-    panel.setModal(true);
-    // --- تغییر ۱: افزایش سایز کلی پنل ---
-    panel.setSize(950, 750);
-    panel.setPosition((stage.getWidth() - 950) / 2f, (stage.getHeight() - 750) / 2f);
-
-    // --- بخش ۱: هدر و نوارهای سلامتی ---
-    Table topTable = new Table();
-    topTable.pad(10);
-
-    Label lblAtk = new Label("[ATK] " + attackerName, skin);
-    lblAtk.setColor(Color.ORANGE);
-    lblAtk.setFontScale(1.2f); // فونت بزرگتر
-
-    Label lblDef = new Label("[DEF] " + defenderName, skin);
-    lblDef.setColor(Color.CYAN);
-    lblDef.setFontScale(1.2f); // فونت بزرگتر
-
-    ProgressBar.ProgressBarStyle barStyle = skin.get("default-horizontal", ProgressBar.ProgressBarStyle.class);
-    barStyle.background.setMinHeight(25);
-    barStyle.knobBefore.setMinHeight(25);
-
-    // --- رفع باگ: تنظیم پویا و دقیق ظرفیت نوار سلامتی بر اساس حجم واقعی ارتش ---
-    long maxAtkHp = 100; // حداقل جان
-    long maxDefHp = 100;
-
-    // جستجو در رویدادها برای پیدا کردن جان اولیه دو ارتش در لحظه شروع نبرد
-    for (BattleEvent e : events) {
-        if (e instanceof EventRoundUpdate) {
-            maxAtkHp = Math.max(100, ((EventRoundUpdate)e).attackerTotalHealth);
-            maxDefHp = Math.max(100, ((EventRoundUpdate)e).defenderTotalHealth);
-            break; // فقط رکورد اول مد نظر است
-        }
-    }
-
-    final ProgressBar attackerHealthBar = new ProgressBar(0, maxAtkHp, 1, false, barStyle);
-    attackerHealthBar.setValue(maxAtkHp);
-    final ProgressBar defenderHealthBar = new ProgressBar(0, maxDefHp, 1, false, barStyle);
-    defenderHealthBar.setValue(maxDefHp);
-    // -------------------------------------------------------------------------
-
-    // چیدمان ردیف اول (نام‌ها)
-    topTable.add(lblAtk).left().padBottom(5);
-    topTable.add().expandX();
-    topTable.add(lblDef).right().padBottom(5).row();
-
-    // چیدمان ردیف دوم (نوارها)
-    // عرض نوارها را به 350 افزایش دادیم
-    topTable.add(attackerHealthBar).width(350).left();
-    Label vsLabel = new Label(" VS ", skin);
-    vsLabel.setFontScale(1.5f);
-    vsLabel.setColor(Color.LIGHT_GRAY);
-    topTable.add(vsLabel).pad(10);
-    topTable.add(defenderHealthBar).width(350).right();
-
-    // --- بخش ۲: ناحیه لاگ (Log Area) ---
-    final Table logTable = new Table();
-    logTable.top().left();
-
-    final ScrollPane logScroll = new ScrollPane(logTable, skin);
-    logScroll.setFadeScrollBars(false);
-
-    panel.getContentTable().add(topTable).growX().padBottom(15).row();
-
-    Table logContainer = new Table(skin);
-    logContainer.setBackground(skin.newDrawable("white", new Color(0, 0, 0, 0.6f)));
-    // --- تغییر ۳: افزایش ارتفاع اسکرول ---
-    logContainer.add(logScroll).expand().fill().pad(10).minHeight(450); // ارتفاع بیشتر
-
-    // Visual part of the replay: a small map of the defender's kingdom next to the text log. It is fed by the
-    // structured events (setup / target / destroyed) in the playback loop below.
-    final BattlefieldView battlefield = new BattlefieldView(skin,
-        (buildingName, buildingLevel) -> getCachedBuildingDrawable(buildingName, Math.max(0, buildingLevel - 1)), 22f);
-    Table battlefieldBox = new Table(skin);
-    battlefieldBox.setBackground(skin.newDrawable("white", new Color(0f, 0f, 0f, 0.6f)));
-    Label battlefieldTitle = new Label("Battlefield", skin);
-    battlefieldTitle.setFontScale(0.8f);
-    battlefieldBox.add(battlefieldTitle).padTop(6f).row();
-    battlefieldBox.add(battlefield).size(battlefield.getWidth(), battlefield.getHeight()).pad(8f).row();
-
-    Table replayBody = new Table();
-    replayBody.add(battlefieldBox).top().padRight(10f);
-    replayBody.add(logContainer).expand().fill();
-    panel.getContentTable().add(replayBody).expand().fill().row();
-
-    // --- بخش ۳: کنترلر پخش ---
-    final boolean[] isPaused = {false};
-    final float[] playSpeed = {1.0f};
-    final float baseDelay = 0.8f;
-    final int[] currentIndex = {0};
-    final float[] timeToNextEvent = {0.5f};
-
-    Action replayDriver = new Action() {
-        @Override
-        public boolean act(float delta) {
-            if (isPaused[0]) return false;
-
-            timeToNextEvent[0] -= delta * playSpeed[0];
-            if (timeToNextEvent[0] <= 0f) {
-                if (currentIndex[0] >= events.size()) {
-                    // پایان
-                    Table endRow = new Table(skin);
-                    endRow.setBackground(skin.newDrawable("white", new Color(0.2f, 0.2f, 0.2f, 0.8f)));
-                    Label endLabel = new Label("--- END OF BATTLE ---", skin);
-                    endLabel.setColor(Color.GOLD);
-                    endLabel.setFontScale(1.2f);
-                    endRow.add(endLabel).pad(15);
-
-                    logTable.add(endRow).growX().padTop(20).row();
-                    logScroll.layout();
-                    logScroll.setScrollPercentY(1.0f);
-                    return true;
-                }
-
-                BattleEvent event = events.get(currentIndex[0]++);
-                battlefield.handle(event);
-                if (event instanceof com.yourname.got.logic.util.EventBattleSetup
-                        || event instanceof com.yourname.got.logic.util.EventBuildingFocus
-                        || event instanceof com.yourname.got.logic.util.EventBuildingDestroyed) {
-                    // Map-only events take no time of their own: the text event next to them sets the pace.
-                    timeToNextEvent[0] = 0f;
-                    return false;
-                }
-                addEventToLogTable(logTable, event, skin, attackerHealthBar, defenderHealthBar);
-
-                logScroll.layout();
-                logScroll.setScrollPercentY(1.0f);
-                timeToNextEvent[0] = baseDelay;
-            }
-            return false;
-        }
-    };
-    stage.addAction(replayDriver);
-
-    // دکمه‌های کنترل
-    Table controls = new Table();
-    TextButton btnPause = new TextButton("Pause", skin);
-    btnPause.addListener(new ChangeListener() { @Override public void changed(ChangeEvent e, Actor a) {
-        isPaused[0] = !isPaused[0];
-        btnPause.setText(isPaused[0] ? "Resume" : "Pause");
-    }});
-
-    TextButton btnSpeed = new TextButton("Speed: 1x", skin);
-    btnSpeed.addListener(new ChangeListener() {
-        @Override public void changed(ChangeEvent e, Actor a) {
-            if(playSpeed[0] == 1f) { playSpeed[0]=2f; btnSpeed.setText("Speed: 2x"); }
-            else if(playSpeed[0] == 2f) { playSpeed[0]=4f; btnSpeed.setText("Speed: 4x"); }
-            else { playSpeed[0]=1f; btnSpeed.setText("Speed: 1x"); }
-        }
-    });
-
-    controls.add(btnPause).width(150).height(50).pad(10);
-    controls.add(btnSpeed).width(150).height(50).pad(10);
-
-    panel.getButtonTable().add(controls).row();
-    TextButton closeBtn = new TextButton("Close", skin);
-    closeBtn.addListener(new ChangeListener() {
-        @Override
-        public void changed(ChangeEvent event, Actor actor) {
-            stage.getRoot().removeAction(replayDriver);
-            panel.remove();
-        }
-    });
-    panel.getButtonTable().add(closeBtn).width(200).height(50).padTop(10);
-
-    panel.show(stage);
-}
 
     // این متد جدید را به GamePlayScreen.java اضافه کنید
     private void openWorldMapPanel() {
@@ -3736,7 +3598,42 @@ private void openBattleReplayPanel(final GameMediator.BattleHistoryInfo historyI
         Texture t = new Texture(p); p.dispose(); return t;
     }
 
-    private void openExtraPanel(){ openCenteredWindow("Extra", new Label("Not implemented", skin)); }
+    private void openExtraPanel() {
+        Table content = new Table(skin);
+        content.pad(20).defaults().width(300).height(50).space(15);
+        TextButton researchBtn = new TextButton("Research Tree", skin);
+        researchBtn.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                openResearchPanel();
+            }
+        });
+        content.add(researchBtn).row();
+        TextButton guideBtn = new TextButton("Beginner's Guide", skin);
+        guideBtn.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                openWindow("Beginner's Guide", new TutorialPanel(skin, mediator.getCurrentKingdomForGuide()));
+            }
+        });
+        content.add(guideBtn).row();
+        if (mediator.diplomacyEnabled()) {
+            TextButton diplomacyBtn = new TextButton("Diplomacy", skin);
+            diplomacyBtn.addListener(new ChangeListener() {
+                @Override
+                public void changed(ChangeEvent event, Actor actor) {
+                    openWindow("Diplomacy", new DiplomacyPanel(skin, mediator));
+                }
+            });
+            content.add(diplomacyBtn).row();
+        }
+        openWindow("Extra", content);
+    }
+
+    private void openResearchPanel() {
+        ResearchPanel panel = new ResearchPanel(skin, mediator);
+        openWindow("Research Tree", panel);
+    }
 
     private void openCenteredWindowWithFixedHeight(String title, Actor content, int height) {
         // reuse openCenteredWindow behavior but set fixed height
@@ -4078,6 +3975,7 @@ private void renderTilesAndUpdate() {
     public void addError(String msg) {
         messageLog.addFirst("ERROR::" + msg);
         refreshMessages();
+        Toast.show(stage, skin, msg, UiTheme.BAD);
     }
 
 
@@ -4103,14 +4001,7 @@ private void renderTilesAndUpdate() {
                 Label l = new Label(displayText, skin);
                 l.setWrap(true);
 
-                switch (messageType) {
-                    case "ERROR": l.setColor(0.8f,0,0,1); break;
-                    case "SYSTEM": l.setColor(0,0.8f,0,1); break;
-                    case "NOTIF":
-                        l.setColor(Color.YELLOW);
-                        break;
-                    default: l.setColor(Color.WHITE); break;
-                }
+                l.setColor(UiTheme.messageColor(messageType));
                 messagesTable.add(l).left().expandX().fillX().padBottom(2).row();
             }
         }
@@ -4164,6 +4055,19 @@ private void renderTilesAndUpdate() {
      * Floating "+N" (green) / "-N" (red) above a resource when its amount changed since the last refresh.
      * It gives the HUD a living feel: production, trading and spending are visible at the moment they happen.
      */
+    /** Colours a "current/max" label: gold when nearly full, red when nearly empty. Silent on any parse problem. */
+    private void tintByFill(Label l) {
+        try {
+            String t = l.getText().toString();
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d+)\\s*/\\s*(\\d+)").matcher(t);
+            if (!m.find()) return;
+            double max = Double.parseDouble(m.group(2));
+            if (max <= 0) return;
+            double r = Double.parseDouble(m.group(1)) / max;
+            l.setColor(r >= 0.95 ? UiTheme.GOLD : r <= 0.10 ? new Color(1f, 0.5f, 0.45f, 1f) : Color.WHITE);
+        } catch (Exception ignored) { }
+    }
+
     private void showResourceChange(Label anchor, String type) {
         int now = mediator.getResourceAmount(type);
         Integer before = lastResourceAmount.put(type, now);
@@ -4219,6 +4123,10 @@ private void renderTilesAndUpdate() {
         lblStone.setText(mediator.getResourceInfoStone());
         lblFood.setText(mediator.getResourceInfoFood());
         lblCoin.setText(mediator.getResourceInfoCoin());
+        tintByFill(lblWood);
+        tintByFill(lblStone);
+        tintByFill(lblFood);
+        tintByFill(lblCoin);
         showResourceChange(lblWood, "Wood");
         showResourceChange(lblStone, "Stone");
         showResourceChange(lblFood, "Food");
@@ -4249,12 +4157,18 @@ private void renderTilesAndUpdate() {
 
         for (BuildingManager.ConstructionOption option : options) {
             Table itemTable = new Table();
+            // a dark card so the text is readable on the grey list, and the state is visible at a glance
+            itemTable.setBackground(skin.newDrawable("white", option.isActionable
+                ? new Color(0.13f, 0.19f, 0.15f, 1f) : new Color(0.17f, 0.15f, 0.15f, 1f)));
             itemTable.add(createPlaceholder(option.displayName, 1)).width(80).height(80).pad(5);
 
             Table infoTable = new Table();
-            infoTable.add(new Label(option.displayName, skin)).left().row();
+            Label nameLabel = new Label(option.displayName, skin);
+            nameLabel.setColor(UiTheme.GOLD);
+            infoTable.add(nameLabel).left().row();
             Label costLabel = new Label(option.costString, skin);
             costLabel.setFontScale(0.8f);
+            costLabel.setColor(option.isActionable ? Color.WHITE : UiTheme.MUTED);
             infoTable.add(costLabel).left().row();
 
             Label statusLabel = new Label(option.statusMessage, skin);
@@ -4265,7 +4179,8 @@ private void renderTilesAndUpdate() {
             infoTable.add(statusLabel).left();
 
             itemTable.add(infoTable).left().expandX().fillX();
-            TextButton chooseButton = new TextButton("Select", skin);
+            TextButton chooseButton = new TextButton("Select", skin,
+                option.isActionable && skin.has("primary", TextButton.TextButtonStyle.class) ? "primary" : "default");
 
             if (!option.isActionable) {
                 chooseButton.setDisabled(true);
@@ -4477,17 +4392,28 @@ private void renderTilesAndUpdate() {
             currentMusicTheme = kingdomTheme;
         }
     }
+private long lastRefreshErrorLog = 0L;
+
 @Override
 public void render(float delta) {
     updateWorkBars(delta); // progress bars move every 0.25 s, not only when the grid is rebuilt
     // 1. آپدیت زمان و لاجیک
     timeSinceLastUpdate += delta;
     if (timeSinceLastUpdate >= REFRESH_INTERVAL) {
-        mediator.startLoopManager(); // watchdog: restarts the game loop if it never started or died (no-op when running)
-        refreshDynamicInfo();
-        updateGameMusic();
-        updateAtmosphere(); // آپدیت رنگ محیط
         timeSinceLastUpdate = 0f;
+        // One failing refresh must never take the whole screen down: log it (once a while) and try again next tick.
+        try {
+            mediator.startLoopManager(); // watchdog: restarts the game loop if it never started or died (no-op when running)
+            refreshDynamicInfo();
+            updateGameMusic();
+            updateAtmosphere(); // آپدیت رنگ محیط
+        } catch (RuntimeException e) {
+            long now = System.currentTimeMillis();
+            if (now - lastRefreshErrorLog > 10000L) {
+                lastRefreshErrorLog = now;
+                com.yourname.got.logic.util.GameLog.info("UI refresh failed, will retry: " + e);
+            }
+        }
     }
 
     // 2. پاک کردن صفحه
@@ -4831,65 +4757,6 @@ public void render(float delta) {
     }
 
     // متد اصلاح شده برای نمایش لاگ‌ها به صورت انگلیسی و بدون ایموجی (برای جلوگیری از ارور فونت)
-    private void addEventToLogTable(Table logTable, BattleEvent event, Skin skin, ProgressBar atkBar, ProgressBar defBar) {
-        Table row = new Table(skin);
-        row.pad(5);
-
-        if (event instanceof EventTextLog) {
-            String msg = ((EventTextLog) event).message;
-
-            // فیلتر کردن پیام‌های فنی
-            if (msg.contains("calc") || msg.contains("totalDamage")) return;
-
-            // ترجمه و تمیز کردن متن (تبدیل به انگلیسی)
-            String displayMsg = formatBattleMessage(msg);
-
-            Label lbl = new Label(displayMsg, skin);
-            lbl.setWrap(true);
-
-            // رنگ‌بندی بر اساس محتوا (انگلیسی)
-            if (displayMsg.contains("Started") || displayMsg.contains("Round")) {
-                row.setBackground(skin.newDrawable("white", new Color(0, 0.5f, 0, 0.3f)));
-                lbl.setColor(Color.WHITE);
-                lbl.setFontScale(1.0f);
-            }
-            else if (displayMsg.contains("Attacker") || displayMsg.contains("Attackers")) {
-                lbl.setColor(new Color(1f, 0.7f, 0.7f, 1f)); // قرمز روشن
-                Label tag = new Label("[ATK]", skin); // جایگزین شمشیر
-                tag.setColor(Color.ORANGE);
-                row.add(tag).padRight(10);
-            }
-            else if (displayMsg.contains("Defender") || displayMsg.contains("Defenders") || displayMsg.contains("Archers")) {
-                lbl.setColor(new Color(0.7f, 0.8f, 1f, 1f)); // آبی روشن
-                Label tag = new Label("[DEF]", skin); // جایگزین سپر
-                tag.setColor(Color.CYAN);
-                row.add(tag).padRight(10);
-            }
-            else if (displayMsg.contains("Victory") || displayMsg.contains("Defeated") || displayMsg.contains("Won")) {
-                lbl.setColor(Color.GOLD);
-                row.setBackground(skin.newDrawable("white", new Color(0.2f, 0.2f, 0, 0.5f)));
-            } else {
-                lbl.setColor(Color.LIGHT_GRAY);
-            }
-
-            row.add(lbl).growX().left();
-            logTable.add(row).growX().padBottom(2).row();
-
-        } else if (event instanceof EventRoundUpdate) {
-            EventRoundUpdate update = (EventRoundUpdate) event;
-            atkBar.setValue(update.attackerTotalHealth);
-            defBar.setValue(update.defenderTotalHealth);
-
-        } else if (event instanceof EventHeroDuel) {
-            EventHeroDuel duel = (EventHeroDuel) event;
-            Label lbl = new Label(">>> HERO DUEL: " + duel.attackerHero + " vs " + duel.defenderHero, skin);
-            lbl.setColor(Color.ORANGE);
-            lbl.setFontScale(1.1f);
-            row.add(lbl).center();
-            row.setBackground(skin.newDrawable("white", new Color(0.5f, 0, 0, 0.5f)));
-            logTable.add(row).growX().padTop(10).padBottom(10).row();
-        }
-    }
 
     // متد برای انگلیسی کردن و تمیز کردن متن‌ها
     private String formatBattleMessage(String msg) {

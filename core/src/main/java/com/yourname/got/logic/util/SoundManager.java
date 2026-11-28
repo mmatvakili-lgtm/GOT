@@ -51,7 +51,7 @@ public class SoundManager {
         Sound soundToPlay = soundMap.get(name);
 
         if (soundToPlay != null) {
-            soundToPlay.play(volume);
+            soundToPlay.play(volume * UserSettings.getSfxVolume());
             Gdx.app.log(LOG_TAG, "✅ SUCCESS: Play command for '" + name + "' sent!");
             return true;
         } else {

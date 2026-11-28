@@ -31,7 +31,7 @@ public class GameLoadingScreen implements Screen {
         Gdx.input.setInputProcessor(stage);
 
         background = new Texture("images/background-loding.jpg");
-        skin = new Skin(Gdx.files.internal("ui/plain-james-ui.json"));
+        skin = UiTheme.loadSkin();
 
         createUI();
     }
@@ -44,19 +44,23 @@ public class GameLoadingScreen implements Screen {
         float marginLeft = 280;
         float marginTop = 380; // کمی بالاتر بردیم تا دکمه جدید جا شود
         float buttonWidth = 300;
-        float buttonHeight = 60;
-        float verticalSpacing = 20; // فاصله عمودی بین دکمه‌ها
+        float buttonHeight = 50;
+        float verticalSpacing = 12; // فاصله عمودی بین دکمه‌ها
 
         // --- ایجاد دکمه‌ها ---
         TextButton createGameButton = new TextButton("Create a new game", skin);
         TextButton joinGameButton = new TextButton("Join to existing games", skin);
         TextButton historyButton = new TextButton("Game History", skin); // <<<< دکمه جدید
+        TextButton leaderboardButton = new TextButton("Leaderboard", skin);
+        TextButton settingsButton = new TextButton("Settings", skin);
         TextButton logoutButton = new TextButton("Logout", skin);
 
         // --- تعیین اندازه دکمه‌ها ---
         createGameButton.setSize(buttonWidth, buttonHeight);
         joinGameButton.setSize(buttonWidth, buttonHeight);
         historyButton.setSize(buttonWidth, buttonHeight); // <<<< تعیین اندازه دکمه جدید
+        leaderboardButton.setSize(buttonWidth, buttonHeight);
+        settingsButton.setSize(buttonWidth, buttonHeight);
         logoutButton.setSize(buttonWidth, buttonHeight);
 
         // --- تعیین موقعیت دکمه‌ها به صورت پله‌ای ---
@@ -68,6 +72,12 @@ public class GameLoadingScreen implements Screen {
 
         currentY -= (buttonHeight + verticalSpacing);
         historyButton.setPosition(marginLeft, currentY); // <<<< تعیین موقعیت دکمه جدید
+
+        currentY -= (buttonHeight + verticalSpacing);
+        leaderboardButton.setPosition(marginLeft, currentY);
+
+        currentY -= (buttonHeight + verticalSpacing);
+        settingsButton.setPosition(marginLeft, currentY);
 
         currentY -= (buttonHeight + verticalSpacing);
         logoutButton.setPosition(marginLeft, currentY);
@@ -93,6 +103,18 @@ public class GameLoadingScreen implements Screen {
             }
         });
 
+        leaderboardButton.addListener(new ClickListener() {
+            @Override public void clicked(InputEvent event, float x, float y) {
+                game.setScreen(new LeaderboardScreen(game, mediator, user));
+            }
+        });
+
+        settingsButton.addListener(new ClickListener() {
+            @Override public void clicked(InputEvent event, float x, float y) {
+                game.setScreen(new SettingsScreen(game, mediator, user));
+            }
+        });
+
         logoutButton.addListener(new ClickListener() {
             @Override public void clicked(InputEvent event, float x, float y) {
                 game.goToLoginScreen();
@@ -103,6 +125,8 @@ public class GameLoadingScreen implements Screen {
         stage.addActor(createGameButton);
         stage.addActor(joinGameButton);
         stage.addActor(historyButton); // <<<< افزودن دکمه جدید به صحنه
+        stage.addActor(leaderboardButton);
+        stage.addActor(settingsButton);
         stage.addActor(logoutButton);
     }
 

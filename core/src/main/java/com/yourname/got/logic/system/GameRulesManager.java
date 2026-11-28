@@ -69,6 +69,15 @@ public class GameRulesManager implements Serializable {
         if (attackerState != null && attackerState.status == GameOfThrones.PlayerStatus.DEFEATED) {
             return new Result(false, "A defeated player cannot attack.");
         }
+        if (com.yourname.got.logic.system.Diplomacy.enabled()) {
+            com.yourname.got.logic.system.Diplomacy.Pact pact =
+                game.getDiplomacy().pactBetween(attacker.getId(), defender.getId(), game.getGameTime().getDay());
+            if (pact != null) {
+                return new Result(false, (pact.type == com.yourname.got.logic.system.Diplomacy.Type.ALLIANCE
+                    ? "You are allied with " : "You have a peace treaty with ") + defender.getUsername()
+                    + (pact.endDay > 0 ? " (until day " + pact.endDay + ")" : "") + ". Cancel it in Extra > Diplomacy first.");
+            }
+        }
         if (isSpringSeason() || isWinterSeason()) {
             return new Result(false, "Attacks are not allowed in the " + getCurrentSeason() + " season.");
         }

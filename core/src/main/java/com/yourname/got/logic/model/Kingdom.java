@@ -17,6 +17,20 @@ import java.time.LocalDateTime;
 
 public class Kingdom implements Serializable {
     private static final long serialVersionUID = 272020211868870129L;
+
+    /** Research tree state (null in games saved before the research tree existed; created on first use). */
+    private com.yourname.got.logic.research.ResearchState research;
+
+    /** Walking speed of this kingdom's armies, with the "War Horses" research (1.0 = normal). */
+    public Double getMarchSpeed() {
+        return getArmyManager().getSoldierSpeed()
+            * com.yourname.got.logic.research.Research.multiplier(this, com.yourname.got.logic.research.Effect.MARCH_SPEED);
+    }
+
+    public com.yourname.got.logic.research.ResearchState getResearch() {
+        if (research == null) research = new com.yourname.got.logic.research.ResearchState();
+        return research;
+    }
     private KingdomType type;
     private MyLinkedList<Building> buildings;
     private MyLinkedList<Mine> mines;
@@ -676,6 +690,10 @@ public int getTotalSoldierCapacity() {
             Storage storage = (Storage) destroyedBuilding;
             int lootPercent = com.yourname.got.logic.Balance.BalanceConfig.integer("loot.percent", 50, 0, 100);
             int taken = (int) ((long) storage.getQuantity() * lootPercent / 100);
+            if (attackerKingdom != null) { // "Spoils of War"
+                taken = (int) Math.min((long) storage.getQuantity(), Math.round(taken
+                    * com.yourname.got.logic.research.Research.multiplier(attackerKingdom, com.yourname.got.logic.research.Effect.LOOT)));
+            }
             if (taken > 0) {
                 storage.useResource(taken);
                 if (attackerKingdom != null) { // White Walkers (no attacker kingdom) just destroy the stock

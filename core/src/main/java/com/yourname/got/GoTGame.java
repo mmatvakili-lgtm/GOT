@@ -63,7 +63,9 @@ public class GoTGame extends Game implements GameMessageListener {
         mediator = new GameMediator(this);
         soundManager = new SoundManager(); // <-- این خط را اضافه کنید
 
+        com.yourname.got.logic.util.UserSettings.load();
         musicManager = new MusicManager();
+        musicManager.setVolume(com.yourname.got.logic.util.UserSettings.getMusicVolume());
 
         musicManager.loadMusic("main_menu", "audio/main_menu_theme.mp3");
         musicManager.loadMusic("gameplay_snow", "audio/winterfell_theme.mp3");

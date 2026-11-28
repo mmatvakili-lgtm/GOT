@@ -81,6 +81,23 @@ public class GameLoopManager extends Thread {
         GameLog.info("Game loop has gracefully ended.");
     }
 
+    /**
+     * The loop only drives the logged-in player; bots have nobody to do it for them, so their mines, barracks and
+     * buildings advance here. (They deliberately skip GameUpdater.updateUser: that also seeds market offers.)
+     */
+    private void tickBots() {
+        GameUser[] all = game.getUsers();
+        if (all == null) return;
+        for (GameUser u : all) {
+            if (!com.yourname.got.logic.login.BotUser.isBot(u) || u.getKingdom() == null) continue;
+            try {
+                KingdomUpdater.updateKingdom(u.getKingdom(), game.getSpeed());
+            } catch (Exception e) {
+                com.yourname.got.logic.util.GameLog.error("Bot update failed for " + u.getUsername() + ": " + e);
+            }
+        }
+    }
+
     /** One game tick. Always runs on a single thread (see class comment). */
     private void tick() {
         try {
@@ -92,6 +109,8 @@ public class GameLoopManager extends Thread {
                     mediator.triggerUIRefresh(user.getId());
                 }
             });
+
+            tickBots();
 
             if (game.getBazar() != null) {
                 // Expired deals used to be noticed only when somebody opened the market panel.

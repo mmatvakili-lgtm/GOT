@@ -226,6 +226,7 @@ public class GameFileUtility {
 
         File inputFile = new File(MAIN_FILE);
         File tempFile = new File("temp.txt");
+        boolean listWritten = false;
 
         try (
             BufferedReader reader = new BufferedReader(new FileReader(inputFile));
@@ -240,17 +241,23 @@ public class GameFileUtility {
                     writer.newLine();
                 }
             }
+            listWritten = true;
         } catch (IOException e) {
+            listWritten = false; // closing the writer failed too: the temp file may be incomplete
             GameLog.error("خطا در حذف بازی از لیست لابی: " + e.getMessage());
         }
 
-        inputFile.delete();
-        tempFile.renameTo(inputFile);
+        if (listWritten) {
+            com.yourname.got.logic.util.SafeFiles.replaceQuietly(tempFile, inputFile);
+        } else {
+            tempFile.delete(); // keep the old, complete list
+        }
         GameLog.info("INFO: بازی '" + game.getName() + "' از لیست لابی حذف شد و به وضعیت 'در حال اجرا' درآمد.");
     }
     public static void deleteGameFromList(String lineToRemove) {
         File inputFile = new File(MAIN_FILE);
         File tempFile = new File("temp.txt");
+        boolean listWritten = false;
 
         try (
             BufferedReader reader = new BufferedReader(new FileReader(inputFile));
@@ -262,12 +269,17 @@ public class GameFileUtility {
                     writer.write(currentLine + System.getProperty("line.separator"));
                 }
             }
+            listWritten = true;
         } catch (IOException e) {
+            listWritten = false; // closing the writer failed too: the temp file may be incomplete
             GameLog.error("خطا در حذف خط از فایل: " + e.getMessage());
         }
 
-        inputFile.delete();
-        tempFile.renameTo(inputFile);
+        if (listWritten) {
+            com.yourname.got.logic.util.SafeFiles.replaceQuietly(tempFile, inputFile);
+        } else {
+            tempFile.delete(); // keep the old, complete list
+        }
     }
 
     public static void deleteGame(GameOfThrones game) {
@@ -282,7 +294,7 @@ public class GameFileUtility {
         }
 
         for (int i = 0; i < game.getNumberOfPlayers(); i++) {
-            if(game.getUsers()[i] != null){
+            if(game.getUsers()[i] != null && !BotUser.isBot(game.getUsers()[i])){
                 game.getUsers()[i].setGame(null);
                 game.getUsers()[i].setInGame(false);
                 game.getOwner().isInGame = false;
@@ -292,6 +304,7 @@ public class GameFileUtility {
 
         File inputFile = new File(MAIN_FILE);
         File tempFile = new File("temp.txt");
+        boolean listWritten = false;
 
         try (
             BufferedReader reader = new BufferedReader(new FileReader(inputFile));
@@ -305,12 +318,17 @@ public class GameFileUtility {
                     writer.newLine();
                 }
             }
+            listWritten = true;
         } catch (IOException e) {
+            listWritten = false; // closing the writer failed too: the temp file may be incomplete
             GameLog.error("خطا در حذف بازی از لیست: " + e.getMessage());
         }
 
-        inputFile.delete();
-        tempFile.renameTo(inputFile);
+        if (listWritten) {
+            com.yourname.got.logic.util.SafeFiles.replaceQuietly(tempFile, inputFile);
+        } else {
+            tempFile.delete(); // keep the old, complete list
+        }
     }
 
 
@@ -507,7 +525,7 @@ public class GameFileUtility {
             return;
         }
         for (GameUser user : players) {
-            if (user != null) {
+            if (user != null && !BotUser.isBot(user)) { // bots live only in the game file
                 UserSystem.updateUser(user);
             }
         }

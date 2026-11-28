@@ -4,6 +4,7 @@ package com.yourname.got.logic.system;
 
 
 import com.yourname.got.logic.util.GameLog;
+import com.yourname.got.logic.login.BotUser;
 import com.yourname.got.logic.login.GameUser;
 import com.yourname.got.logic.model.GameOfThrones;
 import com.yourname.got.logic.util.MyLinkedList;
@@ -55,6 +56,23 @@ public class GameUpdater implements Serializable {
             game.getGameTime().updateTime();
             int currentDay = game.getGameTime().getDay();
             game.getWhiteWalkerManager().onDayAdvanced(currentDay);
+            try {
+                for (GameUser u : game.getUsers()) {
+                    if (u instanceof BotUser bot) {
+                        if (BotUser.growthPerDay() > 0) bot.reinforce(currentDay);
+                        bot.develop(currentDay);
+                        bot.train(currentDay);
+                        BotAttacker.tryAttack(game, bot, currentDay);
+                    }
+                }
+            } catch (RuntimeException e) {
+                GameLog.error("Bot reinforcement failed (the game goes on): " + e);
+            }
+            try {
+                SeasonalEvents.onDayAdvanced(game, currentDay);
+            } catch (RuntimeException e) {
+                GameLog.error("Seasonal event failed (the game goes on): " + e);
+            }
             game.checkMissions();
             game.checkGameOver();
         } catch (Exception e) {

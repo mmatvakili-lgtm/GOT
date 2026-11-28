@@ -51,7 +51,7 @@ public class LoginScreen extends ScreenAdapter implements GameMessageListener {
         Gdx.input.setInputProcessor(stage);
 
         background = new Texture("images/background2.jpg");
-        skin = new Skin(Gdx.files.internal("ui/plain-james-ui.json"));
+        skin = UiTheme.loadSkin();
 
         Table table = new Table();
         table.setFillParent(true);
@@ -226,12 +226,14 @@ public class LoginScreen extends ScreenAdapter implements GameMessageListener {
         TextButton addNoticeBtn = new TextButton("Add New Notice", skin);
         TextButton deleteNoticeBtn = new TextButton("Delete Notice", skin);
         TextButton configBtn = new TextButton("Manage Global Config", skin);
+        TextButton featuresBtn = new TextButton("Features Control Center", skin);
         TextButton backBtn = new TextButton("Back", skin); // Back button for the main panel
 
         // --- Set Text Color to Black ---
         addNoticeBtn.getLabel().setColor(Color.BLACK);
         deleteNoticeBtn.getLabel().setColor(Color.BLACK);
         configBtn.getLabel().setColor(Color.BLACK);
+        featuresBtn.getLabel().setColor(Color.BLACK);
         backBtn.getLabel().setColor(Color.BLACK);
 
         // --- Add Listeners ---
@@ -253,6 +255,12 @@ public class LoginScreen extends ScreenAdapter implements GameMessageListener {
                 openGlobalConfigWindow();
             }
         });
+        featuresBtn.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                openFeaturesWindow();
+            }
+        });
         backBtn.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
@@ -263,6 +271,7 @@ public class LoginScreen extends ScreenAdapter implements GameMessageListener {
         content.add(addNoticeBtn).width(400).pad(10).row();
         content.add(deleteNoticeBtn).width(400).pad(10).row();
         content.add(configBtn).width(400).pad(10).row();
+        content.add(featuresBtn).width(400).pad(10).row();
         content.add(backBtn).width(200).padTop(20).row();
 
         activeAdminWindow = new Window("Admin Panel", skin);
@@ -399,6 +408,21 @@ public class LoginScreen extends ScreenAdapter implements GameMessageListener {
         activeAdminWindow.add(content);
         activeAdminWindow.pack();
         activeAdminWindow.setPosition( (stage.getWidth() - activeAdminWindow.getWidth()) / 2, (stage.getHeight() - activeAdminWindow.getHeight()) / 2 );
+        stage.addActor(activeAdminWindow);
+    }
+
+    /** Admin only (behind the admin password): the Features Control Center (bots, seasonal events, research tree). */
+    private void openFeaturesWindow() {
+        if (activeAdminWindow != null) activeAdminWindow.remove();
+
+        FeatureControlPanel panel = new FeatureControlPanel(skin, mediator, this::openAdminPanel);
+        activeAdminWindow = new Window("Features Control Center", skin);
+        activeAdminWindow.setModal(true);
+        activeAdminWindow.padTop(36f);
+        activeAdminWindow.add(panel);
+        activeAdminWindow.pack();
+        activeAdminWindow.setPosition((stage.getWidth() - activeAdminWindow.getWidth()) / 2,
+            (stage.getHeight() - activeAdminWindow.getHeight()) / 2);
         stage.addActor(activeAdminWindow);
     }
 

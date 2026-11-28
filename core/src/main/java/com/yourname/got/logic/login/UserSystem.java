@@ -30,6 +30,9 @@ public class UserSystem {
         if (username == null || username.isBlank() || username.contains(",") || username.contains("\n") || username.contains("\r")) {
             return new Result(false, "Username cannot be empty or contain commas or line breaks");
         }
+        if (username.trim().toUpperCase().startsWith(BotUser.NAME_PREFIX)) {
+            return new Result(false, "This name is reserved for computer players");
+        }
         if (password == null || !password.matches("\\d{4}")) {
             return new Result(false, "Password must be exactly 4 digits");
         }
@@ -214,8 +217,8 @@ public class UserSystem {
         String userFolderPath = USERS_DIR + File.separator + "user_" + user.getId();
         String userFilePath = userFolderPath + File.separator + userFileName;
 
-        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(userFilePath))) {
-            out.writeObject(user);
+        try {
+            com.yourname.got.logic.util.SafeFiles.writeObject(new File(userFilePath), user);
         } catch (IOException e) {
             GameLog.error("ERROR: Failed to save user file for " + user.getUsername() + ": " + e.getMessage());
             return new Result(false, "Failed to save user file.");
@@ -250,13 +253,9 @@ public class UserSystem {
             return new Result(false, "Failed to update user index.");
         }
 
-        if (!inputFile.delete()) {
-            GameLog.error("ERROR: Could not delete old index file.");
-            return new Result(false, "Could not finalize user update (delete failed).");
-        }
-        if (!tempFile.renameTo(inputFile)) {
-            GameLog.error("ERROR: Could not rename temp index file.");
-            return new Result(false, "Could not finalize user update (rename failed).");
+        if (!com.yourname.got.logic.util.SafeFiles.replaceQuietly(tempFile, inputFile)) {
+            tempFile.delete();
+            return new Result(false, "Could not finalize user update.");
         }
 
         return new Result(true, "User updated successfully.");
