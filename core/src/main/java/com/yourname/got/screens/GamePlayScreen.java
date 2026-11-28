@@ -4392,17 +4392,28 @@ private void renderTilesAndUpdate() {
             currentMusicTheme = kingdomTheme;
         }
     }
+private long lastRefreshErrorLog = 0L;
+
 @Override
 public void render(float delta) {
     updateWorkBars(delta); // progress bars move every 0.25 s, not only when the grid is rebuilt
     // 1. آپدیت زمان و لاجیک
     timeSinceLastUpdate += delta;
     if (timeSinceLastUpdate >= REFRESH_INTERVAL) {
-        mediator.startLoopManager(); // watchdog: restarts the game loop if it never started or died (no-op when running)
-        refreshDynamicInfo();
-        updateGameMusic();
-        updateAtmosphere(); // آپدیت رنگ محیط
         timeSinceLastUpdate = 0f;
+        // One failing refresh must never take the whole screen down: log it (once a while) and try again next tick.
+        try {
+            mediator.startLoopManager(); // watchdog: restarts the game loop if it never started or died (no-op when running)
+            refreshDynamicInfo();
+            updateGameMusic();
+            updateAtmosphere(); // آپدیت رنگ محیط
+        } catch (RuntimeException e) {
+            long now = System.currentTimeMillis();
+            if (now - lastRefreshErrorLog > 10000L) {
+                lastRefreshErrorLog = now;
+                com.yourname.got.logic.util.GameLog.info("UI refresh failed, will retry: " + e);
+            }
+        }
     }
 
     // 2. پاک کردن صفحه
