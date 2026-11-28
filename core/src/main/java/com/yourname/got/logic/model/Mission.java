@@ -731,6 +731,13 @@ public class Mission implements Serializable {
                 return true;
             }
 
+            if (isWhiteWalkerFight && (round == 1 || round % 2 == 0) && round <= 120) {
+                // the replay of the Long Night shows both armies shrinking round by round
+                getReplayLog().add(new EventTextLog("Round " + round + ": the dead strike with " + atkPower
+                    + " power, your army answers with " + defPower + "."));
+                addArmyState(round == 1 ? "The dead arrive" : "Round " + round, null, 0);
+            }
+
             long damageToDef = (long) (atkPower * (0.6 + 0.2 * rng.nextDouble()));
             long damageToAtk = (long) (defPower * (0.6 + 0.2 * rng.nextDouble()));
 

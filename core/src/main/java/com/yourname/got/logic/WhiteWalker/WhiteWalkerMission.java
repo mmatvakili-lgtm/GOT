@@ -65,7 +65,9 @@ public class WhiteWalkerMission extends Mission implements Serializable {
 
         GameLog.info("\n❄️ [WWMission] White Walker battle starting against " + defUser.getKingdom().getType() + "...");
 
-        getReplayLog().add(new EventTextLog("The White Walkers attack " + defUser.getKingdom().getType() + "!"));
+        getReplayLog().add(new EventTextLog((finalWave ? "THE LONG NIGHT HAS COME! " : "The dead march from beyond the Wall. ")
+            + "The White Walkers attack " + defUser.getKingdom().getType() + "!"));
+        getReplayLog().add(new EventTextLog("Against you: " + WhiteWalkerWave.describe(WhiteWalkerWave.census(getTroopsAttacker())) + "."));
 
         Kingdom kingdom = defUser.getKingdom();
         String enemies = WhiteWalkerWave.describe(WhiteWalkerWave.census(getTroopsAttacker()));
