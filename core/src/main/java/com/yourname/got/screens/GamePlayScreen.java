@@ -3316,6 +3316,12 @@ private void openBattleHistoryPanel() {
     }
 
     public void showGameResultsPanel(GameRecord record) {
+        try {
+            game.setScreen(new EndingCinematicScreen(game, mediator, record, currentUser));
+            return; // the film ends with the final standings and the way back to the menu
+        } catch (RuntimeException e) {
+            GameLog.error("The ending film could not start, showing the plain results: " + e);
+        }
         boolean isWinner = false;
         for (PlayerResult result : record.getPlayerResults()) {
             if (result.getUsername().equals(currentUser.getUsername())) {
